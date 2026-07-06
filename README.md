@@ -1,4 +1,4 @@
-# Kapicua 🁢
+# Kapicua 
 
 Anotador de dominó para mi grupo de amigos, hecho en Flutter con Firebase.
 
