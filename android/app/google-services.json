@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1095247979224",
+    "project_id": "kapicua-domino",
+    "storage_bucket": "kapicua-domino.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1095247979224:android:e4c7604bb75b415d252dad",
+        "android_client_info": {
+          "package_name": "com.kapicua.kapicua"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAz1mhWiiJxTItuM8PwiGUTpHc-mPuxWpM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

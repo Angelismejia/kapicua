@@ -1,0 +1,25 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "kapicua-domino",
+          "appId": "1:1095247979224:android:e4c7604bb75b415d252dad",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "kapicua-domino",
+          "configurations": {
+            "android": "1:1095247979224:android:e4c7604bb75b415d252dad"
+          }
+        }
+      }
+    }
+  }
+}
