@@ -1,20 +1,23 @@
-# Kapicua 
+# Kapicua
 
-Anotador de dominó para mi grupo de amigos, hecho en Flutter con Firebase.
+**Kapicua** es un anotador de dominó hecho en Flutter con Firebase, pensado para llevar el control de partidas entre amigos.
 
 ## ¿Qué hace?
 
-- **Jugadores**: agrega y elimina participantes de la liga (nombre completo + apodo opcional).
-- **Nueva partida**: elige quiénes juegan y la meta de puntos.
-- **Anotador en vivo**: anota los puntos de cada ronda; la app suma el total y detecta al ganador automáticamente.
-- **Historial**: consulta todas las partidas jugadas, ronda por ronda.
-- **Estadísticas**: ganadas, perdidas, total de partidas y porcentaje de victorias de cada jugador.
-- **Ganador del mes**: se calcula solo según las partidas ganadas cada mes.
-- **Certificado de campeón**: genera un certificado con el nombre, mes y puntaje del ganador, listo para descargar, compartir o imprimir.
-- **Modo oscuro** y datos sincronizados en tiempo real para todo el grupo (Firebase Firestore).
+- Agregar y eliminar jugadores de la liga.
+- Crear nuevas partidas con jugadores y meta de puntos.
+- Anotar puntos ronda por ronda.
+- Detectar automáticamente el ganador.
+- Consultar el historial de partidas.
+- Ver estadísticas de cada jugador.
+- Calcular el ganador del mes.
+- Generar certificado de campeón para descargar, compartir o imprimir.
+- Usar modo oscuro.
+- Sincronizar datos en tiempo real con Firebase Firestore.
 
-## Tecnología
+## Tecnologías
 
-- Flutter (Android)
-- Firebase (Firestore + Authentication)
-- Paquete `printing` para generar e imprimir el certificado
+- Flutter
+- Firebase Authentication
+- Firebase Firestore
+- Printing package
