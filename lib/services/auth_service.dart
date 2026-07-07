@@ -55,7 +55,10 @@ class AuthService extends ChangeNotifier {
 
   Future<String?> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(
+        email: email.trim(),
+        actionCodeSettings: ActionCodeSettings(url: 'https://kapicua.web.app'),
+      );
       return null;
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
