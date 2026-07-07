@@ -48,6 +48,19 @@ class FirestoreService {
     await _players.doc(playerId).update({'active': true});
   }
 
+  Future<void> updatePlayer(String playerId, String fullName, {String? shortName}) async {
+    await _players.doc(playerId).update({
+      'fullName': fullName.trim(),
+      'shortName': (shortName == null || shortName.trim().isEmpty) ? null : shortName.trim(),
+    });
+  }
+
+  /// Elimina el jugador de forma permanente, incluso si ya jugó partidas.
+  /// Su nombre dejará de poder mostrarse en partidas/certificados antiguos.
+  Future<void> deletePlayerPermanently(String playerId) async {
+    await _players.doc(playerId).delete();
+  }
+
   // ---- Partidas ----
 
   Stream<Game?> watchActiveGame() {
