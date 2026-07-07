@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../services/theme_controller.dart';
+import 'auth_screen.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -40,7 +41,15 @@ class HelpScreen extends StatelessWidget {
                     : 'Cuenta de jugador.',
               ),
               trailing: TextButton(
-                onPressed: () => auth.signOut(),
+                onPressed: () async {
+                  await auth.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
                 child: const Text('Cerrar sesión'),
               ),
             ),

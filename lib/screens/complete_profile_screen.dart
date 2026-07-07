@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'auth_screen.dart';
 import 'main_shell.dart';
 
 const _newPlayerSentinel = '__new__';
@@ -48,7 +49,15 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         title: const Text('Completa tu perfil'),
         actions: [
           TextButton(
-            onPressed: () => auth.signOut(),
+            onPressed: () async {
+              await auth.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+              }
+            },
             child: const Text('Cancelar'),
           ),
         ],

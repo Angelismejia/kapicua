@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'auth_screen.dart';
 import 'complete_profile_screen.dart';
 import 'main_shell.dart';
 
@@ -42,7 +43,15 @@ class _FamilyGateScreenState extends State<FamilyGateScreen> {
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
-            onPressed: () => auth.signOut(),
+            onPressed: () async {
+              await auth.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+              }
+            },
             child: const Text('Cancelar'),
           ),
         ],
