@@ -187,6 +187,18 @@ class FirestoreService {
     return doc.id;
   }
 
+  /// Cancela una partida en curso (por si se quiere reiniciar) sin
+  /// contarla como jugada. Borra también las rondas ya anotadas.
+  Future<void> cancelGame(String gameId) async {
+    final roundsSnap = await _games.doc(gameId).collection('rounds').get();
+    final batch = _db.batch();
+    for (final doc in roundsSnap.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(_games.doc(gameId));
+    await batch.commit();
+  }
+
   Future<void> addRound(String gameId, int teamAPoints, int teamBPoints) async {
     final gameRef = _games.doc(gameId);
     await _db.runTransaction((tx) async {

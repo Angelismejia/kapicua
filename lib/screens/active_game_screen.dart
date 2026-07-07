@@ -27,7 +27,16 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     final firestore = context.read<FirestoreService>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Partida en curso')),
+      appBar: AppBar(
+        title: const Text('Partida en curso'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.restart_alt),
+            tooltip: 'Cancelar partida',
+            onPressed: () => _confirmCancel(context, firestore),
+          ),
+        ],
+      ),
       body: StreamBuilder<Game?>(
         stream: firestore.watchGame(widget.gameId),
         builder: (context, gameSnapshot) {
@@ -218,6 +227,36 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmCancel(BuildContext context, FirestoreService firestore) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancelar partida'),
+        content: const Text(
+          '¿Seguro que quieres cancelar esta partida? Se borrarán las rondas '
+          'anotadas y podrás iniciar una nueva.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () async {
+              await firestore.cancelGame(widget.gameId);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Sí, cancelar'),
+          ),
+        ],
       ),
     );
   }

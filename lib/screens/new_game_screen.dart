@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/player.dart';
-import '../services/admin_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/add_player_dialog.dart';
 import 'active_game_screen.dart';
@@ -33,18 +32,16 @@ class _NewGameScreenState extends State<NewGameScreen> {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
-    final isAdmin = context.watch<AdminService>().isAdmin;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nueva partida'),
         actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.person_add_alt_1),
-              tooltip: 'Agregar jugador a la liga',
-              onPressed: () => showAddPlayerDialog(context, firestore),
-            ),
+          IconButton(
+            icon: const Icon(Icons.person_add_alt_1),
+            tooltip: 'Agregar jugador a la liga',
+            onPressed: () => showAddPlayerDialog(context, firestore),
+          ),
         ],
       ),
       body: StreamBuilder<List<Player>>(
