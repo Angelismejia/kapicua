@@ -4,7 +4,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell.dart';
+import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/device_player_service.dart';
 import 'services/firestore_service.dart';
@@ -19,10 +20,13 @@ Future<void> main() async {
   await themeController.load();
   final devicePlayerService = DevicePlayerService();
   await devicePlayerService.load();
+  final adminService = AdminService();
+  await adminService.load();
   runApp(
     KapicuaApp(
       themeController: themeController,
       devicePlayerService: devicePlayerService,
+      adminService: adminService,
     ),
   );
 }
@@ -30,11 +34,13 @@ Future<void> main() async {
 class KapicuaApp extends StatelessWidget {
   final ThemeController themeController;
   final DevicePlayerService devicePlayerService;
+  final AdminService adminService;
 
   const KapicuaApp({
     super.key,
     required this.themeController,
     required this.devicePlayerService,
+    required this.adminService,
   });
 
   @override
@@ -46,6 +52,7 @@ class KapicuaApp extends StatelessWidget {
         ChangeNotifierProvider<DevicePlayerService>.value(
           value: devicePlayerService,
         ),
+        ChangeNotifierProvider<AdminService>.value(value: adminService),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, _) {
@@ -57,6 +64,19 @@ class KapicuaApp extends StatelessWidget {
                 seedColor: const Color(0xFF2E7D32),
               ),
               useMaterial3: true,
+              fontFamily: 'Poppins',
+              scaffoldBackgroundColor: const Color(0xFFF7F8F7),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
+              ),
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
             ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
@@ -64,6 +84,18 @@ class KapicuaApp extends StatelessWidget {
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
+              fontFamily: 'Poppins',
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
+              ),
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
             ),
             builder: (context, child) {
               return Container(
@@ -76,7 +108,7 @@ class KapicuaApp extends StatelessWidget {
                 ),
               );
             },
-            home: const HomeScreen(),
+            home: const MainShell(),
           );
         },
       ),
