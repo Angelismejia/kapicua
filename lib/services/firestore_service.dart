@@ -8,10 +8,17 @@ import '../models/round.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> get _players =>
-      _db.collection('players');
-  CollectionReference<Map<String, dynamic>> get _games =>
-      _db.collection('games');
+  /// Si es true, todas las colecciones usadas son el espacio propio del
+  /// invitado (guestSpaces/{guestUid}) en vez de los datos de la familia.
+  bool isGuest = false;
+  String? guestUid;
+
+  CollectionReference<Map<String, dynamic>> get _players => isGuest
+      ? _db.collection('guestSpaces').doc(guestUid).collection('players')
+      : _db.collection('players');
+  CollectionReference<Map<String, dynamic>> get _games => isGuest
+      ? _db.collection('guestSpaces').doc(guestUid).collection('games')
+      : _db.collection('games');
 
   // ---- Jugadores ----
 
@@ -237,6 +244,19 @@ class FirestoreService {
             ? null
             : Timestamp.fromDate(DateTime.now()),
       });
+    });
+  }
+
+  // ---- Invitados (fuera de la familia) ----
+
+  Future<bool> hasGuestProfile(String uid) async {
+    final doc = await _db.collection('guestSpaces').doc(uid).get();
+    return doc.exists;
+  }
+
+  Future<void> createGuestProfile(String uid) async {
+    await _db.collection('guestSpaces').doc(uid).set({
+      'createdAt': Timestamp.fromDate(DateTime.now()),
     });
   }
 }

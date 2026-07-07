@@ -46,3 +46,6 @@ app.*.map.json
 
 # Firebase Hosting local deploy cache
 .firebase/
+
+# PIN familiar (no debe subirse al repositorio)
+family_pin.local

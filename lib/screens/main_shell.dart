@@ -25,13 +25,15 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
+    final isGuest = firestore.isGuest;
 
     final tabs = [
       HomeTab(onNavigateTab: _goToTab),
       const StatsScreen(),
-      const CertificadosTab(),
+      if (!isGuest) const CertificadosTab(),
       const PlayersScreen(),
     ];
+    if (_index >= tabs.length) _index = tabs.length - 1;
 
     return Scaffold(
       body: IndexedStack(index: _index, children: tabs),
@@ -57,23 +59,24 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Inicio',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events),
             label: 'Estadísticas',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.workspace_premium_outlined),
-            selectedIcon: Icon(Icons.workspace_premium),
-            label: 'Certificados',
-          ),
-          NavigationDestination(
+          if (!isGuest)
+            const NavigationDestination(
+              icon: Icon(Icons.workspace_premium_outlined),
+              selectedIcon: Icon(Icons.workspace_premium),
+              label: 'Certificados',
+            ),
+          const NavigationDestination(
             icon: Icon(Icons.groups_outlined),
             selectedIcon: Icon(Icons.groups),
             label: 'Liga',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/game.dart';
 import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../models/player_stats.dart';
@@ -17,6 +18,10 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
+    if (firestore.isGuest) {
+      return _GuestStatsBody(firestore: firestore);
+    }
+
     final isAdmin = context.watch<AuthService>().isAdmin;
 
     return Scaffold(
@@ -76,47 +81,10 @@ class StatsScreen extends StatelessWidget {
                   if (monthlyWinner != null)
                     MonthlyWinnerCard(result: monthlyWinner),
                   const SizedBox(height: 16),
-                  Card(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columnSpacing: 16,
-                        horizontalMargin: 12,
-                        columns: const [
-                          DataColumn(label: Text('Jugador')),
-                          DataColumn(label: Text('Gan.'), numeric: true),
-                          DataColumn(label: Text('Perd.'), numeric: true),
-                          DataColumn(label: Text('Total'), numeric: true),
-                          DataColumn(label: Text('%'), numeric: true),
-                        ],
-                        rows: stats.map((s) {
-                          return DataRow(
-                            cells: [
-                              DataCell(
-                                Text(
-                                  s.player.displayName,
-                                  style: const TextStyle(
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                                onTap: () => showPlayerStatHistoryDialog(
-                                  context,
-                                  firestore,
-                                  s.player,
-                                  isAdmin,
-                                ),
-                              ),
-                              DataCell(Text('${s.gamesWon}')),
-                              DataCell(Text('${s.gamesLost}')),
-                              DataCell(Text('${s.gamesPlayed}')),
-                              DataCell(
-                                Text('${s.winPercentage.toStringAsFixed(1)}%'),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
+                  _StatsTable(
+                    stats: stats,
+                    isAdmin: isAdmin,
+                    firestore: firestore,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -129,6 +97,130 @@ class StatsScreen extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _GuestStatsBody extends StatelessWidget {
+  final FirestoreService firestore;
+
+  const _GuestStatsBody({required this.firestore});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Estadísticas')),
+      body: StreamBuilder<List<Player>>(
+        stream: firestore.watchAllPlayers(),
+        builder: (context, playersSnapshot) {
+          final players = playersSnapshot.data ?? [];
+          return StreamBuilder<List<Game>>(
+            stream: firestore.watchFinishedGames(),
+            builder: (context, gamesSnapshot) {
+              final games = gamesSnapshot.data ?? [];
+
+              final stats =
+                  players.map((player) {
+                    var won = 0;
+                    var lost = 0;
+                    for (final g in games) {
+                      final inA = g.teamAPlayerIds.contains(player.id);
+                      final inB = g.teamBPlayerIds.contains(player.id);
+                      if (!inA && !inB) continue;
+                      final playerWon =
+                          (inA && g.winner == 'A') || (inB && g.winner == 'B');
+                      if (playerWon) {
+                        won++;
+                      } else {
+                        lost++;
+                      }
+                    }
+                    return PlayerStats(
+                      player: player,
+                      gamesWon: won,
+                      gamesLost: lost,
+                    );
+                  }).toList()..sort(
+                    (a, b) => b.winPercentage.compareTo(a.winPercentage),
+                  );
+
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _StatsTable(
+                    stats: stats,
+                    isAdmin: false,
+                    firestore: firestore,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Calculado automáticamente según tus partidas jugadas.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StatsTable extends StatelessWidget {
+  final List<PlayerStats> stats;
+  final bool isAdmin;
+  final FirestoreService firestore;
+
+  const _StatsTable({
+    required this.stats,
+    required this.isAdmin,
+    required this.firestore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columnSpacing: 16,
+          horizontalMargin: 12,
+          columns: const [
+            DataColumn(label: Text('Jugador')),
+            DataColumn(label: Text('Gan.'), numeric: true),
+            DataColumn(label: Text('Perd.'), numeric: true),
+            DataColumn(label: Text('Total'), numeric: true),
+            DataColumn(label: Text('%'), numeric: true),
+          ],
+          rows: stats.map((s) {
+            return DataRow(
+              cells: [
+                DataCell(
+                  Text(
+                    s.player.displayName,
+                    style: isAdmin
+                        ? const TextStyle(decoration: TextDecoration.underline)
+                        : null,
+                  ),
+                  onTap: isAdmin
+                      ? () => showPlayerStatHistoryDialog(
+                          context,
+                          firestore,
+                          s.player,
+                          isAdmin,
+                        )
+                      : null,
+                ),
+                DataCell(Text('${s.gamesWon}')),
+                DataCell(Text('${s.gamesLost}')),
+                DataCell(Text('${s.gamesPlayed}')),
+                DataCell(Text('${s.winPercentage.toStringAsFixed(1)}%')),
+              ],
+            );
+          }).toList(),
+        ),
       ),
     );
   }
