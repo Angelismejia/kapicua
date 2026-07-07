@@ -118,6 +118,11 @@ class KapicuaApp extends StatelessWidget {
                   return const MainShell();
                 }
 
+                // Cuenta real (Google): asegura que no quede pegado en un
+                // espacio de invitado viejo de una sesión anónima anterior.
+                firestoreService.isGuest = false;
+                firestoreService.guestUid = null;
+
                 return StreamBuilder<List<Player>>(
                   stream: firestoreService.watchAllPlayers(),
                   builder: (context, playersSnapshot) {
