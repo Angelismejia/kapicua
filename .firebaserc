@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "kapicua-domino": {
+      "hosting": {
+        "kapicua": [
+          "kapicua"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
