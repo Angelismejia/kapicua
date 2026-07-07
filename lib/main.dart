@@ -25,6 +25,73 @@ Future<void> main() async {
   );
 }
 
+Widget _loadingScaffold() {
+  return const Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Un momento...'),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Resuelve si el usuario entra como invitado o debe ver el PIN familiar.
+/// Guarda el Future en el estado para no repetir la consulta cada vez que
+/// la lista de jugadores se actualiza (lo que antes hacía parpadear la
+/// pantalla de carga).
+class _GuestOrFamilyGate extends StatefulWidget {
+  final String uid;
+
+  const _GuestOrFamilyGate({required this.uid});
+
+  @override
+  State<_GuestOrFamilyGate> createState() => _GuestOrFamilyGateState();
+}
+
+class _GuestOrFamilyGateState extends State<_GuestOrFamilyGate> {
+  late Future<bool> _guestFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _guestFuture = context.read<FirestoreService>().hasGuestProfile(widget.uid);
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuestOrFamilyGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.uid != widget.uid) {
+      _guestFuture = context.read<FirestoreService>().hasGuestProfile(
+        widget.uid,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final firestoreService = context.read<FirestoreService>();
+    return FutureBuilder<bool>(
+      future: _guestFuture,
+      builder: (context, guestSnapshot) {
+        if (!guestSnapshot.hasData) {
+          return _loadingScaffold();
+        }
+        if (guestSnapshot.data == true) {
+          firestoreService.isGuest = true;
+          firestoreService.guestUid = widget.uid;
+          return const MainShell();
+        }
+        return const FamilyGateScreen();
+      },
+    );
+  }
+}
+
 class KapicuaApp extends StatelessWidget {
   final ThemeController themeController;
   final AuthService authService;
@@ -101,9 +168,7 @@ class KapicuaApp extends StatelessWidget {
               stream: FirebaseAuth.instance.authStateChanges(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
+                  return _loadingScaffold();
                 }
                 final user = snapshot.data;
                 if (user == null) return const AuthScreen();
@@ -118,8 +183,9 @@ class KapicuaApp extends StatelessWidget {
                   return const MainShell();
                 }
 
-                // Cuenta real (Google): asegura que no quede pegado en un
-                // espacio de invitado viejo de una sesión anónima anterior.
+                // Cuenta real (correo y contraseña): asegura que no quede
+                // pegado en un espacio de invitado viejo de una sesión
+                // anónima anterior.
                 firestoreService.isGuest = false;
                 firestoreService.guestUid = null;
 
@@ -127,9 +193,7 @@ class KapicuaApp extends StatelessWidget {
                   stream: firestoreService.watchAllPlayers(),
                   builder: (context, playersSnapshot) {
                     if (!playersSnapshot.hasData) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
+                      return _loadingScaffold();
                     }
                     final hasLinkedPlayer = playersSnapshot.data!.any(
                       (p) => p.authUid == user.uid,
@@ -139,22 +203,7 @@ class KapicuaApp extends StatelessWidget {
                       return const MainShell();
                     }
 
-                    return FutureBuilder<bool>(
-                      future: firestoreService.hasGuestProfile(user.uid),
-                      builder: (context, guestSnapshot) {
-                        if (!guestSnapshot.hasData) {
-                          return const Scaffold(
-                            body: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-                        if (guestSnapshot.data == true) {
-                          firestoreService.isGuest = true;
-                          firestoreService.guestUid = user.uid;
-                          return const MainShell();
-                        }
-                        return const FamilyGateScreen();
-                      },
-                    );
+                    return _GuestOrFamilyGate(uid: user.uid);
                   },
                 );
               },
