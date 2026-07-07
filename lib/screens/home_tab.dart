@@ -5,9 +5,8 @@ import 'package:provider/provider.dart';
 import '../models/game.dart';
 import '../models/player.dart';
 import '../models/player_stat_entry.dart';
-import '../services/device_player_service.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
-import '../widgets/who_are_you_dialog.dart';
 import 'active_game_screen.dart';
 import 'help_screen.dart';
 import 'history_screen.dart';
@@ -23,7 +22,6 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  bool _offeredWhoAreYou = false;
   final PageController _bannerController = PageController();
   int _bannerPage = 0;
 
@@ -43,7 +41,7 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
-    final devicePlayer = context.watch<DevicePlayerService>();
+    final auth = context.watch<AuthService>();
     final colorScheme = Theme.of(context).colorScheme;
 
     return StreamBuilder<List<Player>>(
@@ -51,18 +49,9 @@ class _HomeTabState extends State<HomeTab> {
       builder: (context, allPlayersSnap) {
         final allPlayers = allPlayersSnap.data ?? [];
 
-        if (!_offeredWhoAreYou &&
-            devicePlayer.playerId == null &&
-            allPlayers.isNotEmpty) {
-          _offeredWhoAreYou = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) showWhoAreYouDialog(context, devicePlayer, allPlayers);
-          });
-        }
-
         Player? me;
         for (final p in allPlayers) {
-          if (p.id == devicePlayer.playerId) me = p;
+          if (p.authUid == auth.currentUser?.uid) me = p;
         }
 
         return StreamBuilder<List<Player>>(
@@ -297,7 +286,7 @@ class _BannerCarousel extends StatelessWidget {
               onPageChanged: onPageChanged,
               children: [
                 _BannerSlide(
-                  image: 'assets/logo_banner.png',
+                  image: 'assets/logo_banner.jpg',
                   title: 'La mejor forma de jugar dominó',
                   subtitle: 'Registra, compite y gana.',
                   onTap: null,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/admin_service.dart';
+import '../services/auth_service.dart';
 import '../services/theme_controller.dart';
 
 class HelpScreen extends StatelessWidget {
@@ -10,7 +10,8 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeController = context.watch<ThemeController>();
-    final adminService = context.watch<AdminService>();
+    final auth = context.watch<AuthService>();
+    final username = auth.currentUser?.email?.split('@').first ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración y ayuda')),
@@ -27,29 +28,34 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Card(
-            child: adminService.isAdmin
-                ? ListTile(
-                    leading: const Icon(Icons.admin_panel_settings),
-                    title: const Text('Modo administrador activo'),
-                    subtitle: const Text(
-                      'Puedes gestionar jugadores y estadísticas.',
-                    ),
-                    trailing: TextButton(
-                      onPressed: () => adminService.lock(),
-                      child: const Text('Salir'),
-                    ),
-                  )
-                : ListTile(
-                    leading: const Icon(Icons.lock_outline),
-                    title: const Text('Modo administrador'),
-                    subtitle: const Text(
-                      'Solo para quienes administran la liga.',
-                    ),
-                    trailing: TextButton(
-                      onPressed: () => _showUnlockDialog(context, adminService),
-                      child: const Text('Ingresar'),
-                    ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    auth.isAdmin ? Icons.admin_panel_settings : Icons.person,
                   ),
+                  title: Text('Sesión: $username'),
+                  subtitle: Text(
+                    auth.isAdmin
+                        ? 'Puedes editar estadísticas.'
+                        : 'Cuenta de jugador.',
+                  ),
+                  trailing: TextButton(
+                    onPressed: () => auth.signOut(),
+                    child: const Text('Cerrar sesión'),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.password_outlined),
+                  title: const Text('Cambiar contraseña'),
+                  trailing: TextButton(
+                    onPressed: () => _showChangePasswordDialog(context, auth),
+                    child: const Text('Cambiar'),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -96,26 +102,34 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  void _showUnlockDialog(BuildContext context, AdminService adminService) {
-    final pinController = TextEditingController();
-    var wrongPin = false;
+  void _showChangePasswordDialog(BuildContext context, AuthService auth) {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    String? error;
+    var loading = false;
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setState) => AlertDialog(
-          title: const Text('Modo administrador'),
+          title: const Text('Cambiar contraseña'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
-                controller: pinController,
-                autofocus: true,
+                controller: currentController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña actual',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'PIN',
-                  errorText: wrongPin ? 'PIN incorrecto' : null,
+                  labelText: 'Contraseña nueva',
+                  errorText: error,
                 ),
               ),
             ],
@@ -126,15 +140,24 @@ class HelpScreen extends StatelessWidget {
               child: const Text('Cancelar'),
             ),
             FilledButton(
-              onPressed: () async {
-                final ok = await adminService.unlock(pinController.text);
-                if (ok) {
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
-                } else {
-                  setState(() => wrongPin = true);
-                }
-              },
-              child: const Text('Entrar'),
+              onPressed: loading
+                  ? null
+                  : () async {
+                      setState(() => loading = true);
+                      final result = await auth.changePassword(
+                        currentPassword: currentController.text,
+                        newPassword: newController.text,
+                      );
+                      if (result == null) {
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      } else {
+                        setState(() {
+                          loading = false;
+                          error = result;
+                        });
+                      }
+                    },
+              child: const Text('Guardar'),
             ),
           ],
         ),

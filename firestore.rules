@@ -2,8 +2,22 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+    match /players/{playerId} {
       allow read, write: if request.auth != null;
+
+      match /statEntries/{entryId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null &&
+          request.auth.token.email in ['andy@kapicua.local', 'blady@kapicua.local'];
+      }
+    }
+
+    match /games/{gameId} {
+      allow read, write: if request.auth != null;
+
+      match /rounds/{roundId} {
+        allow read, write: if request.auth != null;
+      }
     }
   }
 }

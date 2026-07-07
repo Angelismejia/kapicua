@@ -3,12 +3,14 @@ class Player {
   final String fullName;
   final String? shortName;
   final bool active;
+  final String? authUid;
 
   Player({
     required this.id,
     required this.fullName,
     this.shortName,
     this.active = true,
+    this.authUid,
   });
 
   String get displayName => (shortName != null && shortName!.trim().isNotEmpty)
@@ -21,6 +23,7 @@ class Player {
       fullName: data['fullName'] as String? ?? data['name'] as String? ?? '',
       shortName: data['shortName'] as String?,
       active: data['active'] as bool? ?? true,
+      authUid: data['authUid'] as String?,
     );
   }
 
@@ -28,5 +31,6 @@ class Player {
     'fullName': fullName,
     'shortName': shortName,
     'active': active,
+    'authUid': authUid,
   };
 }

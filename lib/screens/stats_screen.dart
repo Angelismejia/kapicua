@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../models/player_stats.dart';
-import '../services/admin_service.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/monthly_winner.dart';
 import '../widgets/manual_certificate_dialog.dart';
@@ -17,7 +17,7 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
-    final isAdmin = context.watch<AdminService>().isAdmin;
+    final isAdmin = context.watch<AuthService>().isAdmin;
 
     return Scaffold(
       appBar: AppBar(

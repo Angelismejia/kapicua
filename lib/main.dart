@@ -1,13 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
+import 'screens/auth_screen.dart';
 import 'screens/main_shell.dart';
-import 'services/admin_service.dart';
 import 'services/auth_service.dart';
-import 'services/device_player_service.dart';
 import 'services/firestore_service.dart';
 import 'services/theme_controller.dart';
 
@@ -15,32 +15,22 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('es');
-  await AuthService().ensureSignedIn();
   final themeController = ThemeController();
   await themeController.load();
-  final devicePlayerService = DevicePlayerService();
-  await devicePlayerService.load();
-  final adminService = AdminService();
-  await adminService.load();
+  final authService = AuthService();
   runApp(
-    KapicuaApp(
-      themeController: themeController,
-      devicePlayerService: devicePlayerService,
-      adminService: adminService,
-    ),
+    KapicuaApp(themeController: themeController, authService: authService),
   );
 }
 
 class KapicuaApp extends StatelessWidget {
   final ThemeController themeController;
-  final DevicePlayerService devicePlayerService;
-  final AdminService adminService;
+  final AuthService authService;
 
   const KapicuaApp({
     super.key,
     required this.themeController,
-    required this.devicePlayerService,
-    required this.adminService,
+    required this.authService,
   });
 
   @override
@@ -49,10 +39,7 @@ class KapicuaApp extends StatelessWidget {
       providers: [
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
-        ChangeNotifierProvider<DevicePlayerService>.value(
-          value: devicePlayerService,
-        ),
-        ChangeNotifierProvider<AdminService>.value(value: adminService),
+        ChangeNotifierProvider<AuthService>.value(value: authService),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, _) {
@@ -108,7 +95,19 @@ class KapicuaApp extends StatelessWidget {
                 ),
               );
             },
-            home: const MainShell(),
+            home: StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final user = snapshot.data;
+                final signedIn = user != null && !user.isAnonymous;
+                return signedIn ? const MainShell() : const AuthScreen();
+              },
+            ),
           );
         },
       ),
