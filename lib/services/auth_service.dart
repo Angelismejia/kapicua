@@ -38,6 +38,8 @@ class AuthService extends ChangeNotifier {
       return null;
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
+    } catch (e) {
+      return 'No se pudo crear la cuenta: $e';
     }
   }
 
@@ -50,6 +52,8 @@ class AuthService extends ChangeNotifier {
       return null;
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
+    } catch (e) {
+      return 'No se pudo iniciar sesión: $e';
     }
   }
 
@@ -62,6 +66,8 @@ class AuthService extends ChangeNotifier {
       return null;
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
+    } catch (e) {
+      return 'No se pudo enviar el correo: $e';
     }
   }
 
