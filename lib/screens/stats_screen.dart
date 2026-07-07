@@ -242,9 +242,19 @@ class _MonthlyWinnerCard extends StatelessWidget {
 
   const _MonthlyWinnerCard({required this.result});
 
+  bool get _isMonthOver {
+    final now = DateTime.now();
+    if (now.year != result.month.year || now.month != result.month.month) {
+      return true;
+    }
+    final lastDay = DateTime(now.year, now.month + 1, 0).day;
+    return now.day >= lastDay;
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthLabel = DateFormat('MMMM yyyy', 'es').format(result.month);
+    final isMonthOver = _isMonthOver;
     return Card(
       color: Theme.of(context).colorScheme.primaryContainer,
       child: Padding(
@@ -252,10 +262,17 @@ class _MonthlyWinnerCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ganador del mes ($monthLabel)',
-                style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              isMonthOver ? 'Ganador del mes ($monthLabel)' : 'Por ahora, en $monthLabel...',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: 8),
-            Text(result.player.displayName, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              isMonthOver
+                  ? result.player.displayName
+                  : '🔥 Va ganando ${result.player.displayName}',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             Text('${result.wins} partidas ganadas · ${result.totalScore} puntos'),
             const SizedBox(height: 12),
             FilledButton.icon(
