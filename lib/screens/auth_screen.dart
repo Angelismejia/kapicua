@@ -11,7 +11,6 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  bool _isSignUp = false;
   bool _loading = false;
   String? _error;
   final _emailController = TextEditingController();
@@ -78,32 +77,25 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _loading ? null : () => _submit(auth),
-                    child: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(_isSignUp ? 'Crear cuenta' : 'Iniciar sesión'),
+                if (_loading)
+                  const CircularProgressIndicator()
+                else ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => _submit(auth, isSignUp: false),
+                      child: const Text('Iniciar sesión'),
+                    ),
                   ),
-                ),
-                TextButton(
-                  onPressed: _loading
-                      ? null
-                      : () => setState(() {
-                          _isSignUp = !_isSignUp;
-                          _error = null;
-                        }),
-                  child: Text(
-                    _isSignUp
-                        ? '¿Ya tienes cuenta? Inicia sesión'
-                        : '¿Nuevo en la liga? Crea una cuenta',
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => _submit(auth, isSignUp: true),
+                      child: const Text('Soy nuevo en la liga: crear cuenta'),
+                    ),
                   ),
-                ),
+                ],
                 TextButton(
                   onPressed: _loading ? null : () => _forgotPassword(auth),
                   child: const Text('¿Olvidaste tu contraseña?'),
@@ -121,7 +113,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Future<void> _submit(AuthService auth) async {
+  Future<void> _submit(AuthService auth, {required bool isSignUp}) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
@@ -132,7 +124,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _loading = true;
       _error = null;
     });
-    final error = _isSignUp
+    final error = isSignUp
         ? await auth.signUp(email, password)
         : await auth.signIn(email, password);
     if (!mounted) return;
