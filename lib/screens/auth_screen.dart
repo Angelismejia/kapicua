@@ -64,6 +64,11 @@ class _AuthScreenState extends State<AuthScreen> {
                     label: const Text('Iniciar sesión con Google'),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _loading ? null : () => _playWithoutAccount(auth),
+                  child: const Text('Jugar sin cuenta'),
+                ),
               ],
             ),
           ),
@@ -83,5 +88,10 @@ class _AuthScreenState extends State<AuthScreen> {
       _loading = false;
       _error = error;
     });
+  }
+
+  Future<void> _playWithoutAccount(AuthService auth) async {
+    setState(() => _loading = true);
+    await auth.playWithoutAccount();
   }
 }

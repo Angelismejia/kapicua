@@ -34,9 +34,7 @@ class AuthService extends ChangeNotifier {
       return 'El inicio de sesión con Google solo está disponible en la versión web por ahora.';
     }
     try {
-      // En el navegador del teléfono, el popup casi nunca funciona bien;
-      // el redirect (te manda a la página de Google y regresa) sí funciona.
-      await _auth.signInWithRedirect(GoogleAuthProvider());
+      await _auth.signInWithPopup(GoogleAuthProvider());
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'popup-closed-by-user' ||
@@ -45,6 +43,12 @@ class AuthService extends ChangeNotifier {
       }
       return 'No se pudo iniciar sesión (${e.code}).';
     }
+  }
+
+  /// Para jugar sin ninguna cuenta: no pide nada, entra directo como
+  /// invitado (sus partidas no se sincronizan con otro dispositivo).
+  Future<void> playWithoutAccount() async {
+    await _auth.signInAnonymously();
   }
 
   Future<void> signOut() => _auth.signOut();

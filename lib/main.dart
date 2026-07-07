@@ -106,10 +106,18 @@ class KapicuaApp extends StatelessWidget {
                   );
                 }
                 final user = snapshot.data;
-                final signedIn = user != null && !user.isAnonymous;
-                if (!signedIn) return const AuthScreen();
+                if (user == null) return const AuthScreen();
 
                 final firestoreService = context.read<FirestoreService>();
+
+                // "Jugar sin cuenta": anónimo, va directo a su propio
+                // espacio de invitado, sin PIN ni preguntas.
+                if (user.isAnonymous) {
+                  firestoreService.isGuest = true;
+                  firestoreService.guestUid = user.uid;
+                  return const MainShell();
+                }
+
                 return StreamBuilder<List<Player>>(
                   stream: firestoreService.watchAllPlayers(),
                   builder: (context, playersSnapshot) {
