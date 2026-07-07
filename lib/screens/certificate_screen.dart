@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../services/certificate_service.dart';
@@ -111,7 +112,13 @@ class _CertificateScreenState extends State<CertificateScreen> {
       await _certificateService.downloadToGallery(bytes);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Certificado guardado en tu galería')),
+          SnackBar(
+            content: Text(
+              kIsWeb
+                  ? 'Certificado descargado'
+                  : 'Certificado guardado en tu galería',
+            ),
+          ),
         );
       }
     } catch (e) {

@@ -3,9 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:gal/gal.dart';
 
 import '../widgets/certificate/certificate_positions.dart';
+import 'certificate_download/download.dart';
 
 class CertificateService {
   Future<Uint8List> capture(GlobalKey repaintKey) async {
@@ -19,6 +19,6 @@ class CertificateService {
   }
 
   Future<void> downloadToGallery(Uint8List pngBytes) async {
-    await Gal.putImageBytes(pngBytes, name: 'certificado_kapicua');
+    await saveCertificateBytes(pngBytes, 'certificado_kapicua');
   }
 }
