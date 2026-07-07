@@ -5,7 +5,6 @@ import '../models/game.dart';
 import '../models/player.dart';
 import '../services/firestore_service.dart';
 import 'main_shell.dart';
-import 'stats_screen.dart';
 
 class GameResultScreen extends StatelessWidget {
   final String gameId;
@@ -88,34 +87,16 @@ class GameResultScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MainShell(),
-                              ),
-                              (route) => false,
-                            ),
-                            child: const Text('Volver al inicio'),
-                          ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MainShell()),
+                          (route) => false,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const StatsScreen(),
-                              ),
-                              (route) => false,
-                            ),
-                            child: const Text('Ver estadísticas'),
-                          ),
-                        ),
-                      ],
+                        child: const Text('Volver al inicio'),
+                      ),
                     ),
                   ],
                 ),

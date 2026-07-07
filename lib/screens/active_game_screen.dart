@@ -149,8 +149,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     if (game == null || !context.mounted) return;
 
     var winningTeam = 'A';
-    int? selectedPreset = 25;
-    final customController = TextEditingController();
+    final pointsController = TextEditingController();
 
     showDialog(
       context: context,
@@ -180,35 +179,25 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                   onChanged: (v) => setState(() => winningTeam = v!),
                 ),
                 const SizedBox(height: 12),
-                const Text('Puntos'),
+                TextField(
+                  controller: pointsController,
+                  autofocus: true,
+                  keyboardType: TextInputType.text,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'Puntos'),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   children: [
                     for (final preset in _pointPresets)
-                      ChoiceChip(
+                      ActionChip(
                         label: Text('$preset'),
-                        selected: selectedPreset == preset,
-                        onSelected: (_) =>
-                            setState(() => selectedPreset = preset),
+                        onPressed: () =>
+                            setState(() => pointsController.text = '$preset'),
                       ),
-                    ChoiceChip(
-                      label: const Text('Otro'),
-                      selected: selectedPreset == null,
-                      onSelected: (_) => setState(() => selectedPreset = null),
-                    ),
                   ],
                 ),
-                if (selectedPreset == null) ...[
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: customController,
-                    autofocus: true,
-                    keyboardType: TextInputType.text,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(labelText: 'Puntos'),
-                  ),
-                ],
               ],
             ),
           ),
@@ -219,10 +208,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             ),
             FilledButton(
               onPressed: () {
-                final points =
-                    selectedPreset ??
-                    int.tryParse(customController.text.trim()) ??
-                    0;
+                final points = int.tryParse(pointsController.text.trim()) ?? 0;
                 final teamAPoints = winningTeam == 'A' ? points : 0;
                 final teamBPoints = winningTeam == 'B' ? points : 0;
                 firestore.addRound(widget.gameId, teamAPoints, teamBPoints);
