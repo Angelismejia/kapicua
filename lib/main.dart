@@ -47,6 +47,17 @@ class KapicuaApp extends StatelessWidget {
               ),
               useMaterial3: true,
             ),
+            builder: (context, child) {
+              return Container(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: ClipRect(child: child),
+                  ),
+                ),
+              );
+            },
             home: const HomeScreen(),
           );
         },
