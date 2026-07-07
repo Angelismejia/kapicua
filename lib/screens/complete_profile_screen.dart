@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'main_shell.dart';
 
 const _newPlayerSentinel = '__new__';
 
@@ -162,5 +163,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           .doc(_selectedPlayerId)
           .update({'authUid': uid});
     }
+
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainShell()),
+      (route) => false,
+    );
   }
 }
