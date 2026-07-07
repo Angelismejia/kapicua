@@ -83,7 +83,8 @@ class CertificateWidget extends StatelessWidget {
                     ),
                     children: [
                       const TextSpan(
-                        text: 'Por su sobresaliente desempeño el Torneo de Dominó de ',
+                        text:
+                            'Por su sobresaliente desempeño el Torneo de Dominó de ',
                       ),
                       TextSpan(
                         text: monthLabel,

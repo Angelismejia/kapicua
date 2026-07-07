@@ -123,9 +123,9 @@ class _CertificateScreenState extends State<CertificateScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo guardar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No se pudo guardar: $e')));
       }
     } finally {
       if (mounted) setState(() => _working = false);

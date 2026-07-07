@@ -15,9 +15,8 @@ class PrintService {
       pw.Page(
         pageFormat: page,
         margin: pw.EdgeInsets.zero,
-        build: (context) => pw.Center(
-          child: pw.Image(image, fit: pw.BoxFit.contain),
-        ),
+        build: (context) =>
+            pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
       ),
     );
     return doc.save();
