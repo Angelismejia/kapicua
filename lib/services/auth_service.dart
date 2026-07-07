@@ -34,7 +34,9 @@ class AuthService extends ChangeNotifier {
       return 'El inicio de sesión con Google solo está disponible en la versión web por ahora.';
     }
     try {
-      await _auth.signInWithPopup(GoogleAuthProvider());
+      // En el navegador del teléfono, el popup casi nunca funciona bien;
+      // el redirect (te manda a la página de Google y regresa) sí funciona.
+      await _auth.signInWithRedirect(GoogleAuthProvider());
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'popup-closed-by-user' ||
