@@ -11,7 +11,8 @@ class HelpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeController = context.watch<ThemeController>();
     final auth = context.watch<AuthService>();
-    final username = auth.currentUser?.email?.split('@').first ?? '';
+    final label =
+        auth.currentUser?.displayName ?? auth.currentUser?.email ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración y ayuda')),
@@ -28,33 +29,20 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: Icon(
-                    auth.isAdmin ? Icons.admin_panel_settings : Icons.person,
-                  ),
-                  title: Text('Sesión: $username'),
-                  subtitle: Text(
-                    auth.isAdmin
-                        ? 'Puedes editar estadísticas.'
-                        : 'Cuenta de jugador.',
-                  ),
-                  trailing: TextButton(
-                    onPressed: () => auth.signOut(),
-                    child: const Text('Cerrar sesión'),
-                  ),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.password_outlined),
-                  title: const Text('Cambiar contraseña'),
-                  trailing: TextButton(
-                    onPressed: () => _showChangePasswordDialog(context, auth),
-                    child: const Text('Cambiar'),
-                  ),
-                ),
-              ],
+            child: ListTile(
+              leading: Icon(
+                auth.isAdmin ? Icons.admin_panel_settings : Icons.person,
+              ),
+              title: Text('Sesión: $label'),
+              subtitle: Text(
+                auth.isAdmin
+                    ? 'Puedes editar estadísticas.'
+                    : 'Cuenta de jugador.',
+              ),
+              trailing: TextButton(
+                onPressed: () => auth.signOut(),
+                child: const Text('Cerrar sesión'),
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -98,69 +86,6 @@ class HelpScreen extends StatelessWidget {
                 'el administrador — no depende de las partidas anotadas arriba.',
           ),
         ],
-      ),
-    );
-  }
-
-  void _showChangePasswordDialog(BuildContext context, AuthService auth) {
-    final currentController = TextEditingController();
-    final newController = TextEditingController();
-    String? error;
-    var loading = false;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setState) => AlertDialog(
-          title: const Text('Cambiar contraseña'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: currentController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña actual',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: newController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Contraseña nueva',
-                  errorText: error,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: loading
-                  ? null
-                  : () async {
-                      setState(() => loading = true);
-                      final result = await auth.changePassword(
-                        currentPassword: currentController.text,
-                        newPassword: newController.text,
-                      );
-                      if (result == null) {
-                        if (dialogContext.mounted) Navigator.pop(dialogContext);
-                      } else {
-                        setState(() {
-                          loading = false;
-                          error = result;
-                        });
-                      }
-                    },
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -5,7 +5,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
+import 'models/player.dart';
 import 'screens/auth_screen.dart';
+import 'screens/family_gate_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
@@ -105,7 +107,43 @@ class KapicuaApp extends StatelessWidget {
                 }
                 final user = snapshot.data;
                 final signedIn = user != null && !user.isAnonymous;
-                return signedIn ? const MainShell() : const AuthScreen();
+                if (!signedIn) return const AuthScreen();
+
+                final firestoreService = context.read<FirestoreService>();
+                return StreamBuilder<List<Player>>(
+                  stream: firestoreService.watchAllPlayers(),
+                  builder: (context, playersSnapshot) {
+                    if (!playersSnapshot.hasData) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final hasLinkedPlayer = playersSnapshot.data!.any(
+                      (p) => p.authUid == user.uid,
+                    );
+                    if (hasLinkedPlayer) {
+                      firestoreService.isGuest = false;
+                      return const MainShell();
+                    }
+
+                    return FutureBuilder<bool>(
+                      future: firestoreService.hasGuestProfile(user.uid),
+                      builder: (context, guestSnapshot) {
+                        if (!guestSnapshot.hasData) {
+                          return const Scaffold(
+                            body: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        if (guestSnapshot.data == true) {
+                          firestoreService.isGuest = true;
+                          firestoreService.guestUid = user.uid;
+                          return const MainShell();
+                        }
+                        return const FamilyGateScreen();
+                      },
+                    );
+                  },
+                );
               },
             ),
           );
