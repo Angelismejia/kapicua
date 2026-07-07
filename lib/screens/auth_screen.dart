@@ -11,8 +11,18 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  bool _isSignUp = false;
   bool _loading = false;
   String? _error;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +32,7 @@ class _AuthScreenState extends State<AuthScreen> {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -50,21 +60,55 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _loading ? null : () => _signIn(auth),
-                    icon: _loading
+                  child: FilledButton(
+                    onPressed: _loading ? null : () => _submit(auth),
+                    child: _loading
                         ? const SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.login),
-                    label: const Text('Iniciar sesión con Google'),
+                        : Text(_isSignUp ? 'Crear cuenta' : 'Iniciar sesión'),
                   ),
                 ),
-                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () => setState(() {
+                          _isSignUp = !_isSignUp;
+                          _error = null;
+                        }),
+                  child: Text(
+                    _isSignUp
+                        ? '¿Ya tienes cuenta? Inicia sesión'
+                        : '¿Nuevo en la liga? Crea una cuenta',
+                  ),
+                ),
+                TextButton(
+                  onPressed: _loading ? null : () => _forgotPassword(auth),
+                  child: const Text('¿Olvidaste tu contraseña?'),
+                ),
+                const SizedBox(height: 8),
                 TextButton(
                   onPressed: _loading ? null : () => _playWithoutAccount(auth),
                   child: const Text('Jugar sin cuenta'),
@@ -77,17 +121,61 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Future<void> _signIn(AuthService auth) async {
+  Future<void> _submit(AuthService auth) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _error = 'Escribe tu correo y contraseña.');
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
     });
-    final error = await auth.signInWithGoogle();
+    final error = _isSignUp
+        ? await auth.signUp(email, password)
+        : await auth.signIn(email, password);
     if (!mounted) return;
     setState(() {
       _loading = false;
       _error = error;
     });
+  }
+
+  Future<void> _forgotPassword(AuthService auth) async {
+    final controller = TextEditingController(text: _emailController.text);
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Restablecer contraseña'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Correo'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.trim().isEmpty || !mounted) return;
+
+    final error = await auth.sendPasswordResetEmail(email.trim());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ?? 'Te enviamos un correo para restablecer tu contraseña.',
+        ),
+      ),
+    );
   }
 
   Future<void> _playWithoutAccount(AuthService auth) async {

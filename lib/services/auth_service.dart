@@ -7,8 +7,8 @@ const Set<String> kAdminEmails = {
   'proniw83@gmail.com',
 };
 
-/// Maneja el inicio de sesion con Google. Cada cuenta se vincula a un
-/// jugador de la liga (nuevo o ya existente) por authUid.
+/// Maneja el inicio de sesion con correo y contrasena. Cada cuenta se
+/// vincula a un jugador de la liga (nuevo o ya existente) por authUid.
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -29,19 +29,56 @@ class AuthService extends ChangeNotifier {
     return kAdminEmails.contains(email);
   }
 
-  Future<String?> signInWithGoogle() async {
-    if (!kIsWeb) {
-      return 'El inicio de sesión con Google solo está disponible en la versión web por ahora.';
-    }
+  Future<String?> signUp(String email, String password) async {
     try {
-      await _auth.signInWithPopup(GoogleAuthProvider());
+      await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
       return null;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'popup-closed-by-user' ||
-          e.code == 'cancelled-popup-request') {
-        return null;
-      }
-      return 'No se pudo iniciar sesión (${e.code}).';
+      return _mapAuthError(e.code);
+    }
+  }
+
+  Future<String?> signIn(String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _mapAuthError(e.code);
+    }
+  }
+
+  Future<String?> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _mapAuthError(e.code);
+    }
+  }
+
+  String _mapAuthError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'Ese correo ya tiene una cuenta. Intenta iniciar sesión.';
+      case 'invalid-email':
+        return 'Correo inválido.';
+      case 'weak-password':
+        return 'La contraseña debe tener al menos 6 caracteres.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Correo o contraseña incorrectos.';
+      case 'operation-not-allowed':
+        return 'El inicio de sesión con correo y contraseña no está '
+            'activado en Firebase todavía.';
+      default:
+        return 'No se pudo completar (código: $code).';
     }
   }
 
