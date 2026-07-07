@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import 'signup_pin_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -83,7 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: () => _submit(auth, isSignUp: false),
+                      onPressed: () => _submit(auth),
                       child: const Text('Iniciar sesión'),
                     ),
                   ),
@@ -91,7 +92,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () => _submit(auth, isSignUp: true),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SignupPinScreen(),
+                        ),
+                      ),
                       child: const Text('Soy nuevo en la liga: crear cuenta'),
                     ),
                   ),
@@ -113,7 +119,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Future<void> _submit(AuthService auth, {required bool isSignUp}) async {
+  Future<void> _submit(AuthService auth) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
@@ -124,9 +130,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _loading = true;
       _error = null;
     });
-    final error = isSignUp
-        ? await auth.signUp(email, password)
-        : await auth.signIn(email, password);
+    final error = await auth.signIn(email, password);
     if (!mounted) return;
     setState(() {
       _loading = false;

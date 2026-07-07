@@ -23,6 +23,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   bool _loading = false;
   late final TextEditingController _fullNameController;
   final _shortNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool get _needsAccount => FirebaseAuth.instance.currentUser == null;
 
   @override
   void initState() {
@@ -35,6 +39,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   void dispose() {
     _fullNameController.dispose();
     _shortNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -50,6 +56,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         actions: [
           TextButton(
             onPressed: () async {
+              if (_needsAccount) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+                return;
+              }
               await auth.signOut();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
@@ -121,11 +134,36 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
                 ),
               ],
+              if (_needsAccount) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Crea tu acceso',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _loading ? null : () => _submit(firestore),
+                  onPressed: _loading ? null : () => _submit(auth, firestore),
                   style: FilledButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                   ),
@@ -145,14 +183,37 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     );
   }
 
-  Future<void> _submit(FirestoreService firestore) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+  Future<void> _submit(AuthService auth, FirestoreService firestore) async {
     setState(() => _loading = true);
+
+    var uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      if (email.isEmpty || password.isEmpty) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Escribe tu correo y contraseña.')),
+        );
+        return;
+      }
+      final error = await auth.signUp(email, password);
+      if (error != null) {
+        if (!mounted) return;
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
+        return;
+      }
+      uid = FirebaseAuth.instance.currentUser!.uid;
+    }
 
     if (_selectedPlayerId == _newPlayerSentinel) {
       final fullName = _fullNameController.text.trim();
       if (fullName.isEmpty) {
         setState(() => _loading = false);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Escribe tu nombre completo.')),
         );
