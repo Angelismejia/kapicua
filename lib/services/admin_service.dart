@@ -3,8 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// PIN compartido para desbloquear el modo administrador en este dispositivo.
 /// Solo quienes lo conozcan (papá y Bladimir) pueden gestionar jugadores
-/// y estadísticas manuales.
-const String kAdminPin = '2026';
+/// y estadísticas manuales. Se pasa en tiempo de compilación
+/// (--dart-define=ADMIN_PIN=...) para que no quede escrito en el código.
+const String kAdminPin = String.fromEnvironment(
+  'ADMIN_PIN',
+  defaultValue: '0000',
+);
 
 class AdminService extends ChangeNotifier {
   static const _prefsKey = 'is_admin_unlocked';

@@ -46,3 +46,6 @@ app.*.map.json
 
 # Firebase Hosting local deploy cache
 .firebase/
+
+# PIN de administrador (no debe subirse al repositorio)
+admin_pin.local
