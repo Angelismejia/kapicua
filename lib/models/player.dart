@@ -11,8 +11,9 @@ class Player {
     this.active = true,
   });
 
-  String get displayName =>
-      (shortName != null && shortName!.trim().isNotEmpty) ? shortName! : fullName;
+  String get displayName => (shortName != null && shortName!.trim().isNotEmpty)
+      ? shortName!
+      : fullName;
 
   factory Player.fromMap(String id, Map<String, dynamic> data) {
     return Player(
@@ -24,8 +25,8 @@ class Player {
   }
 
   Map<String, dynamic> toMap() => {
-        'fullName': fullName,
-        'shortName': shortName,
-        'active': active,
-      };
+    'fullName': fullName,
+    'shortName': shortName,
+    'active': active,
+  };
 }
