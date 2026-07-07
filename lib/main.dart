@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
+import 'services/device_player_service.dart';
 import 'services/firestore_service.dart';
 import 'services/theme_controller.dart';
 
@@ -16,13 +17,25 @@ Future<void> main() async {
   await AuthService().ensureSignedIn();
   final themeController = ThemeController();
   await themeController.load();
-  runApp(KapicuaApp(themeController: themeController));
+  final devicePlayerService = DevicePlayerService();
+  await devicePlayerService.load();
+  runApp(
+    KapicuaApp(
+      themeController: themeController,
+      devicePlayerService: devicePlayerService,
+    ),
+  );
 }
 
 class KapicuaApp extends StatelessWidget {
   final ThemeController themeController;
+  final DevicePlayerService devicePlayerService;
 
-  const KapicuaApp({super.key, required this.themeController});
+  const KapicuaApp({
+    super.key,
+    required this.themeController,
+    required this.devicePlayerService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +43,9 @@ class KapicuaApp extends StatelessWidget {
       providers: [
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
+        ChangeNotifierProvider<DevicePlayerService>.value(
+          value: devicePlayerService,
+        ),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, _) {
@@ -37,7 +53,9 @@ class KapicuaApp extends StatelessWidget {
             title: 'Kapicua',
             themeMode: controller.themeMode,
             theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF2E7D32),
+              ),
               useMaterial3: true,
             ),
             darkTheme: ThemeData(
