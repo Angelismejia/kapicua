@@ -78,6 +78,34 @@ class StatsScreen extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (entriesSnapshot.hasError)
+                    Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          'No se pudieron cargar las estadísticas: '
+                          '${entriesSnapshot.error}',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!isAdmin)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          'Sesión actual: ${context.read<AuthService>().currentUser?.email ?? '(sin correo)'} '
+                          '— no tiene permiso de administrador, por eso no puedes '
+                          'agregar ganadas/perdidas.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ),
                   if (monthlyWinner != null)
                     MonthlyWinnerCard(result: monthlyWinner),
                   const SizedBox(height: 16),

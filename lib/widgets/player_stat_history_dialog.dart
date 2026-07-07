@@ -5,6 +5,22 @@ import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/firestore_service.dart';
 
+Future<void> _addEntry(
+  BuildContext context,
+  FirestoreService firestore,
+  String playerId,
+  bool isWin,
+) async {
+  try {
+    await firestore.addPlayerStatEntry(playerId, isWin);
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('No se pudo guardar: $e')));
+  }
+}
+
 void showPlayerStatHistoryDialog(
   BuildContext context,
   FirestoreService firestore,
@@ -28,7 +44,7 @@ void showPlayerStatHistoryDialog(
                       icon: const Icon(Icons.add),
                       label: const Text('Ganada'),
                       onPressed: () =>
-                          firestore.addPlayerStatEntry(player.id, true),
+                          _addEntry(dialogContext, firestore, player.id, true),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -37,7 +53,7 @@ void showPlayerStatHistoryDialog(
                       icon: const Icon(Icons.add),
                       label: const Text('Perdida'),
                       onPressed: () =>
-                          firestore.addPlayerStatEntry(player.id, false),
+                          _addEntry(dialogContext, firestore, player.id, false),
                     ),
                   ),
                 ],
