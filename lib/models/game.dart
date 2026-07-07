@@ -4,9 +4,11 @@ class Game {
   final String id;
   final int targetScore;
   final String status; // 'in_progress' | 'finished'
-  final String? winnerId;
-  final List<String> participantIds;
-  final Map<String, int> scores; // playerId -> total acumulado
+  final List<String> teamAPlayerIds;
+  final List<String> teamBPlayerIds;
+  final int teamAScore;
+  final int teamBScore;
+  final String? winner; // 'A' | 'B'
   final int roundCount;
   final DateTime createdAt;
   final DateTime? finishedAt;
@@ -15,11 +17,13 @@ class Game {
     required this.id,
     required this.targetScore,
     required this.status,
-    required this.participantIds,
-    required this.scores,
+    required this.teamAPlayerIds,
+    required this.teamBPlayerIds,
     required this.createdAt,
+    this.teamAScore = 0,
+    this.teamBScore = 0,
     this.roundCount = 0,
-    this.winnerId,
+    this.winner,
     this.finishedAt,
   });
 
@@ -30,23 +34,31 @@ class Game {
       id: id,
       targetScore: data['targetScore'] as int,
       status: data['status'] as String,
-      winnerId: data['winnerId'] as String?,
-      participantIds: List<String>.from(data['participantIds'] as List),
-      scores: Map<String, int>.from(data['scores'] as Map),
+      teamAPlayerIds: List<String>.from(
+        (data['teamAPlayerIds'] as List?) ?? const [],
+      ),
+      teamBPlayerIds: List<String>.from(
+        (data['teamBPlayerIds'] as List?) ?? const [],
+      ),
+      teamAScore: data['teamAScore'] as int? ?? 0,
+      teamBScore: data['teamBScore'] as int? ?? 0,
       roundCount: data['roundCount'] as int? ?? 0,
+      winner: data['winner'] as String?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       finishedAt: (data['finishedAt'] as Timestamp?)?.toDate(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'targetScore': targetScore,
-        'status': status,
-        'winnerId': winnerId,
-        'participantIds': participantIds,
-        'scores': scores,
-        'roundCount': roundCount,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'finishedAt': finishedAt == null ? null : Timestamp.fromDate(finishedAt!),
-      };
+    'targetScore': targetScore,
+    'status': status,
+    'teamAPlayerIds': teamAPlayerIds,
+    'teamBPlayerIds': teamBPlayerIds,
+    'teamAScore': teamAScore,
+    'teamBScore': teamBScore,
+    'roundCount': roundCount,
+    'winner': winner,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'finishedAt': finishedAt == null ? null : Timestamp.fromDate(finishedAt!),
+  };
 }

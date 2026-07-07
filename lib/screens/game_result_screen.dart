@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/game.dart';
 import '../models/player.dart';
 import '../services/firestore_service.dart';
-import 'home_screen.dart';
+import 'main_shell.dart';
 import 'stats_screen.dart';
 
 class GameResultScreen extends StatelessWidget {
@@ -28,32 +28,64 @@ class GameResultScreen extends StatelessWidget {
           return StreamBuilder<List<Player>>(
             stream: firestore.watchAllPlayers(),
             builder: (context, playersSnapshot) {
-              final players = {for (final p in playersSnapshot.data ?? <Player>[]) p.id: p.displayName};
-              final winnerName = players[game.winnerId] ?? '...';
-              final entries = game.scores.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value));
+              final players = {
+                for (final p in playersSnapshot.data ?? <Player>[])
+                  p.id: p.displayName,
+              };
+              final teamAName = game.teamAPlayerIds
+                  .map((id) => players[id] ?? '...')
+                  .join(' y ');
+              final teamBName = game.teamBPlayerIds
+                  .map((id) => players[id] ?? '...')
+                  .join(' y ');
+              final winnerName = game.winner == 'A' ? teamAName : teamBName;
 
               return Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Icon(Icons.emoji_events, size: 64, color: Colors.amber.shade700),
+                    Icon(
+                      Icons.emoji_events,
+                      size: 64,
+                      color: Colors.amber.shade700,
+                    ),
                     const SizedBox(height: 8),
-                    Text('¡$winnerName ganó la partida!',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                        textAlign: TextAlign.center),
+                    Text(
+                      '¡$winnerName ganó la partida!',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: entries.length,
-                        itemBuilder: (context, index) {
-                          final entry = entries[index];
-                          return ListTile(
-                            leading: CircleAvatar(child: Text('${index + 1}')),
-                            title: Text(players[entry.key] ?? '...'),
-                            trailing: Text('${entry.value}'),
-                          );
-                        },
+                      child: ListView(
+                        children: [
+                          Card(
+                            child: ListTile(
+                              leading: const CircleAvatar(child: Text('C')),
+                              title: const Text('Casa'),
+                              subtitle: Text(teamAName),
+                              trailing: Text(
+                                '${game.teamAScore}',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                              ),
+                            ),
+                          ),
+                          Card(
+                            child: ListTile(
+                              leading: const CircleAvatar(child: Text('V')),
+                              title: const Text('Visita'),
+                              subtitle: Text(teamBName),
+                              trailing: Text(
+                                '${game.teamBScore}',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Row(
@@ -62,7 +94,9 @@ class GameResultScreen extends StatelessWidget {
                           child: OutlinedButton(
                             onPressed: () => Navigator.pushAndRemoveUntil(
                               context,
-                              MaterialPageRoute(builder: (_) => const HomeScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const MainShell(),
+                              ),
                               (route) => false,
                             ),
                             child: const Text('Volver al inicio'),
@@ -73,7 +107,9 @@ class GameResultScreen extends StatelessWidget {
                           child: FilledButton(
                             onPressed: () => Navigator.pushAndRemoveUntil(
                               context,
-                              MaterialPageRoute(builder: (_) => const StatsScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const StatsScreen(),
+                              ),
                               (route) => false,
                             ),
                             child: const Text('Ver estadísticas'),

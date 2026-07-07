@@ -3,13 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Round {
   final String id;
   final int roundNumber;
-  final Map<String, int> points; // playerId -> puntos ganados esa ronda
+  final int teamAPoints;
+  final int teamBPoints;
   final DateTime createdAt;
 
   Round({
     required this.id,
     required this.roundNumber,
-    required this.points,
+    required this.teamAPoints,
+    required this.teamBPoints,
     required this.createdAt,
   });
 
@@ -17,14 +19,16 @@ class Round {
     return Round(
       id: id,
       roundNumber: data['roundNumber'] as int,
-      points: Map<String, int>.from(data['points'] as Map),
+      teamAPoints: data['teamAPoints'] as int? ?? 0,
+      teamBPoints: data['teamBPoints'] as int? ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'roundNumber': roundNumber,
-        'points': points,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
+    'roundNumber': roundNumber,
+    'teamAPoints': teamAPoints,
+    'teamBPoints': teamBPoints,
+    'createdAt': Timestamp.fromDate(createdAt),
+  };
 }

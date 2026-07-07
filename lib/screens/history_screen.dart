@@ -22,28 +22,44 @@ class HistoryScreen extends StatelessWidget {
         builder: (context, gamesSnapshot) {
           final games = gamesSnapshot.data ?? [];
           if (games.isEmpty) {
-            return const Center(child: Text('Todavía no hay partidas terminadas.'));
+            return const Center(
+              child: Text('Todavía no hay partidas terminadas.'),
+            );
           }
           return StreamBuilder<List<Player>>(
             stream: firestore.watchAllPlayers(),
             builder: (context, playersSnapshot) {
-              final players = {for (final p in playersSnapshot.data ?? <Player>[]) p.id: p.displayName};
+              final players = {
+                for (final p in playersSnapshot.data ?? <Player>[])
+                  p.id: p.displayName,
+              };
               return ListView.builder(
                 itemCount: games.length,
                 itemBuilder: (context, index) {
                   final game = games[index];
-                  final winnerName = players[game.winnerId] ?? '...';
+                  final teamAName = game.teamAPlayerIds
+                      .map((id) => players[id] ?? '...')
+                      .join(' y ');
+                  final teamBName = game.teamBPlayerIds
+                      .map((id) => players[id] ?? '...')
+                      .join(' y ');
                   return ListTile(
                     leading: const Icon(Icons.emoji_events),
-                    title: Text(winnerName),
-                    subtitle: Text(game.finishedAt == null
-                        ? ''
-                        : dateFormat.format(game.finishedAt!)),
+                    title: Text('$teamAName vs $teamBName'),
+                    subtitle: Text(
+                      [
+                        if (game.finishedAt != null)
+                          dateFormat.format(game.finishedAt!),
+                        '${game.teamAScore} - ${game.teamBScore}',
+                        game.winner == 'A' ? 'Ganó Casa' : 'Ganó Visita',
+                      ].join(' · '),
+                    ),
                     trailing: Text('Meta ${game.targetScore}'),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => GameDetailScreen(game: game, players: players),
+                        builder: (_) =>
+                            GameDetailScreen(game: game, players: players),
                       ),
                     ),
                   );
@@ -61,11 +77,21 @@ class GameDetailScreen extends StatelessWidget {
   final Game game;
   final Map<String, String> players;
 
-  const GameDetailScreen({super.key, required this.game, required this.players});
+  const GameDetailScreen({
+    super.key,
+    required this.game,
+    required this.players,
+  });
 
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
+    final teamAName = game.teamAPlayerIds
+        .map((id) => players[id] ?? '...')
+        .join(' y ');
+    final teamBName = game.teamBPlayerIds
+        .map((id) => players[id] ?? '...')
+        .join(' y ');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de la partida')),
@@ -78,14 +104,42 @@ class GameDetailScreen extends StatelessWidget {
             child: DataTable(
               columns: [
                 const DataColumn(label: Text('Ronda')),
-                ...game.participantIds.map((id) => DataColumn(label: Text(players[id] ?? '...'))),
+                DataColumn(label: Text('Casa\n$teamAName')),
+                DataColumn(label: Text('Visita\n$teamBName')),
               ],
-              rows: rounds.map((round) {
-                return DataRow(cells: [
-                  DataCell(Text('${round.roundNumber}')),
-                  ...game.participantIds.map((id) => DataCell(Text('${round.points[id] ?? 0}'))),
-                ]);
-              }).toList(),
+              rows: [
+                ...rounds.map((round) {
+                  return DataRow(
+                    cells: [
+                      DataCell(Text('${round.roundNumber}')),
+                      DataCell(Text('${round.teamAPoints}')),
+                      DataCell(Text('${round.teamBPoints}')),
+                    ],
+                  );
+                }),
+                DataRow(
+                  cells: [
+                    const DataCell(
+                      Text(
+                        'Total',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        '${game.teamAScore}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        '${game.teamBScore}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           );
         },
