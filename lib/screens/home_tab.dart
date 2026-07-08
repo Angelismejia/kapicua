@@ -114,6 +114,7 @@ class _HomeTabState extends State<HomeTab> {
                       statEntries,
                       allPlayers,
                       me,
+                      auth,
                     );
 
                     return SafeArea(
@@ -452,15 +453,18 @@ class _HomeTabState extends State<HomeTab> {
 
   /// Arma los mensajes del carrusel de Inicio: el campeón del mes pasado
   /// (solo los primeros 7 días del mes nuevo, para celebrarlo mientras es
-  /// noticia reciente), quién tiene el mejor porcentaje este mes, y un
-  /// mensaje personalizado según si quien ve la app es esa persona.
+  /// noticia reciente), quién tiene el mejor porcentaje este mes, un
+  /// mensaje personalizado, la racha de quien ve la app, comparaciones
+  /// con el líder, un hito de la liga y el aniversario de la cuenta.
   List<String> _championMessages(
     List<PlayerStatEntry> entries,
     List<Player> players,
     Player? me,
+    AuthService auth,
   ) {
     final messages = <String>[];
     final now = DateTime.now();
+    final thisMonth = DateTime(now.year, now.month);
 
     if (now.day <= 7) {
       final lastMonth = DateTime(now.year, now.month - 1);
@@ -472,11 +476,7 @@ class _HomeTabState extends State<HomeTab> {
       }
     }
 
-    final leader = computeMonthlyPercentageLeader(
-      entries,
-      players,
-      DateTime(now.year, now.month),
-    );
+    final leader = computeMonthlyPercentageLeader(entries, players, thisMonth);
     if (leader != null) {
       messages.add('Por ahora, ${leader.player.displayName} va arriba');
       final isMeLeading = me != null && leader.player.id == me.id;
@@ -486,6 +486,68 @@ class _HomeTabState extends State<HomeTab> {
             : '${leader.player.displayName} va de primero este mes. '
                   'Dale que el próximo puedes ser tú.',
       );
+    }
+
+    // Racha personal, comparación directa y diferencia chica con el
+    // líder: solo tienen sentido para quien tiene cuenta vinculada.
+    if (me != null) {
+      final myStreak = _currentWinStreak(me.id, entries);
+      if (myStreak >= 2) {
+        messages.add(
+          'Llevas $myStreak ganadas seguidas, tu mejor racha del mes.',
+        );
+      }
+
+      if (leader != null && leader.player.id != me.id) {
+        final winsThisMonth = <String, int>{};
+        for (final e in entries) {
+          if (!e.isWin) continue;
+          if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
+            continue;
+          }
+          winsThisMonth[e.playerId] = (winsThisMonth[e.playerId] ?? 0) + 1;
+        }
+        final myWins = winsThisMonth[me.id] ?? 0;
+        final gap = leader.wins - myWins;
+        if (gap == 0) {
+          messages.add(
+            'Vas empatado con ${leader.player.displayName} este mes.',
+          );
+        } else if (gap >= 1 && gap <= 3) {
+          messages.add(
+            'Solo te faltan $gap ganada${gap == 1 ? '' : 's'} para '
+            'alcanzar a ${leader.player.displayName}.',
+          );
+        }
+      }
+    }
+
+    // Hito de la liga: total de ganadas/perdidas registradas alguna vez.
+    if (entries.length >= 10) {
+      messages.add('Ya van ${entries.length} partidas jugadas en total.');
+    }
+
+    // Aniversario de la cuenta (cada mes cumplido, en el mismo día).
+    final creationTime = auth.currentUser?.metadata.creationTime;
+    if (creationTime != null) {
+      var totalMonths =
+          (now.year - creationTime.year) * 12 +
+          (now.month - creationTime.month);
+      if (now.day < creationTime.day) totalMonths--;
+      if (totalMonths >= 1 && now.day == creationTime.day) {
+        if (totalMonths % 12 == 0) {
+          final years = totalMonths ~/ 12;
+          messages.add(
+            'Hoy se cumplen $years año${years == 1 ? '' : 's'} jugando '
+            'en Kapicua.',
+          );
+        } else {
+          messages.add(
+            'Hoy se cumplen $totalMonths mes${totalMonths == 1 ? '' : 'es'} '
+            'jugando en Kapicua.',
+          );
+        }
+      }
     }
 
     return messages;
@@ -885,6 +947,9 @@ class _ChampionCarousel extends StatefulWidget {
 class _ChampionCarouselState extends State<_ChampionCarousel> {
   int _index = 0;
   Timer? _timer;
+  late List<String> _order = _shuffled(widget.messages);
+
+  List<String> _shuffled(List<String> input) => [...input]..shuffle();
 
   @override
   void initState() {
@@ -895,15 +960,18 @@ class _ChampionCarouselState extends State<_ChampionCarousel> {
   @override
   void didUpdateWidget(covariant _ChampionCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.messages.length != oldWidget.messages.length) {
+    // Solo se vuelve a barajar si el contenido realmente cambió (no en
+    // cada actualización de Firestore), para no interrumpir la rotación.
+    if (widget.messages.join('|') != oldWidget.messages.join('|')) {
+      _order = _shuffled(widget.messages);
       _index = 0;
     }
   }
 
   void _restartTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (!mounted || widget.messages.isEmpty) return;
-      setState(() => _index = (_index + 1) % widget.messages.length);
+    _timer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (!mounted || _order.isEmpty) return;
+      setState(() => _index = (_index + 1) % _order.length);
     });
   }
 
@@ -915,9 +983,9 @@ class _ChampionCarouselState extends State<_ChampionCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final text = widget.messages.isEmpty
+    final text = _order.isEmpty
         ? 'Aún sin datos este mes'
-        : widget.messages[_index % widget.messages.length];
+        : _order[_index % _order.length];
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),

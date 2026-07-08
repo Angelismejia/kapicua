@@ -10,6 +10,57 @@ import '../widgets/score_sheet.dart';
 import 'game_result_screen.dart';
 
 const _pointPresets = [25, 50, 75, 100];
+const _kPrimaryGreen = Color(0xFF2E6B3F);
+
+/// Selector de equipo más visual que un par de radio buttons: dos
+/// botones grandes lado a lado, claramente resaltado el que está
+/// elegido — y al ser Expanded, se adapta a cualquier ancho de pantalla.
+Widget _teamSelectorRow(String winningTeam, ValueChanged<String> onSelect) {
+  Widget button(String value, String label) {
+    final selected = winningTeam == value;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: selected
+                ? _kPrimaryGreen.withValues(alpha: 0.12)
+                : null,
+            side: BorderSide(
+              color: selected ? _kPrimaryGreen : Colors.grey.shade400,
+              width: selected ? 2 : 1,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+          onPressed: () => onSelect(value),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (selected) ...[
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: _kPrimaryGreen,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: selected ? _kPrimaryGreen : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  return Row(children: [button('A', 'Casa'), button('B', 'Visita')]);
+}
 
 class ActiveGameScreen extends StatefulWidget {
   final String gameId;
@@ -297,32 +348,32 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('¿Quién ganó la ronda?'),
-                RadioListTile<String>(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Casa'),
-                  value: 'A',
-                  groupValue: winningTeam,
-                  onChanged: (v) => setState(() => winningTeam = v!),
+                const Text(
+                  '¿Quién ganó la ronda?',
+                  style: TextStyle(fontFamily: 'Poppins'),
                 ),
-                RadioListTile<String>(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Visita'),
-                  value: 'B',
-                  groupValue: winningTeam,
-                  onChanged: (v) => setState(() => winningTeam = v!),
+                const SizedBox(height: 8),
+                _teamSelectorRow(
+                  winningTeam,
+                  (v) => setState(() => winningTeam = v),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextField(
                   controller: pointsController,
                   autofocus: true,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'Puntos'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Puntos de la ronda',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   children: [
@@ -383,32 +434,32 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('¿Quién ganó la ronda?'),
-                RadioListTile<String>(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Casa'),
-                  value: 'A',
-                  groupValue: winningTeam,
-                  onChanged: (v) => setState(() => winningTeam = v!),
+                const Text(
+                  '¿Quién ganó la ronda?',
+                  style: TextStyle(fontFamily: 'Poppins'),
                 ),
-                RadioListTile<String>(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Visita'),
-                  value: 'B',
-                  groupValue: winningTeam,
-                  onChanged: (v) => setState(() => winningTeam = v!),
+                const SizedBox(height: 8),
+                _teamSelectorRow(
+                  winningTeam,
+                  (v) => setState(() => winningTeam = v),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextField(
                   controller: pointsController,
                   autofocus: true,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'Puntos'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Puntos de la ronda',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   children: [

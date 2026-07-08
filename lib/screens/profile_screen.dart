@@ -32,6 +32,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _uploadingPhoto = false;
   bool _savingPassword = false;
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
@@ -270,24 +273,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _currentPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Contraseña actual'),
+              obscureText: _obscureCurrentPassword,
+              decoration: InputDecoration(
+                labelText: 'Contraseña actual',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureCurrentPassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscureCurrentPassword = !_obscureCurrentPassword,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _newPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: _obscureNewPassword,
+              decoration: InputDecoration(
                 labelText: 'Contraseña nueva',
                 helperText: 'Mínimo 6 caracteres',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureNewPassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscureNewPassword = !_obscureNewPassword,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _confirmPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: _obscureConfirmPassword,
+              decoration: InputDecoration(
                 labelText: 'Repetir contraseña nueva',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),

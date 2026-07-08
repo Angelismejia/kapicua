@@ -14,6 +14,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool _loading = false;
+  bool _obscurePassword = true;
   String? _error;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -79,12 +80,25 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         autofillHints: const [AutofillHints.password],
                         onSubmitted: (_) => _submit(auth),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Contraseña',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            tooltip: _obscurePassword
+                                ? 'Mostrar contraseña'
+                                : 'Ocultar contraseña',
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -179,11 +193,30 @@ class _AuthScreenState extends State<AuthScreen> {
 
     final error = await auth.sendPasswordResetEmail(email.trim());
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          error ?? 'Te enviamos un correo para restablecer tu contraseña.',
+
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Correo enviado'),
+        content: const Text(
+          'Te enviamos un correo para restablecer tu contraseña. Revisa '
+          'tu bandeja de entrada y, si no lo ves ahí en unos minutos, '
+          'revisa también la carpeta de spam o correo no deseado — a '
+          'veces cae ahí.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Entendido'),
+          ),
+        ],
       ),
     );
   }
