@@ -394,9 +394,6 @@ class FirestoreService {
     });
   }
 
-  /// Borra una ronda ya anotada y recalcula los totales y el estado de la
-  /// partida a partir de las rondas restantes (por si esa ronda era la que
-  /// hacía llegar a la meta).
   /// Corrige el puntaje de una ronda ya anotada (por si se equivocaron al
   /// escribirlo) y recalcula los totales y el estado de la partida.
   Future<void> updateRound(
@@ -438,6 +435,9 @@ class FirestoreService {
     });
   }
 
+  /// Borra una ronda ya anotada y recalcula los totales y el estado de la
+  /// partida a partir de las rondas restantes (por si esa ronda era la que
+  /// hacía llegar a la meta).
   Future<void> deleteRound(String gameId, String roundId) async {
     final gameRef = _games.doc(gameId);
     final roundsRef = gameRef.collection('rounds');

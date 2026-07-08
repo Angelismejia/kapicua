@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/player.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/add_player_dialog.dart';
 
@@ -11,6 +12,7 @@ class PlayersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
+    final isAdmin = context.watch<AuthService>().isAdmin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Jugadores')),
@@ -48,41 +50,48 @@ class PlayersScreen extends StatelessWidget {
                         if (!player.active) 'Inactivo',
                       ].join(' · '),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          tooltip: 'Editar',
-                          onPressed: () =>
-                              _showEditDialog(context, firestore, player),
-                        ),
-                        if (player.active)
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            tooltip: 'Eliminar',
-                            onPressed: () =>
-                                _confirmRemove(context, firestore, player),
-                          )
-                        else ...[
-                          IconButton(
-                            icon: const Icon(Icons.restore),
-                            tooltip: 'Reactivar',
-                            onPressed: () =>
-                                firestore.reactivatePlayer(player.id),
+                    trailing: !isAdmin
+                        ? null
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                tooltip: 'Editar',
+                                onPressed: () =>
+                                    _showEditDialog(context, firestore, player),
+                              ),
+                              if (player.active)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  tooltip: 'Eliminar',
+                                  onPressed: () => _confirmRemove(
+                                    context,
+                                    firestore,
+                                    player,
+                                  ),
+                                )
+                              else ...[
+                                IconButton(
+                                  icon: const Icon(Icons.restore),
+                                  tooltip: 'Reactivar',
+                                  onPressed: () =>
+                                      firestore.reactivatePlayer(player.id),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_forever_outlined,
+                                  ),
+                                  tooltip: 'Eliminar definitivamente',
+                                  onPressed: () => _confirmPermanentDelete(
+                                    context,
+                                    firestore,
+                                    player,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_forever_outlined),
-                            tooltip: 'Eliminar definitivamente',
-                            onPressed: () => _confirmPermanentDelete(
-                              context,
-                              firestore,
-                              player,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
                   );
                 }),
             ],

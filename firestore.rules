@@ -11,6 +11,15 @@ service cloud.firestore {
          exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
     }
 
+    // Cuenta real de la familia (correo y contrasena), no un invitado
+    // anonimo. Los invitados tienen su propio espacio aislado
+    // (guestSpaces) y no deben poder tocar los datos compartidos de la
+    // familia aunque tengan sesion (anonima) iniciada.
+    function isFamilyMember() {
+      return request.auth != null &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     // Lectura: cualquiera con cuenta puede ver quien es admin (para la
     // pantalla de dar permisos). Escritura: solo un admin puede nombrar
     // o quitar a otro.
@@ -31,7 +40,28 @@ service cloud.firestore {
       // elegir tu jugador de la lista al registrarte, antes de crear la
       // cuenta. El PIN familiar es el filtro real de quien se une.
       allow read: if true;
-      allow write: if request.auth != null;
+
+      // Crear un jugador nuevo (ej. al registrarse) lo puede hacer
+      // cualquier cuenta real de la familia.
+      allow create: if isFamilyMember();
+
+      // Editar un jugador ya existente: un admin puede editar cualquier
+      // campo; alguien de la familia solo puede (a) cambiar su propia
+      // foto, o (b) vincularse a un jugador todavia sin cuenta (authUid
+      // nulo) poniendo su propio uid. Nada mas, para que nadie pueda
+      // robarse la identidad de otro jugador ni cambiarle el nombre.
+      allow update: if isAdmin() ||
+        (isFamilyMember() &&
+         resource.data.authUid == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['photoBase64'])) ||
+        (isFamilyMember() &&
+         resource.data.authUid == null &&
+         request.resource.data.authUid == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['authUid']));
+
+      allow delete: if isAdmin();
 
       match /statEntries/{entryId} {
         allow read: if request.auth != null;
@@ -48,10 +78,10 @@ service cloud.firestore {
     }
 
     match /games/{gameId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isFamilyMember();
 
       match /rounds/{roundId} {
-        allow read, write: if request.auth != null;
+        allow read, write: if isFamilyMember();
       }
     }
 
