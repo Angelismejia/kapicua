@@ -69,19 +69,18 @@ Widget _teamPointsFields(
   );
 }
 
-/// Pastilla de marcador por equipo, al estilo de las apps clásicas de
-/// anotar dominó: nombre del equipo y botón "+" para sumar una ronda a
-/// la izquierda, puntaje actual bien grande a la derecha.
-class _TeamScorePill extends StatelessWidget {
+/// Encabezado por equipo, al estilo de las apps clásicas de anotar
+/// dominó: nombre del equipo y jugadores a la izquierda, y el botón "+"
+/// grande a la derecha (donde antes iba el puntaje) para sumar una
+/// ronda. El puntaje total se ve abajo, no aquí.
+class _TeamHeaderPill extends StatelessWidget {
   final String label;
   final String playerNames;
-  final int score;
   final VoidCallback onAdd;
 
-  const _TeamScorePill({
+  const _TeamHeaderPill({
     required this.label,
     required this.playerNames,
-    required this.score,
     required this.onAdd,
   });
 
@@ -115,7 +114,7 @@ class _TeamScorePill extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontSize: 16,
                       color: Colors.white,
                     ),
                   ),
@@ -130,37 +129,99 @@ class _TeamScorePill extends StatelessWidget {
                         color: Colors.white70,
                       ),
                     ),
-                  const SizedBox(height: 6),
-                  Material(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: onAdd,
-                      child: const Padding(
-                        padding: EdgeInsets.all(5),
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
-            Text(
-              '$score',
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w800,
-                fontSize: 30,
-                color: Colors.white,
+            const SizedBox(width: 8),
+            Material(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onAdd,
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(Icons.add_rounded, color: Colors.white, size: 28),
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Marcador de total al pie de la pantalla: puntaje actual sobre la
+/// meta (ej. "85/200") con una barrita de progreso, para que se vea de
+/// un vistazo qué tan cerca está cada equipo de ganar.
+class _TeamTotalReadout extends StatelessWidget {
+  final String label;
+  final int score;
+  final int targetScore;
+
+  const _TeamTotalReadout({
+    required this.label,
+    required this.score,
+    required this.targetScore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = targetScore <= 0
+        ? 0.0
+        : (score / targetScore).clamp(0.0, 1.0);
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              letterSpacing: 0.6,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '$score',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 30,
+                    color: _kPrimaryGreen,
+                  ),
+                ),
+                TextSpan(
+                  text: '/$targetScore',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: _kPrimaryGreen.withValues(alpha: 0.15),
+              valueColor: const AlwaysStoppedAnimation(_kPrimaryGreen),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -174,8 +235,13 @@ class _TeamScorePill extends StatelessWidget {
 class _QuickAddRoundDialog extends StatefulWidget {
   final String teamLabel;
   final void Function(int value, bool bothTeams) onSubmit;
+  final ValueChanged<String> onRename;
 
-  const _QuickAddRoundDialog({required this.teamLabel, required this.onSubmit});
+  const _QuickAddRoundDialog({
+    required this.teamLabel,
+    required this.onSubmit,
+    required this.onRename,
+  });
 
   @override
   State<_QuickAddRoundDialog> createState() => _QuickAddRoundDialogState();
@@ -183,6 +249,7 @@ class _QuickAddRoundDialog extends StatefulWidget {
 
 class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
   String _digits = '';
+  late String _teamLabel = widget.teamLabel;
 
   void _tapDigit(String d) {
     if (_digits.length >= 3) return;
@@ -197,6 +264,31 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
   void _submit(bool bothTeams) {
     widget.onSubmit(int.tryParse(_digits) ?? 0, bothTeams);
     Navigator.pop(context);
+  }
+
+  Future<void> _rename() async {
+    final controller = TextEditingController(text: _teamLabel);
+    final newLabel = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nombre del equipo'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (newLabel == null || newLabel.isEmpty || !mounted) return;
+    setState(() => _teamLabel = newLabel);
+    widget.onRename(newLabel);
   }
 
   @override
@@ -244,14 +336,35 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                widget.teamLabel,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                  color: _kPrimaryGreen,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _teamLabel,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: _kPrimaryGreen,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: _rename,
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: _kPrimaryGreen,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Text(
@@ -377,44 +490,42 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               final teamBName = game.teamBPlayerIds
                   .map((id) => players[id] ?? '...')
                   .join(' y ');
+              final teamALabel = game.teamALabel ?? 'Casa';
+              final teamBLabel = game.teamBLabel ?? 'Visita';
 
               return Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Text(
-                      'Meta: ${game.targetScore} puntos',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        _TeamScorePill(
-                          label: 'Casa',
+                        _TeamHeaderPill(
+                          label: teamALabel,
                           playerNames: teamAName,
-                          score: game.teamAScore,
-                          onAdd: () =>
-                              _showQuickAddDialog(context, firestore, 'A'),
+                          onAdd: () => _showQuickAddDialog(
+                            context,
+                            firestore,
+                            'A',
+                            teamALabel,
+                          ),
                         ),
                         const SizedBox(width: 12),
-                        _TeamScorePill(
-                          label: 'Visita',
+                        _TeamHeaderPill(
+                          label: teamBLabel,
                           playerNames: teamBName,
-                          score: game.teamBScore,
-                          onAdd: () =>
-                              _showQuickAddDialog(context, firestore, 'B'),
+                          onAdd: () => _showQuickAddDialog(
+                            context,
+                            firestore,
+                            'B',
+                            teamBLabel,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        'Toca una ronda para editarla, o la X para borrarla.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Toca una ronda para editarla, o la X para borrarla.',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 8),
                     Expanded(
@@ -490,27 +601,45 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red, width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _TeamTotalReadout(
+                          label: teamALabel,
+                          score: game.teamAScore,
+                          targetScore: game.targetScore,
+                        ),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(
+                              color: Colors.red,
+                              width: 1.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => _confirmCancel(context, firestore),
+                          child: const Text(
+                            'REINICIAR',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
-                        onPressed: () => _confirmCancel(context, firestore),
-                        child: const Text(
-                          'REINICIAR',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
+                        _TeamTotalReadout(
+                          label: teamBLabel,
+                          score: game.teamBScore,
+                          targetScore: game.targetScore,
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -613,16 +742,19 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     BuildContext context,
     FirestoreService firestore,
     String team,
+    String teamLabel,
   ) {
     showDialog(
       context: context,
       builder: (dialogContext) => _QuickAddRoundDialog(
-        teamLabel: team == 'A' ? 'Casa' : 'Visita',
+        teamLabel: teamLabel,
         onSubmit: (value, bothTeams) {
           final teamAPoints = bothTeams ? value : (team == 'A' ? value : 0);
           final teamBPoints = bothTeams ? value : (team == 'B' ? value : 0);
           firestore.addRound(widget.gameId, teamAPoints, teamBPoints);
         },
+        onRename: (newLabel) =>
+            firestore.renameGameTeam(widget.gameId, team, newLabel),
       ),
     );
   }

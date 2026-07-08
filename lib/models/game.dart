@@ -12,6 +12,8 @@ class Game {
   final int roundCount;
   final DateTime createdAt;
   final DateTime? finishedAt;
+  final String? teamALabel;
+  final String? teamBLabel;
 
   Game({
     required this.id,
@@ -25,6 +27,8 @@ class Game {
     this.roundCount = 0,
     this.winner,
     this.finishedAt,
+    this.teamALabel,
+    this.teamBLabel,
   });
 
   bool get isFinished => status == 'finished';
@@ -46,6 +50,8 @@ class Game {
       winner: data['winner'] as String?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       finishedAt: (data['finishedAt'] as Timestamp?)?.toDate(),
+      teamALabel: data['teamALabel'] as String?,
+      teamBLabel: data['teamBLabel'] as String?,
     );
   }
 
@@ -60,5 +66,7 @@ class Game {
     'winner': winner,
     'createdAt': Timestamp.fromDate(createdAt),
     'finishedAt': finishedAt == null ? null : Timestamp.fromDate(finishedAt!),
+    'teamALabel': teamALabel,
+    'teamBLabel': teamBLabel,
   };
 }

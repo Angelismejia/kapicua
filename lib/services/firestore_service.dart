@@ -394,6 +394,15 @@ class FirestoreService {
     });
   }
 
+  /// Cambia el nombre mostrado de "Casa" o "Visita" solo para esta
+  /// partida (ej. ponerle un apodo al equipo), sin afectar a los
+  /// jugadores ni a otras partidas.
+  Future<void> renameGameTeam(String gameId, String team, String label) async {
+    await _games.doc(gameId).update({
+      team == 'A' ? 'teamALabel' : 'teamBLabel': label,
+    });
+  }
+
   /// Corrige el puntaje de una ronda ya anotada (por si se equivocaron al
   /// escribirlo) y recalcula los totales y el estado de la partida.
   Future<void> updateRound(
