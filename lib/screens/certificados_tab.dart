@@ -147,7 +147,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: isAdmin
-              ? const Text('Todavía no hay partidas ganadas este mes.')
+              ? const Text('Todavía no hay ganador en el mes.')
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
