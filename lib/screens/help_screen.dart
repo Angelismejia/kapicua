@@ -1,14 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/theme_controller.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
+  Future<void> _confirmClearHistory(
+    BuildContext context,
+    FirestoreService firestore,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Borrar historial de partidas'),
+        content: const Text(
+          'Esto borra TODAS las partidas (terminadas y en curso) y sus '
+          'rondas para siempre. No se puede deshacer. Las estadísticas '
+          '(ganadas/perdidas) no se tocan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Borrar todo'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await firestore.clearGameHistory();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Historial de partidas borrado.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeController = context.watch<ThemeController>();
+    final isAdmin = context.watch<AuthService>().isAdmin;
+    final firestore = context.read<FirestoreService>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración y ayuda')),
@@ -23,6 +64,23 @@ class HelpScreen extends StatelessWidget {
               onChanged: (value) => themeController.setDarkMode(value),
             ),
           ),
+          if (isAdmin) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: const Text('Borrar historial de partidas'),
+                subtitle: const Text(
+                  'Útil para quitar partidas de prueba antes de usar la '
+                  'app de verdad.',
+                ),
+                onTap: () => _confirmClearHistory(context, firestore),
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Text(
             '¿Cómo funciona Kapicua?',

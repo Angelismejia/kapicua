@@ -135,22 +135,39 @@ class FirestoreService {
 
   /// Agrega varias ganadas/perdidas de una vez (ej. 13 ganadas ya jugadas
   /// antes de usar la app), en vez de tener que tocar el botón una por una.
+  /// Si se pasa [date], se guardan con esa fecha (ej. el mes que se está
+  /// viendo en el calendario) en vez de la fecha de hoy.
   Future<void> addPlayerStatEntries(
     String playerId,
     bool isWin,
-    int count,
-  ) async {
+    int count, {
+    DateTime? date,
+  }) async {
     final batch = _db.batch();
-    final now = Timestamp.fromDate(DateTime.now());
+    final timestamp = Timestamp.fromDate(date ?? DateTime.now());
     final collection = _statEntries(playerId);
     for (var i = 0; i < count; i++) {
-      batch.set(collection.doc(), {'isWin': isWin, 'createdAt': now});
+      batch.set(collection.doc(), {'isWin': isWin, 'createdAt': timestamp});
     }
     await batch.commit();
   }
 
   Future<void> deletePlayerStatEntry(String playerId, String entryId) async {
     await _statEntries(playerId).doc(entryId).delete();
+  }
+
+  /// Borra varias ganadas/perdidas de una vez (seleccionadas a mano),
+  /// en vez de una por una.
+  Future<void> deletePlayerStatEntries(
+    String playerId,
+    List<String> entryIds,
+  ) async {
+    final batch = _db.batch();
+    final collection = _statEntries(playerId);
+    for (final id in entryIds) {
+      batch.delete(collection.doc(id));
+    }
+    await batch.commit();
   }
 
   /// Corrige la fecha de una ganada/perdida ya registrada, por si el admin
@@ -235,6 +252,22 @@ class FirestoreService {
     }
     batch.delete(_games.doc(gameId));
     await batch.commit();
+  }
+
+  /// Borra todas las partidas (terminadas y en curso) y sus rondas, por
+  /// si se usaron partidas de prueba y se quiere empezar de cero antes de
+  /// usar la app de verdad. No toca las estadísticas manuales.
+  Future<void> clearGameHistory() async {
+    final gamesSnap = await _games.get();
+    for (final gameDoc in gamesSnap.docs) {
+      final roundsSnap = await gameDoc.reference.collection('rounds').get();
+      final batch = _db.batch();
+      for (final round in roundsSnap.docs) {
+        batch.delete(round.reference);
+      }
+      batch.delete(gameDoc.reference);
+      await batch.commit();
+    }
   }
 
   Future<void> addRound(String gameId, int teamAPoints, int teamBPoints) async {

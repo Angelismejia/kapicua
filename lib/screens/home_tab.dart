@@ -109,7 +109,7 @@ class _HomeTabState extends State<HomeTab> {
                   stream: firestore.watchAllStatEntries(),
                   builder: (context, entriesSnap) {
                     final statEntries = entriesSnap.data ?? [];
-                    final monthlyWinner = _monthlyLeader(
+                    final championCard = _championCardData(
                       statEntries,
                       allPlayers,
                     );
@@ -166,7 +166,10 @@ class _HomeTabState extends State<HomeTab> {
                                   showAddPlayerDialog(context, firestore),
                             ),
                             const SizedBox(height: 20),
-                            _ChampionCard(championName: monthlyWinner),
+                            _ChampionCard(
+                              title: championCard.title,
+                              championName: championCard.name,
+                            ),
                             for (final game in activeGames) ...[
                               const SizedBox(height: 20),
                               _ActiveGameCard(
@@ -268,7 +271,8 @@ class _HomeTabState extends State<HomeTab> {
           _Notification(
             icon: Icons.emoji_events_rounded,
             message:
-                '🏆 ${lastMonthWinner.player.displayName} fue el campeón '
+                '🎉 ¡Es hora de celebrar al campeón del mes! '
+                '${lastMonthWinner.player.displayName} fue el campeón '
                 'de $label con ${lastMonthWinner.wins} victorias.',
           ),
         );
@@ -350,7 +354,14 @@ class _HomeTabState extends State<HomeTab> {
     final creationTime = auth.currentUser?.metadata.creationTime;
     if (creationTime != null) {
       final daysSince = DateTime.now().difference(creationTime).inDays;
-      if (daysSince >= 30) {
+      if (daysSince < 1) {
+        notifications.add(
+          const _Notification(
+            icon: Icons.waving_hand_rounded,
+            message: '¡Bienvenido a Kapicua! 🎉 Que gane el mejor.',
+          ),
+        );
+      } else if (daysSince >= 30) {
         notifications.add(
           _Notification(
             icon: Icons.celebration_rounded,
@@ -459,25 +470,32 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  String? _monthlyLeader(List<PlayerStatEntry> entries, List<Player> players) {
+  /// Durante el mes, esta tarjeta muestra quién va ganando (todavía no es
+  /// "campeón" porque el mes no ha terminado). Recién empezado el mes
+  /// nuevo, durante unos días muestra al campeón del mes que acaba de
+  /// terminar, para poder celebrarlo, y luego vuelve a mostrar quién va
+  /// ganando el mes actual.
+  ({String title, String? name}) _championCardData(
+    List<PlayerStatEntry> entries,
+    List<Player> players,
+  ) {
     final now = DateTime.now();
-    final winsCount = <String, int>{};
-    for (final e in entries) {
-      if (!e.isWin) continue;
-      if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
-        continue;
+    if (now.day <= 5) {
+      final lastMonth = DateTime(now.year, now.month - 1);
+      final lastWinner = computeMonthlyWinner(entries, players, lastMonth);
+      if (lastWinner != null) {
+        return (title: 'Campeón del mes', name: lastWinner.player.displayName);
       }
-      winsCount[e.playerId] = (winsCount[e.playerId] ?? 0) + 1;
     }
-    if (winsCount.isEmpty) return null;
-    String bestId = winsCount.keys.first;
-    for (final id in winsCount.keys) {
-      if (winsCount[id]! > winsCount[bestId]!) bestId = id;
-    }
-    for (final p in players) {
-      if (p.id == bestId) return p.displayName;
-    }
-    return null;
+    final currentLeader = computeMonthlyWinner(
+      entries,
+      players,
+      DateTime(now.year, now.month),
+    );
+    return (
+      title: 'Va ganando este mes',
+      name: currentLeader?.player.displayName,
+    );
   }
 }
 
@@ -859,9 +877,10 @@ class _PlayersCard extends StatelessWidget {
 }
 
 class _ChampionCard extends StatelessWidget {
+  final String title;
   final String? championName;
 
-  const _ChampionCard({required this.championName});
+  const _ChampionCard({required this.title, required this.championName});
 
   @override
   Widget build(BuildContext context) {
@@ -877,9 +896,9 @@ class _ChampionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Campeón del mes',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

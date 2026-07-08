@@ -103,17 +103,18 @@ class _StatsScreenState extends State<StatsScreen> {
                     month: _selectedMonth,
                     onChanged: (m) => setState(() => _selectedMonth = m),
                   ),
-                  const SizedBox(height: 12),
-                  _StatsList(
-                    stats: stats,
-                    isAdmin: isAdmin,
-                    firestore: firestore,
-                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Toca el nombre de un jugador para ver su historial'
                     '${isAdmin ? ' y agregar ganadas o perdidas' : ''}.',
                     style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  _StatsList(
+                    stats: stats,
+                    isAdmin: isAdmin,
+                    firestore: firestore,
+                    forMonth: _selectedMonth,
                   ),
                 ],
               );
@@ -175,6 +176,7 @@ class _GuestStatsBody extends StatelessWidget {
                     stats: stats,
                     isAdmin: false,
                     firestore: firestore,
+                    forMonth: DateTime.now(),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -205,11 +207,13 @@ class _StatsList extends StatelessWidget {
   final List<PlayerStats> stats;
   final bool isAdmin;
   final FirestoreService firestore;
+  final DateTime forMonth;
 
   const _StatsList({
     required this.stats,
     required this.isAdmin,
     required this.firestore,
+    required this.forMonth,
   });
 
   @override
@@ -267,6 +271,7 @@ class _StatsList extends StatelessWidget {
                 firestore,
                 stats[i].player,
                 isAdmin,
+                forMonth,
               ),
             ),
           ],

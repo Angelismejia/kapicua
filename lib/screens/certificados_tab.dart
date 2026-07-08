@@ -114,14 +114,13 @@ class _CertificadosTabState extends State<CertificadosTab> {
       }
       // No admin y no es quien ganó: informativo, sin botón de certificado.
       final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
+      final text = monthlyWinner.isMonthOver
+          ? 'El campeón de $label fue ${monthlyWinner.player.displayName}.'
+          : 'Por ahora, en $label va ganando '
+                '${monthlyWinner.player.displayName}.';
       return [
         Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'El campeón de $label fue ${monthlyWinner.player.displayName}.',
-            ),
-          ),
+          child: Padding(padding: const EdgeInsets.all(16), child: Text(text)),
         ),
       ];
     }
@@ -139,15 +138,15 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Aún no tienes certificado este mes 🎯',
+                      'Aquí verás tus certificados 🎯',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      '¡Dale con todo! Cuando seas el jugador con más '
-                      'victorias del mes, tu certificado va a '
+                      'Sigue jugando para ser el jugador con más victorias '
+                      'del mes — cuando lo logres, tu certificado va a '
                       'aparecer justo aquí.',
                     ),
                   ],
