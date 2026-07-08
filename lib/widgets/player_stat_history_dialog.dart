@@ -6,6 +6,24 @@ import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/firestore_service.dart';
 
+/// Mensaje de confirmación arriba de la pantalla (no abajo como el
+/// SnackBar normal), para que se note justo después de borrar/editar.
+void _showTopMessage(BuildContext context, String message) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.clearMaterialBanners();
+  final banner = MaterialBanner(
+    content: Text(message),
+    actions: [
+      TextButton(
+        onPressed: messenger.clearMaterialBanners,
+        child: const Text('OK'),
+      ),
+    ],
+  );
+  messenger.showMaterialBanner(banner);
+  Future.delayed(const Duration(seconds: 3), messenger.clearMaterialBanners);
+}
+
 /// Si se está viendo un mes pasado en el calendario, lo que se agregue
 /// debe quedar fechado ese mes (no el día de hoy), conservando el mismo
 /// día/hora para que se sienta natural.
@@ -159,9 +177,7 @@ Future<void> _editEntry(
     try {
       await firestore.deletePlayerStatEntry(playerId, entry.id);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Estadística eliminada correctamente.')),
-      );
+      _showTopMessage(context, 'Estadística eliminada correctamente.');
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -189,9 +205,7 @@ Future<void> _editEntry(
     try {
       await firestore.updatePlayerStatEntryDate(playerId, entry.id, updated);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Estadística editada correctamente.')),
-      );
+      _showTopMessage(context, 'Estadística editada correctamente.');
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -241,6 +255,7 @@ void showPlayerStatHistoryDialog(
             ),
           );
           if (confirmed != true) return;
+          final deletedCount = selectedIds.length;
           try {
             await firestore.deletePlayerStatEntries(
               player.id,
@@ -250,6 +265,12 @@ void showPlayerStatHistoryDialog(
               selectedIds.clear();
               selecting = false;
             });
+            if (!context.mounted) return;
+            _showTopMessage(
+              context,
+              '$deletedCount estadística${deletedCount == 1 ? '' : 's'} '
+              'eliminada${deletedCount == 1 ? '' : 's'} correctamente.',
+            );
           } catch (e) {
             if (!dialogContext.mounted) return;
             ScaffoldMessenger.of(
