@@ -388,6 +388,47 @@ class FirestoreService {
   /// Borra una ronda ya anotada y recalcula los totales y el estado de la
   /// partida a partir de las rondas restantes (por si esa ronda era la que
   /// hacía llegar a la meta).
+  /// Corrige el puntaje de una ronda ya anotada (por si se equivocaron al
+  /// escribirlo) y recalcula los totales y el estado de la partida.
+  Future<void> updateRound(
+    String gameId,
+    String roundId,
+    int teamAPoints,
+    int teamBPoints,
+  ) async {
+    final gameRef = _games.doc(gameId);
+    final roundsRef = gameRef.collection('rounds');
+    await roundsRef.doc(roundId).update({
+      'teamAPoints': teamAPoints,
+      'teamBPoints': teamBPoints,
+    });
+
+    final gameSnap = await gameRef.get();
+    final game = Game.fromMap(gameSnap.id, gameSnap.data()!);
+    final remaining = await roundsRef.orderBy('roundNumber').get();
+
+    var totalA = 0;
+    var totalB = 0;
+    for (final doc in remaining.docs) {
+      final round = Round.fromMap(doc.id, doc.data());
+      totalA += round.teamAPoints;
+      totalB += round.teamBPoints;
+    }
+
+    String? winner;
+    if (totalA >= game.targetScore || totalB >= game.targetScore) {
+      winner = totalA >= totalB ? 'A' : 'B';
+    }
+
+    await gameRef.update({
+      'teamAScore': totalA,
+      'teamBScore': totalB,
+      'status': winner == null ? 'in_progress' : 'finished',
+      'winner': winner,
+      'finishedAt': winner == null ? null : Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
   Future<void> deleteRound(String gameId, String roundId) async {
     final gameRef = _games.doc(gameId);
     final roundsRef = gameRef.collection('rounds');

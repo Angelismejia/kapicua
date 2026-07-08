@@ -96,7 +96,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Mantén presionada una ronda para borrarla.',
+                      'Toca una ronda para editarla o borrarla.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 12),
@@ -140,7 +140,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                     itemBuilder: (context, index) {
                                       final round = rounds[index];
                                       return GestureDetector(
-                                        onLongPress: () => _confirmDeleteRound(
+                                        onTap: () => _showRoundOptions(
                                           context,
                                           firestore,
                                           round,
@@ -203,6 +203,46 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     );
   }
 
+  void _showRoundOptions(
+    BuildContext context,
+    FirestoreService firestore,
+    Round round,
+  ) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.scoreboard_outlined),
+              title: Text('Ronda: ${round.teamAPoints} - ${round.teamBPoints}'),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Editar puntos'),
+              onTap: () => Navigator.pop(sheetContext, 'edit'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Eliminar ronda'),
+              onTap: () => Navigator.pop(sheetContext, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!context.mounted) return;
+    if (action == 'edit') {
+      _showEditRoundDialog(context, firestore, round);
+    } else if (action == 'delete') {
+      _confirmDeleteRound(context, firestore, round);
+    }
+  }
+
   void _confirmDeleteRound(
     BuildContext context,
     FirestoreService firestore,
@@ -232,6 +272,93 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             child: const Text('Eliminar'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditRoundDialog(
+    BuildContext context,
+    FirestoreService firestore,
+    Round round,
+  ) {
+    var winningTeam = round.teamAPoints >= round.teamBPoints ? 'A' : 'B';
+    final initialPoints = winningTeam == 'A'
+        ? round.teamAPoints
+        : round.teamBPoints;
+    final pointsController = TextEditingController(text: '$initialPoints');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
+          title: const Text('Editar ronda'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('¿Quién ganó la ronda?'),
+                RadioListTile<String>(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Casa'),
+                  value: 'A',
+                  groupValue: winningTeam,
+                  onChanged: (v) => setState(() => winningTeam = v!),
+                ),
+                RadioListTile<String>(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Visita'),
+                  value: 'B',
+                  groupValue: winningTeam,
+                  onChanged: (v) => setState(() => winningTeam = v!),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pointsController,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'Puntos'),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final preset in _pointPresets)
+                      ActionChip(
+                        label: Text('$preset'),
+                        onPressed: () =>
+                            setState(() => pointsController.text = '$preset'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final points = int.tryParse(pointsController.text.trim()) ?? 0;
+                final teamAPoints = winningTeam == 'A' ? points : 0;
+                final teamBPoints = winningTeam == 'B' ? points : 0;
+                firestore.updateRound(
+                  widget.gameId,
+                  round.id,
+                  teamAPoints,
+                  teamBPoints,
+                );
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
   }
