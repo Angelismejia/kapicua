@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 class PrintService {
   // Hoja vertical (A4). El certificado es una imagen apaisada (más ancha
@@ -38,7 +39,17 @@ class PrintService {
   }
 
   Future<void> shareCertificate(Uint8List pngBytes) async {
-    final bytes = await _buildPdf(pngBytes);
-    await Printing.sharePdf(bytes: bytes, filename: 'certificado_kapicua.pdf');
+    await SharePlus.instance.share(
+      ShareParams(
+        text: '¡Mira mi certificado de campeón en Kapicua!',
+        files: [
+          XFile.fromData(
+            pngBytes,
+            name: 'certificado_kapicua.png',
+            mimeType: 'image/png',
+          ),
+        ],
+      ),
+    );
   }
 }

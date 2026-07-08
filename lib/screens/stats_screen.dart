@@ -1,5 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/game.dart';
 import '../models/player.dart';
@@ -9,6 +14,26 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/month_selector.dart';
 import '../widgets/player_stat_history_dialog.dart';
+
+Future<void> _shareStatsImage(GlobalKey repaintKey, String monthLabel) async {
+  final boundary =
+      repaintKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+  final image = await boundary.toImage(pixelRatio: 2.5);
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  final bytes = byteData!.buffer.asUint8List();
+  await SharePlus.instance.share(
+    ShareParams(
+      text: 'Estadísticas de $monthLabel en Kapicua',
+      files: [
+        XFile.fromData(
+          bytes,
+          name: 'estadisticas_kapicua.png',
+          mimeType: 'image/png',
+        ),
+      ],
+    ),
+  );
+}
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -22,6 +47,18 @@ class _StatsScreenState extends State<StatsScreen> {
     DateTime.now().year,
     DateTime.now().month,
   );
+  final _shareKey = GlobalKey();
+  bool _sharing = false;
+
+  Future<void> _share() async {
+    setState(() => _sharing = true);
+    try {
+      final monthLabel = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
+      await _shareStatsImage(_shareKey, monthLabel);
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +70,22 @@ class _StatsScreenState extends State<StatsScreen> {
     final isAdmin = context.watch<AuthService>().isAdmin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Estadísticas')),
+      appBar: AppBar(
+        title: const Text('Estadísticas'),
+        actions: [
+          IconButton(
+            icon: _sharing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.share_outlined),
+            tooltip: 'Compartir estadísticas',
+            onPressed: _sharing ? null : _share,
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Player>>(
         stream: firestore.watchAllPlayers(),
         builder: (context, playersSnapshot) {
@@ -114,11 +166,20 @@ class _StatsScreenState extends State<StatsScreen> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
-                  _StatsList(
-                    stats: stats,
-                    isAdmin: isAdmin,
-                    firestore: firestore,
-                    forMonth: _selectedMonth,
+                  RepaintBoundary(
+                    key: _shareKey,
+                    child: _StatsShareCapture(
+                      monthLabel: DateFormat(
+                        'MMMM yyyy',
+                        'es',
+                      ).format(_selectedMonth),
+                      child: _StatsList(
+                        stats: stats,
+                        isAdmin: isAdmin,
+                        firestore: firestore,
+                        forMonth: _selectedMonth,
+                      ),
+                    ),
                   ),
                 ],
               );
@@ -130,15 +191,49 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 }
 
-class _GuestStatsBody extends StatelessWidget {
+class _GuestStatsBody extends StatefulWidget {
   final FirestoreService firestore;
 
   const _GuestStatsBody({required this.firestore});
 
   @override
+  State<_GuestStatsBody> createState() => _GuestStatsBodyState();
+}
+
+class _GuestStatsBodyState extends State<_GuestStatsBody> {
+  final _shareKey = GlobalKey();
+  bool _sharing = false;
+
+  Future<void> _share() async {
+    setState(() => _sharing = true);
+    try {
+      final monthLabel = DateFormat('MMMM yyyy', 'es').format(DateTime.now());
+      await _shareStatsImage(_shareKey, monthLabel);
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final firestore = widget.firestore;
     return Scaffold(
-      appBar: AppBar(title: const Text('Estadísticas')),
+      appBar: AppBar(
+        title: const Text('Estadísticas'),
+        actions: [
+          IconButton(
+            icon: _sharing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.share_outlined),
+            tooltip: 'Compartir estadísticas',
+            onPressed: _sharing ? null : _share,
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Player>>(
         stream: firestore.watchAllPlayers(),
         builder: (context, playersSnapshot) {
@@ -180,11 +275,20 @@ class _GuestStatsBody extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _StatsList(
-                    stats: stats,
-                    isAdmin: false,
-                    firestore: firestore,
-                    forMonth: DateTime.now(),
+                  RepaintBoundary(
+                    key: _shareKey,
+                    child: _StatsShareCapture(
+                      monthLabel: DateFormat(
+                        'MMMM yyyy',
+                        'es',
+                      ).format(DateTime.now()),
+                      child: _StatsList(
+                        stats: stats,
+                        isAdmin: false,
+                        firestore: firestore,
+                        forMonth: DateTime.now(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -196,6 +300,66 @@ class _GuestStatsBody extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// Envuelve la tabla de estadísticas con un encabezado de marca para que,
+/// al compartirla como imagen, se entienda de qué liga y mes se trata sin
+/// necesitar contexto adicional.
+class _StatsShareCapture extends StatelessWidget {
+  final String monthLabel;
+  final Widget child;
+
+  const _StatsShareCapture({required this.monthLabel, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF14201A) : const Color(0xFFF4F7F4),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.emoji_events_rounded,
+                color: _kStatsPrimaryGreen,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Kapicua',
+                style: TextStyle(
+                  fontFamily: 'AlexBrush',
+                  fontSize: 26,
+                  color: isDark ? _kStatsDarkText : _kStatsPrimaryGreen,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Estadísticas · $monthLabel',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: isDark ? _kStatsDarkMuted : _kStatsLightMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
