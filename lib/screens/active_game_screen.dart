@@ -66,73 +66,109 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                   p.id: p.displayName,
               };
 
+              final teamAName = game.teamAPlayerIds
+                  .map((id) => players[id] ?? '...')
+                  .join(' y ');
+              final teamBName = game.teamBPlayerIds
+                  .map((id) => players[id] ?? '...')
+                  .join(' y ');
+
               return Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Meta: ${game.targetScore} puntos · Ronda ${game.roundCount}',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _TeamScoreCard(
-                            label: 'Casa',
-                            playerNames: game.teamAPlayerIds
-                                .map((id) => players[id] ?? '...')
-                                .join(' y '),
-                            score: game.teamAScore,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _TeamScoreCard(
-                            label: 'Visita',
-                            playerNames: game.teamBPlayerIds
-                                .map((id) => players[id] ?? '...')
-                                .join(' y '),
-                            score: game.teamBScore,
-                          ),
-                        ),
-                      ],
+                    Center(
+                      child: Text(
+                        'Meta: ${game.targetScore} puntos',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Historial',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
                     Expanded(
-                      child: StreamBuilder<List<Round>>(
-                        stream: firestore.watchRounds(widget.gameId),
-                        builder: (context, roundsSnapshot) {
-                          final rounds = roundsSnapshot.data ?? [];
-                          if (rounds.isEmpty) {
-                            return const Center(
-                              child: Text('Todavía no hay rondas.'),
-                            );
-                          }
-                          final reversed = rounds.reversed.toList();
-                          return ListView.builder(
-                            itemCount: reversed.length,
-                            itemBuilder: (context, index) {
-                              final round = reversed[index];
-                              return Card(
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    child: Text('${round.roundNumber}'),
+                      child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            IntrinsicHeight(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _ScoreSheetHeader(
+                                      label: 'Casa',
+                                      playerNames: teamAName,
+                                    ),
                                   ),
-                                  title: Text(
-                                    'Casa ${round.teamAPoints} — Visita ${round.teamBPoints}',
+                                  const VerticalDivider(width: 1, thickness: 1),
+                                  Expanded(
+                                    child: _ScoreSheetHeader(
+                                      label: 'Visita',
+                                      playerNames: teamBName,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          );
-                        },
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1, thickness: 1),
+                            Expanded(
+                              child: StreamBuilder<List<Round>>(
+                                stream: firestore.watchRounds(widget.gameId),
+                                builder: (context, roundsSnapshot) {
+                                  final rounds = roundsSnapshot.data ?? [];
+                                  if (rounds.isEmpty) {
+                                    return const Center(
+                                      child: Text('Todavía no hay rondas.'),
+                                    );
+                                  }
+                                  return ListView.builder(
+                                    itemCount: rounds.length,
+                                    itemBuilder: (context, index) {
+                                      final round = rounds[index];
+                                      return IntrinsicHeight(
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: _ScoreSheetCell(
+                                                value: round.teamAPoints,
+                                              ),
+                                            ),
+                                            const VerticalDivider(
+                                              width: 1,
+                                              thickness: 1,
+                                            ),
+                                            Expanded(
+                                              child: _ScoreSheetCell(
+                                                value: round.teamBPoints,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            const Divider(height: 1, thickness: 2),
+                            IntrinsicHeight(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _ScoreSheetTotal(
+                                      value: game.teamAScore,
+                                    ),
+                                  ),
+                                  const VerticalDivider(width: 1, thickness: 1),
+                                  Expanded(
+                                    child: _ScoreSheetTotal(
+                                      value: game.teamBScore,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -262,35 +298,71 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   }
 }
 
-class _TeamScoreCard extends StatelessWidget {
+class _ScoreSheetHeader extends StatelessWidget {
   final String label;
   final String playerNames;
-  final int score;
 
-  const _TeamScoreCard({
-    required this.label,
-    required this.playerNames,
-    required this.score,
-  });
+  const _ScoreSheetHeader({required this.label, required this.playerNames});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
-            Text(
-              playerNames,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Text('$score', style: Theme.of(context).textTheme.headlineMedium),
-          ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Column(
+        children: [
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          Text(
+            playerNames,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoreSheetCell extends StatelessWidget {
+  final int value;
+
+  const _ScoreSheetCell({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Center(
+        child: Text('$value', style: Theme.of(context).textTheme.bodyLarge),
+      ),
+    );
+  }
+}
+
+class _ScoreSheetTotal extends StatelessWidget {
+  final int value;
+
+  const _ScoreSheetTotal({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Center(
+        child: Text(
+          '$value',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       ),
     );
