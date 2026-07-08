@@ -7,11 +7,21 @@ import '../models/player_stat_entry.dart';
 import '../models/player_stats.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
-import '../widgets/manual_certificate_dialog.dart';
+import '../widgets/month_selector.dart';
 import '../widgets/player_stat_history_dialog.dart';
 
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  late DateTime _selectedMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -23,20 +33,7 @@ class StatsScreen extends StatelessWidget {
     final isAdmin = context.watch<AuthService>().isAdmin;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Estadísticas'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.workspace_premium_outlined),
-            tooltip: 'Generar certificado manual',
-            onPressed: () async {
-              final players = await firestore.watchAllPlayers().first;
-              if (!context.mounted) return;
-              showManualCertificateDialog(context, players);
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Estadísticas')),
       body: StreamBuilder<List<Player>>(
         stream: firestore.watchAllPlayers(),
         builder: (context, playersSnapshot) {
@@ -44,7 +41,11 @@ class StatsScreen extends StatelessWidget {
           return StreamBuilder<List<PlayerStatEntry>>(
             stream: firestore.watchAllStatEntries(),
             builder: (context, entriesSnapshot) {
-              final entries = entriesSnapshot.data ?? [];
+              final entries = (entriesSnapshot.data ?? []).where(
+                (e) =>
+                    e.createdAt.year == _selectedMonth.year &&
+                    e.createdAt.month == _selectedMonth.month,
+              );
 
               final stats =
                   players.map((player) {
@@ -98,6 +99,11 @@ class StatsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  MonthSelector(
+                    month: _selectedMonth,
+                    onChanged: (m) => setState(() => _selectedMonth = m),
+                  ),
+                  const SizedBox(height: 12),
                   _StatsList(
                     stats: stats,
                     isAdmin: isAdmin,
