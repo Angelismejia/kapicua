@@ -350,12 +350,20 @@ class _StatsRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${stats.gamesWon} ganadas · ${stats.gamesLost} perdidas',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      color: mutedColor,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${stats.gamesWon} ganadas · ${stats.gamesLost} perdidas',
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          color: mutedColor,
+                        ),
+                      ),
                     ),
                   ),
                 ],

@@ -232,7 +232,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                 TextField(
                   controller: pointsController,
                   autofocus: true,
-                  keyboardType: TextInputType.text,
+                  keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(labelText: 'Puntos'),
                 ),

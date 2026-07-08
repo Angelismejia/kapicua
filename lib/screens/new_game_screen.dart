@@ -87,7 +87,7 @@ class _NewGameScreenState extends State<NewGameScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _customTargetController,
-                  keyboardType: TextInputType.text,
+                  keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(
                     labelText: 'Meta personalizada',

@@ -65,7 +65,7 @@ void showManualCertificateDialog(BuildContext context, List<Player> players) {
               const SizedBox(height: 12),
               TextField(
                 controller: scoreController,
-                keyboardType: TextInputType.text,
+                keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(labelText: 'Puntaje'),
               ),
