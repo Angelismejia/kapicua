@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -5,8 +6,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class PrintService {
-  // Hoja vertical (A4). El certificado se muestra completo, sin recortes,
-  // manteniendo su relación de aspecto y centrado en la página.
+  // Hoja vertical (A4). El certificado es una imagen apaisada (más ancha
+  // que alta), así que la rotamos 90° para que llene la hoja vertical de
+  // borde a borde, sin recortar nada ni dejar espacio en blanco.
   Future<Uint8List> _buildPdf(Uint8List pngBytes) async {
     final doc = pw.Document();
     final image = pw.MemoryImage(pngBytes);
@@ -15,8 +17,16 @@ class PrintService {
       pw.Page(
         pageFormat: page,
         margin: pw.EdgeInsets.zero,
-        build: (context) =>
-            pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
+        build: (context) => pw.Center(
+          child: pw.Transform.rotateBox(
+            angle: math.pi / 2,
+            child: pw.SizedBox(
+              width: page.height,
+              height: page.width,
+              child: pw.Image(image, fit: pw.BoxFit.contain),
+            ),
+          ),
+        ),
       ),
     );
     return doc.save();

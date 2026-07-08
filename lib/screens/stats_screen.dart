@@ -261,14 +261,12 @@ class _StatsList extends StatelessWidget {
               isAdmin: isAdmin,
               textColor: textColor,
               mutedColor: mutedColor,
-              onTap: isAdmin
-                  ? () => showPlayerStatHistoryDialog(
-                      context,
-                      firestore,
-                      stats[i].player,
-                      isAdmin,
-                    )
-                  : null,
+              onTap: () => showPlayerStatHistoryDialog(
+                context,
+                firestore,
+                stats[i].player,
+                isAdmin,
+              ),
             ),
           ],
         ],
@@ -358,9 +356,8 @@ class _StatsRow extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                       color: textColor,
-                      decoration: isAdmin
-                          ? TextDecoration.underline
-                          : TextDecoration.none,
+                      decoration: TextDecoration.underline,
+                      decorationColor: mutedColor,
                     ),
                   ),
                   const SizedBox(height: 2),

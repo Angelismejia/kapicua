@@ -133,6 +133,18 @@ class FirestoreService {
     await _statEntries(playerId).doc(entryId).delete();
   }
 
+  /// Corrige la fecha de una ganada/perdida ya registrada, por si el admin
+  /// se equivocó al anotarla.
+  Future<void> updatePlayerStatEntryDate(
+    String playerId,
+    String entryId,
+    DateTime newDate,
+  ) async {
+    await _statEntries(
+      playerId,
+    ).doc(entryId).update({'createdAt': Timestamp.fromDate(newDate)});
+  }
+
   // ---- Partidas ----
 
   Stream<Game?> watchActiveGame() {

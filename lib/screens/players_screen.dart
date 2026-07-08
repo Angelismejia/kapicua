@@ -14,84 +14,80 @@ class PlayersScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Jugadores')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-            child: _AddPlayerCard(
-              onAdd: () => showAddPlayerDialog(context, firestore),
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<List<Player>>(
-              stream: firestore.watchAllPlayers(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final players = snapshot.data!;
-                if (players.isEmpty) {
-                  return const Center(
+      body: StreamBuilder<List<Player>>(
+        stream: firestore.watchAllPlayers(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final players = snapshot.data!;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            children: [
+              _AddPlayerCard(
+                onAdd: () => showAddPlayerDialog(context, firestore),
+              ),
+              const SizedBox(height: 12),
+              if (players.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
                     child: Text('Todavía no hay jugadores en la liga.'),
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  itemCount: players.length,
-                  itemBuilder: (context, index) {
-                    final player = players[index];
-                    return ListTile(
-                      title: Text(player.displayName),
-                      subtitle: Text(
-                        [
-                          if (player.shortName != null &&
-                              player.shortName!.isNotEmpty)
-                            player.fullName,
-                          if (!player.active) 'Inactivo',
-                        ].join(' · '),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                  ),
+                )
+              else
+                ...players.map((player) {
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(player.displayName),
+                    subtitle: Text(
+                      [
+                        if (player.shortName != null &&
+                            player.shortName!.isNotEmpty)
+                          player.fullName,
+                        if (!player.active) 'Inactivo',
+                      ].join(' · '),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: 'Editar',
+                          onPressed: () =>
+                              _showEditDialog(context, firestore, player),
+                        ),
+                        if (player.active)
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            tooltip: 'Editar',
+                            icon: const Icon(Icons.delete_outline),
+                            tooltip: 'Eliminar',
                             onPressed: () =>
-                                _showEditDialog(context, firestore, player),
+                                _confirmRemove(context, firestore, player),
+                          )
+                        else ...[
+                          IconButton(
+                            icon: const Icon(Icons.restore),
+                            tooltip: 'Reactivar',
+                            onPressed: () =>
+                                firestore.reactivatePlayer(player.id),
                           ),
-                          if (player.active)
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              tooltip: 'Eliminar',
-                              onPressed: () =>
-                                  _confirmRemove(context, firestore, player),
-                            )
-                          else ...[
-                            IconButton(
-                              icon: const Icon(Icons.restore),
-                              tooltip: 'Reactivar',
-                              onPressed: () =>
-                                  firestore.reactivatePlayer(player.id),
+                          IconButton(
+                            icon: const Icon(Icons.delete_forever_outlined),
+                            tooltip: 'Eliminar definitivamente',
+                            onPressed: () => _confirmPermanentDelete(
+                              context,
+                              firestore,
+                              player,
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_forever_outlined),
-                              tooltip: 'Eliminar definitivamente',
-                              onPressed: () => _confirmPermanentDelete(
-                                context,
-                                firestore,
-                                player,
-                              ),
-                            ),
-                          ],
+                          ),
                         ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          );
+        },
       ),
     );
   }

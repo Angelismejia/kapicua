@@ -21,6 +21,78 @@ Future<void> _addEntry(
   }
 }
 
+Future<void> _editEntry(
+  BuildContext context,
+  FirestoreService firestore,
+  String playerId,
+  PlayerStatEntry entry,
+) async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(
+              entry.isWin ? Icons.emoji_events : Icons.close_rounded,
+              color: entry.isWin ? Colors.green : Colors.redAccent,
+            ),
+            title: Text(
+              entry.isWin ? 'Editar esta ganada' : 'Editar esta perdida',
+            ),
+            subtitle: Text(
+              DateFormat('d MMM yyyy, h:mm a', 'es').format(entry.createdAt),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.edit_calendar_outlined),
+            title: const Text('Cambiar fecha'),
+            onTap: () => Navigator.pop(sheetContext, 'date'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Eliminar'),
+            onTap: () => Navigator.pop(sheetContext, 'delete'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (action == 'delete') {
+    await firestore.deletePlayerStatEntry(playerId, entry.id);
+    return;
+  }
+  if (action == 'date') {
+    if (!context.mounted) return;
+    final newDate = await showDatePicker(
+      context: context,
+      initialDate: entry.createdAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (newDate == null) return;
+    final updated = DateTime(
+      newDate.year,
+      newDate.month,
+      newDate.day,
+      entry.createdAt.hour,
+      entry.createdAt.minute,
+    );
+    try {
+      await firestore.updatePlayerStatEntryDate(playerId, entry.id, updated);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo actualizar: $e')));
+    }
+  }
+}
+
 void showPlayerStatHistoryDialog(
   BuildContext context,
   FirestoreService firestore,
@@ -90,10 +162,14 @@ void showPlayerStatHistoryDialog(
                           ).format(entry.createdAt),
                         ),
                         trailing: isAdmin
-                            ? IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () => firestore
-                                    .deletePlayerStatEntry(player.id, entry.id),
+                            ? const Icon(Icons.chevron_right)
+                            : null,
+                        onTap: isAdmin
+                            ? () => _editEntry(
+                                context,
+                                firestore,
+                                player.id,
+                                entry,
                               )
                             : null,
                       );
