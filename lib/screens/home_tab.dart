@@ -18,6 +18,22 @@ const _kLightGreen = Color(0xFFEAF6EB);
 const _kTextColor = Color(0xFF2D2D2D);
 const _kMutedText = Color(0xFF6B756D);
 
+const _kDarkCard = Color(0xFF1E2620);
+const _kDarkText = Color(0xFFEDF2ED);
+const _kDarkMuted = Color(0xFFA9B4AA);
+const _kDarkLightGreen = Color(0xFF203A28);
+
+/// Colores que cambian según el tema, para que las tarjetas de Inicio se
+/// vean bien tanto en modo claro como oscuro (antes eran fijos y en modo
+/// oscuro las tarjetas blancas quedaban chocando contra el fondo oscuro).
+extension _HomeColors on BuildContext {
+  bool get _isDark => Theme.of(this).brightness == Brightness.dark;
+  Color get cardColor => _isDark ? _kDarkCard : Colors.white;
+  Color get homeTextColor => _isDark ? _kDarkText : _kTextColor;
+  Color get homeMutedColor => _isDark ? _kDarkMuted : _kMutedText;
+  Color get lightGreenBg => _isDark ? _kDarkLightGreen : _kLightGreen;
+}
+
 class HomeTab extends StatefulWidget {
   final void Function(int index) onNavigateTab;
 
@@ -148,13 +164,13 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                             ],
                             const SizedBox(height: 30),
-                            const Text(
+                            Text(
                               'Acciones rápidas',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
-                                color: _kTextColor,
+                                color: context.homeTextColor,
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -236,15 +252,15 @@ class _Header extends StatelessWidget {
           children: [
             const Spacer(),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.notifications_none_rounded,
-                color: _kTextColor,
+                color: context.homeTextColor,
               ),
               tooltip: 'Notificaciones',
               onPressed: onNotificationsTap,
             ),
             IconButton(
-              icon: const Icon(Icons.settings_outlined, color: _kTextColor),
+              icon: Icon(Icons.settings_outlined, color: context.homeTextColor),
               tooltip: 'Configuración y ayuda',
               onPressed: onSettingsTap,
             ),
@@ -254,21 +270,21 @@ class _Header extends StatelessWidget {
           displayName != null ? '$greeting, $displayName' : greeting,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w500,
             fontSize: 22,
-            color: _kTextColor,
+            color: context.homeTextColor,
             height: 1.25,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Lista para jugar dominó.',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontSize: 16,
-            color: _kMutedText,
+            color: context.homeMutedColor,
           ),
         ),
       ],
@@ -465,7 +481,7 @@ class _PlayersCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -506,20 +522,20 @@ class _PlayersCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '$totalPlayers',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 36,
-                    color: _kTextColor,
+                    color: context.homeTextColor,
                     height: 1,
                   ),
                 ),
-                const Text(
+                Text(
                   'Jugadores registrados',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
-                    color: _kMutedText,
+                    color: context.homeMutedColor,
                   ),
                 ),
               ],
@@ -570,7 +586,7 @@ class _ChampionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _kLightGreen,
+        color: context.lightGreenBg,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -591,11 +607,11 @@ class _ChampionCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   championName ?? 'Aún sin definir',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 20,
-                    color: _kTextColor,
+                    color: context.homeTextColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -749,7 +765,9 @@ class _QuickActionButton extends StatelessWidget {
     return _ScaleOnTap(
       onTap: enabled ? onTap : null,
       child: Material(
-        color: enabled ? Colors.white : Colors.white.withValues(alpha: 0.6),
+        color: enabled
+            ? context.cardColor
+            : context.cardColor.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
@@ -783,7 +801,9 @@ class _QuickActionButton extends StatelessWidget {
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
-                    color: enabled ? _kTextColor : _kMutedText,
+                    color: enabled
+                        ? context.homeTextColor
+                        : context.homeMutedColor,
                   ),
                 ),
               ],
