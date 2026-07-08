@@ -113,7 +113,9 @@ class _HomeTabState extends State<HomeTab> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 24),
+                            const _KapicuaLogo(),
+                            const SizedBox(height: 28),
                             _BannerCarousel(
                               controller: _bannerController,
                               currentPage: _bannerPage,
@@ -124,16 +126,16 @@ class _HomeTabState extends State<HomeTab> {
                                   : () =>
                                         widget.onNavigateTab(certificadosIndex),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 24),
                             _PlayersCard(
                               totalPlayers: activePlayers.length,
                               onAddPlayer: () =>
                                   showAddPlayerDialog(context, firestore),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 20),
                             _ChampionCard(championName: monthlyWinner),
                             if (activeGame != null) ...[
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 20),
                               _ActiveGameCard(
                                 targetScore: activeGame.targetScore,
                                 onTap: () => Navigator.push(
@@ -252,10 +254,10 @@ class _Header extends StatelessWidget {
           displayName != null ? '$greeting, $displayName' : greeting,
           style: const TextStyle(
             fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 32,
+            fontWeight: FontWeight.w600,
+            fontSize: 28,
             color: _kTextColor,
-            height: 1.15,
+            height: 1.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -267,17 +269,35 @@ class _Header extends StatelessWidget {
             color: _kMutedText,
           ),
         ),
-        const SizedBox(height: 10),
-        const Text(
-          'Kapicua',
-          style: TextStyle(
-            fontFamily: 'AlexBrush',
-            fontSize: 52,
-            color: _kPrimaryGreen,
-            height: 1.1,
+      ],
+    );
+  }
+}
+
+/// El nombre "Kapicua" como elemento visual principal debajo del saludo:
+/// ocupa la mitad del ancho de la pantalla, centrado, y nunca se ve más
+/// pequeño que el texto del saludo (se ajusta con FittedBox).
+class _KapicuaLogo extends StatelessWidget {
+  const _KapicuaLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return Center(
+      child: SizedBox(
+        width: width * 0.52,
+        child: const FittedBox(
+          fit: BoxFit.contain,
+          child: Text(
+            'Kapicua',
+            style: TextStyle(
+              fontFamily: 'AlexBrush',
+              fontSize: 64,
+              color: _kPrimaryGreen,
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -299,42 +319,44 @@ class _BannerCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          height: 180,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.10),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: PageView(
-              controller: controller,
-              onPageChanged: onPageChanged,
-              children: [
-                _BannerSlide(
-                  image: 'assets/logo_banner.jpg',
-                  title: 'La mejor forma de jugar dominó',
-                  subtitle: 'Registra, compite y gana.',
-                  onTap: null,
-                  alignment: Alignment.centerLeft,
-                ),
-                _BannerSlide(
-                  image: 'assets/certificado.png',
-                  title: 'Certificado de Campeón',
-                  subtitle: 'Genera y comparte el reconocimiento del mes.',
-                  onTap: onCertificadosTap,
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: PageView(
+                controller: controller,
+                onPageChanged: onPageChanged,
+                children: [
+                  _BannerSlide(
+                    image: 'assets/logo_banner.jpg',
+                    title: 'La mejor forma de jugar dominó',
+                    subtitle: 'Registra, compite y gana.',
+                    onTap: null,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  _BannerSlide(
+                    image: 'assets/certificado.png',
+                    title: 'Certificado de Campeón',
+                    subtitle: 'Genera y comparte el reconocimiento del mes.',
+                    onTap: onCertificadosTap,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(2, (i) {
@@ -383,14 +405,7 @@ class _BannerSlide extends StatelessWidget {
           Image.asset(image, fit: BoxFit.cover, alignment: alignment),
           DecoratedBox(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.02),
-                  Colors.black.withValues(alpha: 0.55),
-                ],
-              ),
+              color: Colors.black.withValues(alpha: 0.25),
             ),
           ),
           Positioned(
@@ -408,6 +423,7 @@ class _BannerSlide extends StatelessWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -418,6 +434,7 @@ class _BannerSlide extends StatelessWidget {
                     color: Colors.white70,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
                   ),
                 ),
               ],
@@ -437,27 +454,61 @@ class _PlayersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SoftCard(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(Icons.groups_rounded, size: 28, color: _kPrimaryGreen),
-          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.groups_rounded,
+                      size: 16,
+                      color: _kPrimaryGreen,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'LIGA',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        letterSpacing: 1.1,
+                        color: _kPrimaryGreen.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(
                   '$totalPlayers',
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
-                    fontSize: 34,
+                    fontSize: 36,
                     color: _kTextColor,
                     height: 1,
                   ),
                 ),
                 const Text(
-                  'Jugadores en la liga',
+                  'Jugadores registrados',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
@@ -470,26 +521,29 @@ class _PlayersCard extends StatelessWidget {
           _ScaleOnTap(
             onTap: onAddPlayer,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              width: 170,
+              height: 52,
               decoration: BoxDecoration(
                 color: _kPrimaryGreen,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                  SizedBox(width: 6),
-                  Text(
-                    'Agregar jugador',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.5,
-                      color: Colors.white,
+              child: const Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 6),
+                    Text(
+                      'Agregar',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.5,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -767,31 +821,6 @@ class _ScaleOnTapState extends State<_ScaleOnTap> {
         curve: Curves.easeOut,
         child: widget.child,
       ),
-    );
-  }
-}
-
-class _SoftCard extends StatelessWidget {
-  final Widget child;
-
-  const _SoftCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }

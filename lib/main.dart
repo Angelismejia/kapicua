@@ -121,7 +121,7 @@ class KapicuaApp extends StatelessWidget {
               ),
               useMaterial3: true,
               fontFamily: 'Poppins',
-              scaffoldBackgroundColor: const Color(0xFFF7F8F4),
+              scaffoldBackgroundColor: const Color(0xFFF6F8F5),
               appBarTheme: const AppBarTheme(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
@@ -131,6 +131,16 @@ class KapicuaApp extends StatelessWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              navigationBarTheme: NavigationBarThemeData(
+                indicatorColor: const Color(0xFFEAF6EB),
+                labelTextStyle: WidgetStateProperty.all(
+                  const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
@@ -150,6 +160,15 @@ class KapicuaApp extends StatelessWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              navigationBarTheme: NavigationBarThemeData(
+                labelTextStyle: WidgetStateProperty.all(
+                  const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
