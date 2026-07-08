@@ -12,6 +12,15 @@ service cloud.firestore {
       }
     }
 
+    // Regla aparte (con comodin) para las consultas "collection group" de
+    // statEntries (buscan en todas las subcolecciones a la vez): la regla
+    // anidada de arriba no alcanza a cubrir ese tipo de consulta.
+    match /{path=**}/statEntries/{entryId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        request.auth.token.email.lower() in ['angelismejia06@gmail.com', 'proniw83@gmail.com'];
+    }
+
     match /games/{gameId} {
       allow read, write: if request.auth != null;
 
