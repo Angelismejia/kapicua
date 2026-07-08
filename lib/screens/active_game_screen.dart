@@ -77,12 +77,21 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Center(
-                      child: Text(
-                        'Meta: ${game.targetScore} puntos',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Meta: ${game.targetScore} puntos',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => _showRoundDialog(context, firestore),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Agregar ronda'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Expanded(
@@ -177,11 +186,6 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showRoundDialog(context, firestore),
-        icon: const Icon(Icons.add),
-        label: const Text('Agregar ronda'),
       ),
     );
   }
