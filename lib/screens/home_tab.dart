@@ -11,6 +11,7 @@ import 'active_game_screen.dart';
 import 'help_screen.dart';
 import 'history_screen.dart';
 import 'new_game_screen.dart';
+import 'profile_screen.dart';
 
 const _kPrimaryGreen = Color(0xFF2E6B3F);
 const _kSecondaryGreen = Color(0xFF5C9E61);
@@ -117,6 +118,7 @@ class _HomeTabState extends State<HomeTab> {
                             _Header(
                               greeting: _greetingPrefix,
                               name: me?.displayName,
+                              photoUrl: me?.photoUrl,
                               onNotificationsTap: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Muy pronto')),
@@ -126,6 +128,12 @@ class _HomeTabState extends State<HomeTab> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const HelpScreen(),
+                                ),
+                              ),
+                              onProfileTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProfileScreen(player: me),
                                 ),
                               ),
                             ),
@@ -231,14 +239,18 @@ class _HomeTabState extends State<HomeTab> {
 class _Header extends StatelessWidget {
   final String greeting;
   final String? name;
+  final String? photoUrl;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
+  final VoidCallback onProfileTap;
 
   const _Header({
     required this.greeting,
     required this.name,
+    required this.photoUrl,
     required this.onNotificationsTap,
     required this.onSettingsTap,
+    required this.onProfileTap,
   });
 
   @override
@@ -263,6 +275,31 @@ class _Header extends StatelessWidget {
               icon: Icon(Icons.settings_outlined, color: context.homeTextColor),
               tooltip: 'Configuración y ayuda',
               onPressed: onSettingsTap,
+            ),
+            const SizedBox(width: 4),
+            InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onProfileTap,
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: _kPrimaryGreen.withValues(alpha: 0.15),
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl!)
+                    : null,
+                child: photoUrl == null
+                    ? Text(
+                        displayName != null && displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: _kPrimaryGreen,
+                        ),
+                      )
+                    : null,
+              ),
             ),
           ],
         ),

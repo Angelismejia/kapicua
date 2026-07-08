@@ -91,6 +91,33 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Cambia la contraseña de la cuenta actual. Requiere la contraseña
+  /// actual porque Firebase exige un inicio de sesión reciente para
+  /// operaciones sensibles como esta.
+  Future<String?> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) {
+      return 'No se pudo identificar la cuenta.';
+    }
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _mapAuthError(e.code);
+    } catch (e) {
+      return 'No se pudo cambiar la contraseña: $e';
+    }
+  }
+
   /// Para jugar sin ninguna cuenta: no pide nada, entra directo como
   /// invitado (sus partidas no se sincronizan con otro dispositivo).
   Future<void> playWithoutAccount() async {

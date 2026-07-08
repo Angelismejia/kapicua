@@ -63,7 +63,18 @@ Future<void> _editEntry(
   );
 
   if (action == 'delete') {
-    await firestore.deletePlayerStatEntry(playerId, entry.id);
+    try {
+      await firestore.deletePlayerStatEntry(playerId, entry.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Estadística eliminada correctamente.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $e')));
+    }
     return;
   }
   if (action == 'date') {
@@ -84,6 +95,10 @@ Future<void> _editEntry(
     );
     try {
       await firestore.updatePlayerStatEntryDate(playerId, entry.id, updated);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Estadística editada correctamente.')),
+      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
