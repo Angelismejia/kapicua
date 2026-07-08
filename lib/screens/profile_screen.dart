@@ -310,29 +310,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontFamily: 'Poppins'),
             ),
           const SizedBox(height: 24),
-          if (hasEmailAccount)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red.shade400,
-                  side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade400,
+                side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                icon: const Icon(Icons.logout_rounded, size: 18),
-                label: const Text(
-                  'Cerrar sesión',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onPressed: _signOut,
               ),
+              icon: const Icon(Icons.logout_rounded, size: 18),
+              label: Text(
+                hasEmailAccount
+                    ? 'Cerrar sesión'
+                    : 'Salir del modo invitado y registrarme',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onPressed: _signOut,
             ),
+          ),
         ],
       ),
     );
