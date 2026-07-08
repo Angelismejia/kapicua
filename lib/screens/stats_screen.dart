@@ -77,8 +77,6 @@ class _StatsScreenState extends State<StatsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: const Text('Estadísticas'),
         actions: [
           IconButton(
             icon: _sharing
@@ -237,8 +235,6 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
     final firestore = widget.firestore;
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: const Text('Estadísticas'),
         actions: [
           IconButton(
             icon: _sharing
@@ -320,9 +316,9 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
   }
 }
 
-/// Adorno del encabezado: una línea verde fina a cada lado con un
-/// trofeo dentro de un círculo, a modo de separador elegante y
-/// minimalista entre el título y el selector de mes.
+/// Adorno del encabezado: el nombre de la pantalla entre dos líneas
+/// verdes finas, a modo de título elegante y minimalista (reemplaza al
+/// título repetido que antes iba arriba, en la barra superior).
 class _StatsHeaderAccent extends StatelessWidget {
   const _StatsHeaderAccent();
 
@@ -339,39 +335,22 @@ class _StatsHeaderAccent extends StatelessWidget {
       ),
     );
 
-    return Center(
-      child: FractionallySizedBox(
-        widthFactor: 0.55,
-        child: Row(
-          children: [
-            Expanded(child: line()),
-            const SizedBox(width: 10),
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDark ? _kStatsDarkCard : Colors.white,
-                border: Border.all(color: green, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.emoji_events_rounded,
-                color: green,
-                size: 17,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: line()),
-          ],
+    return Row(
+      children: [
+        Expanded(child: line()),
+        const SizedBox(width: 12),
+        Text(
+          'Estadísticas',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            fontSize: 19,
+            color: isDark ? Colors.white : const Color(0xFF222222),
+          ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(child: line()),
+      ],
     );
   }
 }
