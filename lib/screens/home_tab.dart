@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/game.dart';
@@ -8,6 +9,7 @@ import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../utils/monthly_winner.dart';
 import '../widgets/add_player_dialog.dart';
 import 'active_game_screen.dart';
 import 'help_screen.dart';
@@ -249,6 +251,74 @@ class _HomeTabState extends State<HomeTab> {
     AuthService auth,
   ) {
     final notifications = <_Notification>[];
+    final now = DateTime.now();
+
+    // Campeón del mes anterior: se avisa durante los primeros días del
+    // mes nuevo, mientras sigue siendo noticia reciente.
+    if (now.day <= 5) {
+      final previousMonth = DateTime(now.year, now.month - 1);
+      final lastMonthWinner = computeMonthlyWinner(
+        statEntries,
+        allPlayers,
+        previousMonth,
+      );
+      if (lastMonthWinner != null) {
+        final label = DateFormat('MMMM', 'es').format(previousMonth);
+        notifications.add(
+          _Notification(
+            icon: Icons.emoji_events_rounded,
+            message:
+                '🏆 ${lastMonthWinner.player.displayName} fue el campeón '
+                'de $label con ${lastMonthWinner.wins} victorias.',
+          ),
+        );
+      }
+    }
+
+    // Competencia reñida: si los dos que más ganan este mes están a lo
+    // sumo a 1 victoria de diferencia, se avisa.
+    final currentMonthWins = <String, int>{};
+    for (final e in statEntries) {
+      if (!e.isWin) continue;
+      if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
+        continue;
+      }
+      currentMonthWins[e.playerId] = (currentMonthWins[e.playerId] ?? 0) + 1;
+    }
+    final ranked = currentMonthWins.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    if (ranked.length >= 2 &&
+        ranked[1].value > 0 &&
+        ranked[0].value - ranked[1].value <= 1) {
+      final nameA = allPlayers
+          .firstWhere((p) => p.id == ranked[0].key)
+          .displayName;
+      final nameB = allPlayers
+          .firstWhere((p) => p.id == ranked[1].key)
+          .displayName;
+      notifications.add(
+        _Notification(
+          icon: Icons.bolt_rounded,
+          message: '⚔️ ¡Reñida competencia este mes entre $nameA y $nameB!',
+        ),
+      );
+    }
+
+    // Ánimo: si todavía no eres quien más gana este mes, un empujoncito.
+    final currentMonthWinner = computeMonthlyWinner(
+      statEntries,
+      allPlayers,
+      DateTime(now.year, now.month),
+    );
+    if (me != null &&
+        (currentMonthWinner == null || currentMonthWinner.player.id != me.id)) {
+      notifications.add(
+        const _Notification(
+          icon: Icons.rocket_launch_rounded,
+          message: '¡Este mes puede ser tuyo! Anímate a sumar victorias 💪',
+        ),
+      );
+    }
 
     if (me != null) {
       final myEntries = statEntries.where((e) => e.playerId == me.id);

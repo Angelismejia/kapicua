@@ -302,6 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 4),
             Row(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
@@ -309,6 +310,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text('¿Olvidaste tu contraseña?'),
                 ),
                 IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                  visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.info_outline_rounded, size: 18),
                   tooltip: 'Cómo funciona',
                   onPressed: _showForgotPasswordInfo,

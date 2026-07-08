@@ -3,7 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /players/{playerId} {
-      allow read, write: if request.auth != null;
+      // Lectura publica (solo nombres/foto, sin estadisticas) para poder
+      // elegir tu jugador de la lista al registrarte, antes de crear la
+      // cuenta. El PIN familiar es el filtro real de quien se une.
+      allow read: if true;
+      allow write: if request.auth != null;
 
       match /statEntries/{entryId} {
         allow read: if request.auth != null;
