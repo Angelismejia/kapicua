@@ -167,9 +167,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final initialPlayer = widget.player;
+    if (initialPlayer == null) return _buildScaffold(context, null);
+
+    final firestore = context.read<FirestoreService>();
+    return StreamBuilder<Player?>(
+      stream: firestore.watchPlayer(initialPlayer.id),
+      initialData: initialPlayer,
+      builder: (context, snapshot) {
+        return _buildScaffold(context, snapshot.data ?? initialPlayer);
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, Player? player) {
     final auth = context.watch<AuthService>();
     final email = auth.currentUser?.email;
-    final player = widget.player;
     final displayName = player?.displayName ?? email ?? 'Invitado';
     final hasEmailAccount = email != null && email.isNotEmpty;
 

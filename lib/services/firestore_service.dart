@@ -85,6 +85,15 @@ class FirestoreService {
     return Player.fromMap(snap.docs.first.id, snap.docs.first.data());
   }
 
+  /// Vigila un jugador puntual (ej. para que la pantalla de perfil se
+  /// actualice sola justo después de cambiar la foto).
+  Stream<Player?> watchPlayer(String playerId) {
+    return _players
+        .doc(playerId)
+        .snapshots()
+        .map((doc) => doc.exists ? Player.fromMap(doc.id, doc.data()!) : null);
+  }
+
   Stream<List<Player>> watchActivePlayers() {
     return _players
         .where('active', isEqualTo: true)

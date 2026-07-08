@@ -478,7 +478,6 @@ class _HomeTabState extends State<HomeTab> {
 
     final leader = computeMonthlyPercentageLeader(entries, players, thisMonth);
     if (leader != null) {
-      messages.add('Por ahora, ${leader.player.displayName} va arriba');
       final isMeLeading = me != null && leader.player.id == me.id;
       messages.add(
         isMeLeading
