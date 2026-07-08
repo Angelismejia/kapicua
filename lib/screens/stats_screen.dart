@@ -74,20 +74,11 @@ class _StatsScreenState extends State<StatsScreen> {
     }
 
     final isAdmin = context.watch<AuthService>().isAdmin;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          'Estadísticas',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: isDark ? Colors.white : const Color(0xFF222222),
-          ),
-        ),
+        title: const Text('Estadísticas'),
         actions: [
           IconButton(
             icon: _sharing
@@ -144,7 +135,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   const _StatsHeaderAccent(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
                   if (entriesSnapshot.hasError)
                     Card(
                       color: Theme.of(context).colorScheme.errorContainer,
@@ -244,19 +235,10 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
   @override
   Widget build(BuildContext context) {
     final firestore = widget.firestore;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          'Estadísticas',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: isDark ? Colors.white : const Color(0xFF222222),
-          ),
-        ),
+        title: const Text('Estadísticas'),
         actions: [
           IconButton(
             icon: _sharing
@@ -313,7 +295,7 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   const _StatsHeaderAccent(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
                   RepaintBoundary(
                     key: _shareKey,
                     child: _StatsList(
