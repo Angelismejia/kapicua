@@ -122,6 +122,7 @@ class _HomeTabState extends State<HomeTab> {
                               onNotificationsTap: () => _showNotifications(
                                 context,
                                 me,
+                                allPlayers,
                                 statEntries,
                                 auth,
                               ),
@@ -215,9 +216,25 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  /// Racha de victorias seguidas de un jugador (lo que en las mesas de
+  /// dominó dominicanas se conoce como "una lisa"): cuenta las ganadas
+  /// más recientes hasta la primera perdida, empezando por el historial
+  /// ordenado de más nuevo a más viejo.
+  int _currentWinStreak(String playerId, List<PlayerStatEntry> entries) {
+    final sorted = entries.where((e) => e.playerId == playerId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    var streak = 0;
+    for (final e in sorted) {
+      if (!e.isWin) break;
+      streak++;
+    }
+    return streak;
+  }
+
   void _showNotifications(
     BuildContext context,
     Player? me,
+    List<Player> allPlayers,
     List<PlayerStatEntry> statEntries,
     AuthService auth,
   ) {
@@ -258,6 +275,39 @@ class _HomeTabState extends State<HomeTab> {
           _Notification(
             icon: Icons.celebration_rounded,
             message: '¡Llevas $daysSince días jugando en Kapicua! 🎉',
+          ),
+        );
+      }
+    }
+
+    // Chismes de la liga: le llegan a todos, no solo al jugador vinculado.
+    for (final player in allPlayers) {
+      final streak = _currentWinStreak(player.id, statEntries);
+      if (streak >= 3) {
+        notifications.add(
+          _Notification(
+            icon: Icons.local_fire_department_rounded,
+            message:
+                '🔥 ¡${player.displayName} va en una lisa de $streak '
+                'partidas seguidas!',
+          ),
+        );
+      }
+    }
+
+    final vallejo = allPlayers
+        .where((p) => p.displayName.toLowerCase().contains('vallejo'))
+        .cast<Player?>()
+        .firstWhere((_) => true, orElse: () => null);
+    if (vallejo != null) {
+      final vallejoEntries =
+          statEntries.where((e) => e.playerId == vallejo.id).toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (vallejoEntries.isNotEmpty && !vallejoEntries.first.isWin) {
+        notifications.add(
+          const _Notification(
+            icon: Icons.sentiment_very_dissatisfied_rounded,
+            message: 'Vallejo es un maco 😂',
           ),
         );
       }
