@@ -262,6 +262,52 @@ class FirestoreService {
     });
   }
 
+  /// Por si se marcó "ganada" por error (ej. un puntaje mal anotado que
+  /// disparó la meta antes de tiempo): vuelve la partida a "en curso" para
+  /// poder borrar la ronda equivocada y seguir jugando.
+  Future<void> reopenGame(String gameId) async {
+    await _games.doc(gameId).update({
+      'status': 'in_progress',
+      'winner': null,
+      'finishedAt': null,
+    });
+  }
+
+  /// Borra una ronda ya anotada y recalcula los totales y el estado de la
+  /// partida a partir de las rondas restantes (por si esa ronda era la que
+  /// hacía llegar a la meta).
+  Future<void> deleteRound(String gameId, String roundId) async {
+    final gameRef = _games.doc(gameId);
+    final roundsRef = gameRef.collection('rounds');
+    await roundsRef.doc(roundId).delete();
+
+    final gameSnap = await gameRef.get();
+    final game = Game.fromMap(gameSnap.id, gameSnap.data()!);
+    final remaining = await roundsRef.orderBy('roundNumber').get();
+
+    var totalA = 0;
+    var totalB = 0;
+    for (final doc in remaining.docs) {
+      final round = Round.fromMap(doc.id, doc.data());
+      totalA += round.teamAPoints;
+      totalB += round.teamBPoints;
+    }
+
+    String? winner;
+    if (totalA >= game.targetScore || totalB >= game.targetScore) {
+      winner = totalA >= totalB ? 'A' : 'B';
+    }
+
+    await gameRef.update({
+      'teamAScore': totalA,
+      'teamBScore': totalB,
+      'roundCount': remaining.docs.length,
+      'status': winner == null ? 'in_progress' : 'finished',
+      'winner': winner,
+      'finishedAt': winner == null ? null : Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
   // ---- Invitados (fuera de la familia) ----
 
   Future<bool> hasGuestProfile(String uid) async {

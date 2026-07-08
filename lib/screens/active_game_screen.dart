@@ -94,7 +94,12 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Mantén presionada una ronda para borrarla.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
                     Expanded(
                       child: Card(
                         clipBehavior: Clip.antiAlias,
@@ -134,24 +139,31 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                     itemCount: rounds.length,
                                     itemBuilder: (context, index) {
                                       final round = rounds[index];
-                                      return IntrinsicHeight(
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: ScoreSheetCell(
-                                                value: round.teamAPoints,
+                                      return GestureDetector(
+                                        onLongPress: () => _confirmDeleteRound(
+                                          context,
+                                          firestore,
+                                          round,
+                                        ),
+                                        child: IntrinsicHeight(
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: ScoreSheetCell(
+                                                  value: round.teamAPoints,
+                                                ),
                                               ),
-                                            ),
-                                            const VerticalDivider(
-                                              width: 1,
-                                              thickness: 1,
-                                            ),
-                                            Expanded(
-                                              child: ScoreSheetCell(
-                                                value: round.teamBPoints,
+                                              const VerticalDivider(
+                                                width: 1,
+                                                thickness: 1,
                                               ),
-                                            ),
-                                          ],
+                                              Expanded(
+                                                child: ScoreSheetCell(
+                                                  value: round.teamBPoints,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       );
                                     },
@@ -187,6 +199,39 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             },
           );
         },
+      ),
+    );
+  }
+
+  void _confirmDeleteRound(
+    BuildContext context,
+    FirestoreService firestore,
+    Round round,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar ronda'),
+        content: Text(
+          '¿Borrar la ronda con ${round.teamAPoints} - ${round.teamBPoints}? '
+          'Los totales se recalculan solos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () {
+              firestore.deleteRound(widget.gameId, round.id);
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Eliminar'),
+          ),
+        ],
       ),
     );
   }

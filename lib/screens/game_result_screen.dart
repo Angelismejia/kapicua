@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/game.dart';
 import '../models/player.dart';
 import '../services/firestore_service.dart';
+import 'active_game_screen.dart';
 import 'main_shell.dart';
 
 class GameResultScreen extends StatelessWidget {
@@ -87,6 +88,24 @@ class GameResultScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.undo_rounded, size: 18),
+                        label: const Text('¿Fue un error? Reanudar partida'),
+                        onPressed: () async {
+                          await firestore.reopenGame(gameId);
+                          if (!context.mounted) return;
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ActiveGameScreen(gameId: gameId),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
