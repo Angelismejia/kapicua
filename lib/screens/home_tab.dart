@@ -75,8 +75,8 @@ class _HomeTabState extends State<HomeTab> {
     final firestore = context.read<FirestoreService>();
     final auth = context.watch<AuthService>();
     final isGuest = firestore.isGuest;
-    final ligaIndex = isGuest ? 2 : 3;
-    const certificadosIndex = 2;
+    const ligaIndex = 1;
+    const certificadosIndex = 3;
 
     return StreamBuilder<List<Player>>(
       stream: firestore.watchAllPlayers(),
@@ -119,11 +119,12 @@ class _HomeTabState extends State<HomeTab> {
                               greeting: _greetingPrefix,
                               name: me?.displayName,
                               photoUrl: me?.photoUrl,
-                              onNotificationsTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Muy pronto')),
-                                );
-                              },
+                              onNotificationsTap: () => _showNotifications(
+                                context,
+                                me,
+                                statEntries,
+                                auth,
+                              ),
                               onSettingsTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -211,6 +212,120 @@ class _HomeTabState extends State<HomeTab> {
           },
         );
       },
+    );
+  }
+
+  void _showNotifications(
+    BuildContext context,
+    Player? me,
+    List<PlayerStatEntry> statEntries,
+    AuthService auth,
+  ) {
+    final notifications = <_Notification>[];
+
+    if (me != null) {
+      final myEntries = statEntries.where((e) => e.playerId == me.id);
+      final myWins = myEntries.where((e) => e.isWin).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (myWins.isNotEmpty) {
+        final lastWin = myWins.first;
+        final daysSince = DateTime.now().difference(lastWin.createdAt).inDays;
+        if (daysSince <= 7) {
+          notifications.add(
+            const _Notification(
+              icon: Icons.emoji_events_rounded,
+              message: '¡Ganaste una partida esta semana! Sigue así 🏆',
+            ),
+          );
+        } else {
+          notifications.add(
+            _Notification(
+              icon: Icons.emoji_events_rounded,
+              message:
+                  'Ya llevas ${myWins.length} victoria'
+                  '${myWins.length == 1 ? '' : 's'} en la liga.',
+            ),
+          );
+        }
+      }
+    }
+
+    final creationTime = auth.currentUser?.metadata.creationTime;
+    if (creationTime != null) {
+      final daysSince = DateTime.now().difference(creationTime).inDays;
+      if (daysSince >= 30) {
+        notifications.add(
+          _Notification(
+            icon: Icons.celebration_rounded,
+            message: '¡Llevas $daysSince días jugando en Kapicua! 🎉',
+          ),
+        );
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Notificaciones',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  color: context.homeTextColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (notifications.isEmpty)
+                Text(
+                  'No tienes notificaciones nuevas por ahora.',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: context.homeMutedColor,
+                  ),
+                )
+              else
+                for (final n in notifications)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: _kPrimaryGreen.withValues(
+                            alpha: 0.12,
+                          ),
+                          child: Icon(n.icon, size: 18, color: _kPrimaryGreen),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              n.message,
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 13.5,
+                                color: context.homeTextColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -887,4 +1002,11 @@ class _ScaleOnTapState extends State<_ScaleOnTap> {
       ),
     );
   }
+}
+
+class _Notification {
+  final IconData icon;
+  final String message;
+
+  const _Notification({required this.icon, required this.message});
 }

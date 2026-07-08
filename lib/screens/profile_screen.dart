@@ -6,6 +6,7 @@ import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
+import 'auth_screen.dart';
 
 const _kPrimaryGreen = Color(0xFF2E6B3F);
 
@@ -63,6 +64,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }
+  }
+
+  Future<void> _forgotPassword() async {
+    final auth = context.read<AuthService>();
+    final email = auth.currentUser?.email;
+    if (email == null) return;
+    final error = await auth.sendPasswordResetEmail(email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ?? 'Te enviamos un correo para cambiar tu contraseña.',
+        ),
+      ),
+    );
+  }
+
+  void _showForgotPasswordInfo() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Olvidaste tu contraseña?'),
+        content: const Text(
+          'Te enviaremos un correo para que puedas cambiarla. Revisa tu '
+          'bandeja de entrada y, si no lo ves ahí, revisa también la '
+          'carpeta de spam o correo no deseado.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _signOut() async {
+    final auth = context.read<AuthService>();
+    await auth.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
+      (route) => false,
+    );
   }
 
   Future<void> _changePassword() async {
@@ -183,10 +229,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          if (hasEmailAccount)
+          if (hasEmailAccount) ...[
             Center(
               child: Text(email, style: Theme.of(context).textTheme.bodySmall),
             ),
+            const SizedBox(height: 4),
+            Center(
+              child: Text(
+                auth.isAdmin ? 'Cuenta de administrador' : 'Cuenta de jugador',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _kPrimaryGreen,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 32),
           if (hasEmailAccount) ...[
             const Text(
@@ -231,11 +288,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )
                   : const Text('Actualizar contraseña'),
             ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: _forgotPassword,
+                  child: const Text('¿Olvidaste tu contraseña?'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline_rounded, size: 18),
+                  tooltip: 'Cómo funciona',
+                  onPressed: _showForgotPasswordInfo,
+                ),
+              ],
+            ),
           ] else
             const Text(
               'Estás jugando como invitado sin cuenta, así que no hay '
               'contraseña que cambiar.',
               style: TextStyle(fontFamily: 'Poppins'),
+            ),
+          const SizedBox(height: 24),
+          if (hasEmailAccount)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text(
+                  'Cerrar sesión',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: _signOut,
+              ),
             ),
         ],
       ),

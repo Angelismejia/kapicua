@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/game.dart';
@@ -12,8 +13,32 @@ import '../widgets/manual_certificate_dialog.dart';
 import '../widgets/monthly_winner_card.dart';
 import '../widgets/player_stat_history_dialog.dart';
 
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  late DateTime _selectedMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+  }
+
+  void _changeMonth(int delta) {
+    setState(() {
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + delta,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +94,7 @@ class StatsScreen extends StatelessWidget {
               final monthlyWinner = computeMonthlyWinner(
                 entries,
                 players,
-                DateTime.now(),
+                _selectedMonth,
               );
 
               return ListView(
@@ -103,8 +128,16 @@ class StatsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  _MonthSelector(
+                    month: _selectedMonth,
+                    onPrevious: () => _changeMonth(-1),
+                    onNext: _isCurrentMonth ? null : () => _changeMonth(1),
+                  ),
+                  const SizedBox(height: 12),
                   if (monthlyWinner != null)
-                    MonthlyWinnerCard(result: monthlyWinner),
+                    MonthlyWinnerCard(result: monthlyWinner, compact: true)
+                  else
+                    _NoChampionCard(month: _selectedMonth),
                   const SizedBox(height: 16),
                   _StatsList(
                     stats: stats,
@@ -122,6 +155,74 @@ class StatsScreen extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// Navegador de mes/año para revisar el campeón de meses anteriores, ya
+/// que el certificado y el campeón del mes son distintos cada mes.
+class _MonthSelector extends StatelessWidget {
+  final DateTime month;
+  final VoidCallback onPrevious;
+  final VoidCallback? onNext;
+
+  const _MonthSelector({
+    required this.month,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = DateFormat('MMMM yyyy', 'es').format(month);
+    final capitalized = label[0].toUpperCase() + label.substring(1);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left_rounded),
+          tooltip: 'Mes anterior',
+          onPressed: onPrevious,
+        ),
+        SizedBox(
+          width: 160,
+          child: Text(
+            capitalized,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right_rounded),
+          tooltip: 'Mes siguiente',
+          onPressed: onNext,
+        ),
+      ],
+    );
+  }
+}
+
+class _NoChampionCard extends StatelessWidget {
+  final DateTime month;
+
+  const _NoChampionCard({required this.month});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = DateFormat('MMMM yyyy', 'es').format(month);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'No hay campeón registrado para $label.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ),
     );
   }

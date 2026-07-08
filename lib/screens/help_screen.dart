@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_service.dart';
 import '../services/theme_controller.dart';
-import 'auth_screen.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -11,9 +9,6 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeController = context.watch<ThemeController>();
-    final auth = context.watch<AuthService>();
-    final label =
-        auth.currentUser?.displayName ?? auth.currentUser?.email ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración y ayuda')),
@@ -26,32 +21,6 @@ class HelpScreen extends StatelessWidget {
               title: const Text('Modo oscuro'),
               value: themeController.isDarkMode,
               onChanged: (value) => themeController.setDarkMode(value),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: Icon(
-                auth.isAdmin ? Icons.admin_panel_settings : Icons.person,
-              ),
-              title: Text('Sesión: $label'),
-              subtitle: Text(
-                auth.isAdmin
-                    ? 'Puedes editar estadísticas.'
-                    : 'Cuenta de jugador.',
-              ),
-              trailing: TextButton(
-                onPressed: () async {
-                  await auth.signOut();
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const AuthScreen()),
-                      (route) => false,
-                    );
-                  }
-                },
-                child: const Text('Cerrar sesión'),
-              ),
             ),
           ),
           const SizedBox(height: 24),

@@ -6,6 +6,7 @@ import '../models/game.dart';
 import '../models/player.dart';
 import '../models/round.dart';
 import '../services/firestore_service.dart';
+import '../widgets/score_sheet.dart';
 import 'game_result_screen.dart';
 
 const _pointPresets = [25, 50, 75, 100];
@@ -103,14 +104,14 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: _ScoreSheetHeader(
+                                    child: ScoreSheetHeader(
                                       label: 'Casa',
                                       playerNames: teamAName,
                                     ),
                                   ),
                                   const VerticalDivider(width: 1, thickness: 1),
                                   Expanded(
-                                    child: _ScoreSheetHeader(
+                                    child: ScoreSheetHeader(
                                       label: 'Visita',
                                       playerNames: teamBName,
                                     ),
@@ -137,7 +138,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                         child: Row(
                                           children: [
                                             Expanded(
-                                              child: _ScoreSheetCell(
+                                              child: ScoreSheetCell(
                                                 value: round.teamAPoints,
                                               ),
                                             ),
@@ -146,7 +147,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                               thickness: 1,
                                             ),
                                             Expanded(
-                                              child: _ScoreSheetCell(
+                                              child: ScoreSheetCell(
                                                 value: round.teamBPoints,
                                               ),
                                             ),
@@ -163,13 +164,13 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: _ScoreSheetTotal(
+                                    child: ScoreSheetTotal(
                                       value: game.teamAScore,
                                     ),
                                   ),
                                   const VerticalDivider(width: 1, thickness: 1),
                                   Expanded(
-                                    child: _ScoreSheetTotal(
+                                    child: ScoreSheetTotal(
                                       value: game.teamBScore,
                                     ),
                                   ),
@@ -297,77 +298,6 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             child: const Text('Sí, cancelar'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ScoreSheetHeader extends StatelessWidget {
-  final String label;
-  final String playerNames;
-
-  const _ScoreSheetHeader({required this.label, required this.playerNames});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: Column(
-        children: [
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          Text(
-            playerNames,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreSheetCell extends StatelessWidget {
-  final int value;
-
-  const _ScoreSheetCell({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Center(
-        child: Text('$value', style: Theme.of(context).textTheme.bodyLarge),
-      ),
-    );
-  }
-}
-
-class _ScoreSheetTotal extends StatelessWidget {
-  final int value;
-
-  const _ScoreSheetTotal({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Center(
-        child: Text(
-          '$value',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
       ),
     );
   }
