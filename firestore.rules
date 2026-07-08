@@ -19,6 +19,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Ganador declarado a mano por un admin para un mes sin ninguna
+    // ganada/perdida registrada (ej. antes de usar la app).
+    match /monthlyOverrides/{monthKey} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     match /players/{playerId} {
       // Lectura publica (solo nombres/foto, sin estadisticas) para poder
       // elegir tu jugador de la lista al registrarte, antes de crear la

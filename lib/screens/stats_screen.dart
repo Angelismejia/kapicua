@@ -64,9 +64,13 @@ class _StatsScreenState extends State<StatsScreen> {
                       gamesWon: won,
                       gamesLost: lost,
                     );
-                  }).toList()..sort(
-                    (a, b) => b.winPercentage.compareTo(a.winPercentage),
-                  );
+                  }).toList()..sort((a, b) {
+                    final pctCompare = b.winPercentage.compareTo(
+                      a.winPercentage,
+                    );
+                    if (pctCompare != 0) return pctCompare;
+                    return b.gamesWon.compareTo(a.gamesWon);
+                  });
 
               return ListView(
                 padding: const EdgeInsets.all(20),
@@ -165,9 +169,13 @@ class _GuestStatsBody extends StatelessWidget {
                       gamesWon: won,
                       gamesLost: lost,
                     );
-                  }).toList()..sort(
-                    (a, b) => b.winPercentage.compareTo(a.winPercentage),
-                  );
+                  }).toList()..sort((a, b) {
+                    final pctCompare = b.winPercentage.compareTo(
+                      a.winPercentage,
+                    );
+                    if (pctCompare != 0) return pctCompare;
+                    return b.gamesWon.compareTo(a.gamesWon);
+                  });
 
               return ListView(
                 padding: const EdgeInsets.all(20),

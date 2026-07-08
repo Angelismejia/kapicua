@@ -41,6 +41,39 @@ class FirestoreService {
     await _db.collection('admins').doc(uid).delete();
   }
 
+  // ---- Ganador manual de meses viejos ----
+  // Para meses de antes de usar la app (sin ninguna ganada/perdida
+  // registrada), un admin puede declarar a mano quién fue el campeón,
+  // para que quede guardado en el historial de certificados.
+
+  String _monthKey(DateTime month) =>
+      '${month.year}-${month.month.toString().padLeft(2, '0')}';
+
+  Stream<Map<String, dynamic>?> watchMonthlyOverride(DateTime month) {
+    return _db
+        .collection('monthlyOverrides')
+        .doc(_monthKey(month))
+        .snapshots()
+        .map((doc) => doc.data());
+  }
+
+  Future<void> setMonthlyOverride(
+    DateTime month,
+    String playerId,
+    int wins,
+    int losses,
+  ) async {
+    await _db.collection('monthlyOverrides').doc(_monthKey(month)).set({
+      'playerId': playerId,
+      'wins': wins,
+      'losses': losses,
+    });
+  }
+
+  Future<void> clearMonthlyOverride(DateTime month) async {
+    await _db.collection('monthlyOverrides').doc(_monthKey(month)).delete();
+  }
+
   // ---- Jugadores ----
 
   /// Busca solo el jugador vinculado a esta cuenta (consulta puntual, no

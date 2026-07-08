@@ -927,12 +927,6 @@ class _ChampionCarouselState extends State<_ChampionCarousel> {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.emoji_events_rounded,
-            size: 36,
-            color: _kSecondaryGreen,
-          ),
-          const SizedBox(width: 14),
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 400),
@@ -942,11 +936,17 @@ class _ChampionCarouselState extends State<_ChampionCarousel> {
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
-                  fontSize: 15,
+                  fontSize: 20,
                   color: context.homeTextColor,
                 ),
               ),
             ),
+          ),
+          const SizedBox(width: 12),
+          const Icon(
+            Icons.emoji_events_rounded,
+            size: 52,
+            color: _kSecondaryGreen,
           ),
         ],
       ),

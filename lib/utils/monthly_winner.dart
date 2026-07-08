@@ -87,34 +87,53 @@ MonthlyWinnerResult? computeMonthlyWinner(
 }
 
 /// Como siempre hay alguien "arriba" en cualquier tabla, esta variante
-/// nunca devuelve null (mientras haya al menos un jugador): si todavía
-/// nadie tiene una ganada registrada ese mes, muestra al primero de la
-/// lista con sus ganadas/perdidas reales de ese mes (probablemente 0),
-/// en vez de dejar la tarjeta de campeón "sin definir".
+/// nunca devuelve null (mientras haya al menos un jugador), incluso si
+/// todavía nadie tiene una ganada registrada ese mes. A diferencia de
+/// [computeMonthlyWinner] (que exige al menos una ganada), esta ordena a
+/// TODOS los jugadores por porcentaje de victorias del mes (empate se
+/// rompe por más ganadas) — el mismo cálculo y el mismo orden que la
+/// lista de Estadísticas, para que el "líder" mostrado aquí sea siempre
+/// el mismo que aparece arriba en Estadísticas.
 MonthlyWinnerResult? computeMonthlyLeaderOrFallback(
   List<PlayerStatEntry> entries,
   List<Player> players,
   DateTime month,
 ) {
-  final real = computeMonthlyWinner(entries, players, month);
-  if (real != null) return real;
   if (players.isEmpty) return null;
 
-  final leader = players.first;
-  var losses = 0;
+  final winsCount = <String, int>{};
+  final lossesCount = <String, int>{};
   for (final e in entries) {
-    if (e.playerId == leader.id &&
-        !e.isWin &&
-        e.createdAt.year == month.year &&
-        e.createdAt.month == month.month) {
-      losses++;
+    if (e.createdAt.year != month.year || e.createdAt.month != month.month) {
+      continue;
+    }
+    if (e.isWin) {
+      winsCount[e.playerId] = (winsCount[e.playerId] ?? 0) + 1;
+    } else {
+      lossesCount[e.playerId] = (lossesCount[e.playerId] ?? 0) + 1;
     }
   }
+
+  var best = players.first;
+  var bestPct = -1.0;
+  var bestWins = -1;
+  for (final p in players) {
+    final w = winsCount[p.id] ?? 0;
+    final l = lossesCount[p.id] ?? 0;
+    final total = w + l;
+    final pct = total == 0 ? 0.0 : w / total;
+    if (pct > bestPct || (pct == bestPct && w > bestWins)) {
+      bestPct = pct;
+      bestWins = w;
+      best = p;
+    }
+  }
+
   return MonthlyWinnerResult(
-    player: leader,
+    player: best,
     month: month,
-    wins: 0,
-    losses: losses,
+    wins: winsCount[best.id] ?? 0,
+    losses: lossesCount[best.id] ?? 0,
   );
 }
 
