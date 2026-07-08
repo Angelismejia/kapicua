@@ -777,10 +777,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            onPressed: () async {
-              await firestore.cancelGame(widget.gameId);
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-              if (context.mounted) Navigator.pop(context);
+            onPressed: () {
+              firestore.cancelGame(widget.gameId);
+              Navigator.pop(dialogContext);
+              Navigator.pop(context);
             },
             child: const Text('Sí, cancelar'),
           ),
