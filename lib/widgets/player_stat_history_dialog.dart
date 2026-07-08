@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/firestore_service.dart';
 
-Future<void> _addEntry(
+Future<void> _addEntries(
   BuildContext context,
   FirestoreService firestore,
   String playerId,
   bool isWin,
+  int count,
 ) async {
   try {
-    await firestore.addPlayerStatEntry(playerId, isWin);
+    await firestore.addPlayerStatEntries(playerId, isWin, count);
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -114,6 +116,13 @@ void showPlayerStatHistoryDialog(
   Player player,
   bool isAdmin,
 ) {
+  final quantityController = TextEditingController(text: '1');
+
+  int quantity() {
+    final n = int.tryParse(quantityController.text.trim());
+    return (n == null || n < 1) ? 1 : n;
+  }
+
   showDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -124,14 +133,30 @@ void showPlayerStatHistoryDialog(
         child: Column(
           children: [
             if (isAdmin) ...[
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: 'Cantidad',
+                  helperText: 'Ej. pon 13 para agregar 13 ganadas de una vez',
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: FilledButton.icon(
                       icon: const Icon(Icons.add),
                       label: const Text('Ganada'),
-                      onPressed: () =>
-                          _addEntry(dialogContext, firestore, player.id, true),
+                      onPressed: () => _addEntries(
+                        dialogContext,
+                        firestore,
+                        player.id,
+                        true,
+                        quantity(),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -139,8 +164,13 @@ void showPlayerStatHistoryDialog(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.add),
                       label: const Text('Perdida'),
-                      onPressed: () =>
-                          _addEntry(dialogContext, firestore, player.id, false),
+                      onPressed: () => _addEntries(
+                        dialogContext,
+                        firestore,
+                        player.id,
+                        false,
+                        quantity(),
+                      ),
                     ),
                   ),
                 ],

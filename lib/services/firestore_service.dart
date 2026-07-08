@@ -133,6 +133,22 @@ class FirestoreService {
     ).add({'isWin': isWin, 'createdAt': Timestamp.fromDate(DateTime.now())});
   }
 
+  /// Agrega varias ganadas/perdidas de una vez (ej. 13 ganadas ya jugadas
+  /// antes de usar la app), en vez de tener que tocar el botón una por una.
+  Future<void> addPlayerStatEntries(
+    String playerId,
+    bool isWin,
+    int count,
+  ) async {
+    final batch = _db.batch();
+    final now = Timestamp.fromDate(DateTime.now());
+    final collection = _statEntries(playerId);
+    for (var i = 0; i < count; i++) {
+      batch.set(collection.doc(), {'isWin': isWin, 'createdAt': now});
+    }
+    await batch.commit();
+  }
+
   Future<void> deletePlayerStatEntry(String playerId, String entryId) async {
     await _statEntries(playerId).doc(entryId).delete();
   }
