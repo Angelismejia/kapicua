@@ -12,6 +12,8 @@ class MonthlyWinnerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final monthLabel = DateFormat('MMMM yyyy', 'es').format(result.month);
+    final monthLabelLower =
+        monthLabel[0].toLowerCase() + monthLabel.substring(1);
     final isMonthOver = result.isMonthOver;
     return Card(
       color: Theme.of(context).colorScheme.primaryContainer,
@@ -21,7 +23,9 @@ class MonthlyWinnerCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isMonthOver ? 'Ganador del mes' : 'Por ahora, va ganando...',
+              isMonthOver
+                  ? 'El ganador de $monthLabelLower fue'
+                  : 'Va ganando este mes',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
@@ -31,7 +35,13 @@ class MonthlyWinnerCard extends StatelessWidget {
                   : '🔥 ${result.player.displayName}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            Text('${result.wins} partidas ganadas'),
+            const SizedBox(height: 8),
+            Text(
+              '${result.wins} ganadas · ${result.losses} perdidas · '
+              '${result.totalGames} en total · '
+              '${result.winPercentage.toStringAsFixed(0)}%',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             const SizedBox(height: 12),
             FilledButton.icon(
               icon: const Icon(Icons.workspace_premium),

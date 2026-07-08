@@ -24,11 +24,6 @@ class _CertificadosTabState extends State<CertificadosTab> {
     DateTime.now().month,
   );
 
-  bool get _isCurrentMonth {
-    final now = DateTime.now();
-    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
-  }
-
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
@@ -51,15 +46,15 @@ class _CertificadosTabState extends State<CertificadosTab> {
             stream: firestore.watchAllStatEntries(),
             builder: (context, entriesSnap) {
               final entries = entriesSnap.data ?? [];
-              final monthlyWinner = computeMonthlyWinner(
+              // Siempre hay alguien "arriba" en la tabla, aunque todavía
+              // nadie tenga una ganada registrada ese mes.
+              final leader = computeMonthlyLeaderOrFallback(
                 entries,
                 players,
                 _selectedMonth,
               );
-              final isMeTheWinner =
-                  monthlyWinner != null &&
-                  me != null &&
-                  monthlyWinner.player.id == me.id;
+              final isMeTheLeader =
+                  leader != null && me != null && leader.player.id == me.id;
 
               return ListView(
                 padding: const EdgeInsets.all(16),
@@ -69,11 +64,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
                     onChanged: (m) => setState(() => _selectedMonth = m),
                   ),
                   const SizedBox(height: 16),
-                  ..._buildChampionSection(
-                    isAdmin,
-                    monthlyWinner,
-                    isMeTheWinner,
-                  ),
+                  ..._buildChampionSection(isAdmin, leader, isMeTheLeader),
                   if (isAdmin) ...[
                     const SizedBox(height: 24),
                     Text(
@@ -105,68 +96,69 @@ class _CertificadosTabState extends State<CertificadosTab> {
 
   List<Widget> _buildChampionSection(
     bool isAdmin,
-    MonthlyWinnerResult? monthlyWinner,
-    bool isMeTheWinner,
+    MonthlyWinnerResult? leader,
+    bool isMeTheLeader,
   ) {
-    if (monthlyWinner != null) {
-      // Si el mes sigue en curso, se aclara que todavía no hay un ganador
-      // oficial (el certificado no existe hasta que termine el mes),
-      // pero igual se muestra quién va ganando por ahora.
-      final notice = monthlyWinner.isMonthOver
-          ? const <Widget>[]
-          : <Widget>[
-              Text(
-                'Todavía no hay un ganador oficial este mes.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-            ];
-
-      if (isAdmin || isMeTheWinner) {
-        return [...notice, MonthlyWinnerCard(result: monthlyWinner)];
-      }
-      // No admin y no es quien ganó: informativo, sin botón de certificado.
-      final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
-      final text = monthlyWinner.isMonthOver
-          ? 'El campeón de $label fue ${monthlyWinner.player.displayName}.'
-          : 'Por ahora, en $label va ganando '
-                '${monthlyWinner.player.displayName}.';
-      return [
-        ...notice,
+    if (leader == null) {
+      // No hay ni un jugador en la liga todavía.
+      return const [
         Card(
-          child: Padding(padding: const EdgeInsets.all(16), child: Text(text)),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Agrega jugadores a la liga para ver certificados.'),
+          ),
         ),
       ];
     }
 
-    // Sin campeón registrado ese mes.
-    if (!_isCurrentMonth) return const [];
+    final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
+
+    if (isAdmin) {
+      return [
+        if (!leader.isMonthOver) ...[
+          Text(
+            'Todavía no hay ganador oficial este mes.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+        ],
+        MonthlyWinnerCard(result: leader),
+      ];
+    }
+
+    // No admin: mensaje general de quién va/fue ganando, y uno
+    // personalizado según si el que ve la pantalla es quien lidera.
+    final statusText = leader.isMonthOver
+        ? 'El ganador de $label fue ${leader.player.displayName}.'
+        : '${leader.player.displayName} va ganando este mes, pero el '
+              'resultado todavía no está definido.';
+    final personalText = isMeTheLeader
+        ? '¡Estás ganando este mes! Sigue así, vas muy bien. 🔥'
+        : 'Sigue jugando, el próximo mes puede ser tuyo.';
 
     return [
       Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: isAdmin
-              ? const Text('Todavía no hay ganador en el mes.')
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Aquí verás tus certificados 🎯',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Sigue jugando para ser el jugador con más victorias '
-                      'del mes — cuando lo logres, tu certificado va a '
-                      'aparecer justo aquí.',
-                    ),
-                  ],
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(statusText),
+              const SizedBox(height: 8),
+              Text(
+                personalText,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ),
       ),
+      if (isMeTheLeader) ...[
+        const SizedBox(height: 16),
+        MonthlyWinnerCard(result: leader),
+      ],
     ];
   }
 }

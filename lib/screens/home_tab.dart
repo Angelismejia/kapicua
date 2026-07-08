@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -109,9 +110,10 @@ class _HomeTabState extends State<HomeTab> {
                   stream: firestore.watchAllStatEntries(),
                   builder: (context, entriesSnap) {
                     final statEntries = entriesSnap.data ?? [];
-                    final championCard = _championCardData(
+                    final championMessages = _championMessages(
                       statEntries,
                       allPlayers,
+                      me,
                     );
 
                     return SafeArea(
@@ -166,10 +168,7 @@ class _HomeTabState extends State<HomeTab> {
                                   showAddPlayerDialog(context, firestore),
                             ),
                             const SizedBox(height: 20),
-                            _ChampionCard(
-                              title: championCard.title,
-                              championName: championCard.name,
-                            ),
+                            _ChampionCarousel(messages: championMessages),
                             for (final game in activeGames) ...[
                               const SizedBox(height: 20),
                               _ActiveGameCard(
@@ -470,32 +469,48 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  /// Durante el mes, esta tarjeta muestra quién va ganando (todavía no es
-  /// "campeón" porque el mes no ha terminado). Recién empezado el mes
-  /// nuevo, durante unos días muestra al campeón del mes que acaba de
-  /// terminar, para poder celebrarlo, y luego vuelve a mostrar quién va
-  /// ganando el mes actual.
-  ({String title, String? name}) _championCardData(
+  /// Arma los mensajes del carrusel de Inicio: el campeón del mes pasado
+  /// (solo los primeros 7 días del mes nuevo, para celebrarlo mientras es
+  /// noticia reciente), quién tiene el mejor porcentaje este mes, y un
+  /// mensaje personalizado según si quien ve la app es esa persona.
+  List<String> _championMessages(
     List<PlayerStatEntry> entries,
     List<Player> players,
+    Player? me,
   ) {
+    final messages = <String>[];
     final now = DateTime.now();
-    if (now.day <= 5) {
+
+    if (now.day <= 7) {
       final lastMonth = DateTime(now.year, now.month - 1);
       final lastWinner = computeMonthlyWinner(entries, players, lastMonth);
       if (lastWinner != null) {
-        return (title: 'Campeón del mes', name: lastWinner.player.displayName);
+        messages.add(
+          '🏆 Ganador del mes pasado: ${lastWinner.player.displayName}',
+        );
       }
     }
-    final currentLeader = computeMonthlyWinner(
+
+    final leader = computeMonthlyPercentageLeader(
       entries,
       players,
       DateTime(now.year, now.month),
     );
-    return (
-      title: 'Va ganando este mes',
-      name: currentLeader?.player.displayName,
-    );
+    if (leader != null) {
+      messages.add(
+        '📊 ${leader.player.displayName} tiene el porcentaje más alto '
+        'hasta ahora.',
+      );
+      final isMeLeading = me != null && leader.player.id == me.id;
+      messages.add(
+        isMeLeading
+            ? '🔥 ¡Vas ganando este mes! Sigue así.'
+            : '🔥 ${leader.player.displayName} va ganando este mes. Sigue '
+                  'jugando, el próximo puedes ser tú.',
+      );
+    }
+
+    return messages;
   }
 }
 
@@ -876,15 +891,57 @@ class _PlayersCard extends StatelessWidget {
   }
 }
 
-class _ChampionCard extends StatelessWidget {
-  final String title;
-  final String? championName;
+/// Recuadro destacado en Inicio que rota solo entre varios mensajes
+/// (campeón del mes pasado, quién tiene mejor porcentaje, mensaje
+/// personalizado) cada pocos segundos, en vez de mostrar un solo dato
+/// fijo.
+class _ChampionCarousel extends StatefulWidget {
+  final List<String> messages;
 
-  const _ChampionCard({required this.title, required this.championName});
+  const _ChampionCarousel({required this.messages});
+
+  @override
+  State<_ChampionCarousel> createState() => _ChampionCarouselState();
+}
+
+class _ChampionCarouselState extends State<_ChampionCarousel> {
+  int _index = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChampionCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.messages.length != oldWidget.messages.length) {
+      _index = 0;
+    }
+  }
+
+  void _restartTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || widget.messages.isEmpty) return;
+      setState(() => _index = (_index + 1) % widget.messages.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final text = widget.messages.isEmpty
+        ? 'Aún sin datos este mes'
+        : widget.messages[_index % widget.messages.length];
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: context.lightGreenBg,
@@ -892,37 +949,26 @@ class _ChampionCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _kSecondaryGreen,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  championName ?? 'Aún sin definir',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                    color: context.homeTextColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
           const Icon(
             Icons.emoji_events_rounded,
-            size: 52,
+            size: 36,
             color: _kSecondaryGreen,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: Text(
+                text,
+                key: ValueKey(text),
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: context.homeTextColor,
+                ),
+              ),
+            ),
           ),
         ],
       ),
