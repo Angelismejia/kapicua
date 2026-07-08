@@ -20,6 +20,27 @@ class FirestoreService {
       ? _db.collection('guestSpaces').doc(guestUid).collection('games')
       : _db.collection('games');
 
+  // ---- Administradores ----
+  // Un jugador es admin si su uid tiene un documento en "admins" (ademas
+  // del respaldo por correo fijo en AuthService.kAdminEmails).
+
+  Stream<Set<String>> watchAdminUids() {
+    return _db
+        .collection('admins')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.id).toSet());
+  }
+
+  Future<void> grantAdmin(String uid) async {
+    await _db.collection('admins').doc(uid).set({
+      'grantedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  Future<void> revokeAdmin(String uid) async {
+    await _db.collection('admins').doc(uid).delete();
+  }
+
   // ---- Jugadores ----
 
   Stream<List<Player>> watchActivePlayers() {

@@ -2,6 +2,23 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Admin = correo en la lista fija (respaldo) o con documento propio
+    // en la coleccion "admins" (otorgado desde la app por otro admin).
+    function isAdmin() {
+      return request.auth != null &&
+        (request.auth.token.email.lower() in
+          ['angelismejia06@gmail.com', 'proniw83@gmail.com'] ||
+         exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // Lectura: cualquiera con cuenta puede ver quien es admin (para la
+    // pantalla de dar permisos). Escritura: solo un admin puede nombrar
+    // o quitar a otro.
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     match /players/{playerId} {
       // Lectura publica (solo nombres/foto, sin estadisticas) para poder
       // elegir tu jugador de la lista al registrarte, antes de crear la
@@ -11,8 +28,7 @@ service cloud.firestore {
 
       match /statEntries/{entryId} {
         allow read: if request.auth != null;
-        allow write: if request.auth != null &&
-          request.auth.token.email.lower() in ['angelismejia06@gmail.com', 'proniw83@gmail.com'];
+        allow write: if isAdmin();
       }
     }
 
@@ -21,8 +37,7 @@ service cloud.firestore {
     // anidada de arriba no alcanza a cubrir ese tipo de consulta.
     match /{path=**}/statEntries/{entryId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null &&
-        request.auth.token.email.lower() in ['angelismejia06@gmail.com', 'proniw83@gmail.com'];
+      allow write: if isAdmin();
     }
 
     match /games/{gameId} {

@@ -1,7 +1,12 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 /// Correos con permisos de administrador (pueden editar estadisticas).
+/// Se mantiene como respaldo fijo ademas de la coleccion "admins" en
+/// Firestore, para que estas dos cuentas nunca puedan quedarse sin acceso.
 const Set<String> kAdminEmails = {
   'angelismejia06@gmail.com',
   'proniw83@gmail.com',
@@ -11,12 +16,28 @@ const Set<String> kAdminEmails = {
 /// vincula a un jugador de la liga (nuevo o ya existente) por authUid.
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isDynamicAdmin = false;
+  StreamSubscription<DocumentSnapshot>? _adminSub;
 
   AuthService() {
     if (kIsWeb) {
       _auth.setPersistence(Persistence.LOCAL);
     }
-    _auth.authStateChanges().listen((_) => notifyListeners());
+    _auth.authStateChanges().listen((user) {
+      _adminSub?.cancel();
+      _isDynamicAdmin = false;
+      if (user != null) {
+        _adminSub = FirebaseFirestore.instance
+            .collection('admins')
+            .doc(user.uid)
+            .snapshots()
+            .listen((snap) {
+              _isDynamicAdmin = snap.exists;
+              notifyListeners();
+            });
+      }
+      notifyListeners();
+    });
   }
 
   User? get currentUser => _auth.currentUser;
@@ -25,8 +46,14 @@ class AuthService extends ChangeNotifier {
 
   bool get isAdmin {
     final email = _auth.currentUser?.email?.trim().toLowerCase();
-    if (email == null) return false;
-    return kAdminEmails.contains(email);
+    if (email != null && kAdminEmails.contains(email)) return true;
+    return _isDynamicAdmin;
+  }
+
+  @override
+  void dispose() {
+    _adminSub?.cancel();
+    super.dispose();
   }
 
   Future<String?> signUp(String email, String password) async {

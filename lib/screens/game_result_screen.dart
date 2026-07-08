@@ -7,6 +7,8 @@ import '../services/firestore_service.dart';
 import 'active_game_screen.dart';
 import 'main_shell.dart';
 
+const _kPrimaryGreen = Color(0xFF2E6B3F);
+
 class GameResultScreen extends StatelessWidget {
   final String gameId;
 
@@ -39,55 +41,57 @@ class GameResultScreen extends StatelessWidget {
                   .map((id) => players[id] ?? '...')
                   .join(' y ');
               final winnerName = game.winner == 'A' ? teamAName : teamBName;
+              final teamAWon = game.winner == 'A';
 
               return Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     Icon(
-                      Icons.emoji_events,
+                      Icons.emoji_events_rounded,
                       size: 64,
                       color: Colors.amber.shade700,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '¡$winnerName ganaron la partida!',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Expanded(
-                      child: ListView(
-                        children: [
-                          Card(
-                            child: ListTile(
-                              leading: const CircleAvatar(child: Text('C')),
-                              title: const Text('Casa'),
-                              subtitle: Text(teamAName),
-                              trailing: Text(
-                                '${game.teamAScore}',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineSmall,
+                      child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: IntrinsicHeight(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _ResultTeam(
+                                  label: 'Casa',
+                                  playerNames: teamAName,
+                                  score: game.teamAScore,
+                                  won: teamAWon,
+                                ),
                               ),
-                            ),
-                          ),
-                          Card(
-                            child: ListTile(
-                              leading: const CircleAvatar(child: Text('V')),
-                              title: const Text('Visita'),
-                              subtitle: Text(teamBName),
-                              trailing: Text(
-                                '${game.teamBScore}',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineSmall,
+                              const VerticalDivider(width: 1, thickness: 1),
+                              Expanded(
+                                child: _ResultTeam(
+                                  label: 'Visita',
+                                  playerNames: teamBName,
+                                  score: game.teamBScore,
+                                  won: !teamAWon,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -109,6 +113,10 @@ class GameResultScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _kPrimaryGreen,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
                         onPressed: () => Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (_) => const MainShell()),
@@ -123,6 +131,69 @@ class GameResultScreen extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _ResultTeam extends StatelessWidget {
+  final String label;
+  final String playerNames;
+  final int score;
+  final bool won;
+
+  const _ResultTeam({
+    required this.label,
+    required this.playerNames,
+    required this.score,
+    required this.won,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: won ? _kPrimaryGreen.withValues(alpha: 0.08) : null,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (won)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 6),
+              child: Icon(
+                Icons.emoji_events_rounded,
+                color: _kPrimaryGreen,
+                size: 20,
+              ),
+            ),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            playerNames,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 12.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '$score',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 32,
+              color: won ? _kPrimaryGreen : null,
+            ),
+          ),
+        ],
       ),
     );
   }

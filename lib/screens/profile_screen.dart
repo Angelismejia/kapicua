@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'admin_management_screen.dart';
 import 'auth_screen.dart';
 
 /// Limite conservador para que la foto (ya en base64) quepa comoda dentro
@@ -328,6 +329,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               'contraseña que cambiar.',
               style: TextStyle(fontFamily: 'Poppins'),
             ),
+          if (auth.isAdmin) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                label: const Text('Dar permisos de administrador'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminManagementScreen(),
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

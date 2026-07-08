@@ -142,16 +142,24 @@ class _NewGameScreenState extends State<NewGameScreen> {
       return;
     }
     setState(() => _creating = true);
-    final gameId = await firestore.createGame(
-      _teamA.toList(),
-      _teamB.toList(),
-      target,
-    );
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => ActiveGameScreen(gameId: gameId)),
-    );
+    try {
+      final gameId = await firestore.createGame(
+        _teamA.toList(),
+        _teamB.toList(),
+        target,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ActiveGameScreen(gameId: gameId)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _creating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo crear la partida: $e')),
+      );
+    }
   }
 }
 

@@ -33,14 +33,20 @@ void showAddPlayerDialog(BuildContext context, FirestoreService firestore) {
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: () {
+          onPressed: () async {
             final fullName = fullNameController.text.trim();
-            if (fullName.isNotEmpty) {
-              firestore.addPlayer(
+            if (fullName.isEmpty) return;
+            try {
+              await firestore.addPlayer(
                 fullName,
                 shortName: shortNameController.text,
               );
-              Navigator.pop(dialogContext);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            } catch (e) {
+              if (!dialogContext.mounted) return;
+              ScaffoldMessenger.of(
+                dialogContext,
+              ).showSnackBar(SnackBar(content: Text('No se pudo agregar: $e')));
             }
           },
           child: const Text('Agregar'),
