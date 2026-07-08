@@ -48,26 +48,23 @@ class StatsScreen extends StatelessWidget {
             builder: (context, entriesSnapshot) {
               final entries = entriesSnapshot.data ?? [];
 
-              final stats =
-                  players.map((player) {
-                    var won = 0;
-                    var lost = 0;
-                    for (final e in entries) {
-                      if (e.playerId != player.id) continue;
-                      if (e.isWin) {
-                        won++;
-                      } else {
-                        lost++;
-                      }
-                    }
-                    return PlayerStats(
-                      player: player,
-                      gamesWon: won,
-                      gamesLost: lost,
-                    );
-                  }).toList()..sort(
-                    (a, b) => b.winPercentage.compareTo(a.winPercentage),
-                  );
+              final stats = players.map((player) {
+                var won = 0;
+                var lost = 0;
+                for (final e in entries) {
+                  if (e.playerId != player.id) continue;
+                  if (e.isWin) {
+                    won++;
+                  } else {
+                    lost++;
+                  }
+                }
+                return PlayerStats(
+                  player: player,
+                  gamesWon: won,
+                  gamesLost: lost,
+                );
+              }).toList()..sort((a, b) => b.gamesWon.compareTo(a.gamesWon));
 
               final monthlyWinner = computeMonthlyWinner(
                 entries,
@@ -148,30 +145,27 @@ class _GuestStatsBody extends StatelessWidget {
             builder: (context, gamesSnapshot) {
               final games = gamesSnapshot.data ?? [];
 
-              final stats =
-                  players.map((player) {
-                    var won = 0;
-                    var lost = 0;
-                    for (final g in games) {
-                      final inA = g.teamAPlayerIds.contains(player.id);
-                      final inB = g.teamBPlayerIds.contains(player.id);
-                      if (!inA && !inB) continue;
-                      final playerWon =
-                          (inA && g.winner == 'A') || (inB && g.winner == 'B');
-                      if (playerWon) {
-                        won++;
-                      } else {
-                        lost++;
-                      }
-                    }
-                    return PlayerStats(
-                      player: player,
-                      gamesWon: won,
-                      gamesLost: lost,
-                    );
-                  }).toList()..sort(
-                    (a, b) => b.winPercentage.compareTo(a.winPercentage),
-                  );
+              final stats = players.map((player) {
+                var won = 0;
+                var lost = 0;
+                for (final g in games) {
+                  final inA = g.teamAPlayerIds.contains(player.id);
+                  final inB = g.teamBPlayerIds.contains(player.id);
+                  if (!inA && !inB) continue;
+                  final playerWon =
+                      (inA && g.winner == 'A') || (inB && g.winner == 'B');
+                  if (playerWon) {
+                    won++;
+                  } else {
+                    lost++;
+                  }
+                }
+                return PlayerStats(
+                  player: player,
+                  gamesWon: won,
+                  gamesLost: lost,
+                );
+              }).toList()..sort((a, b) => b.gamesWon.compareTo(a.gamesWon));
 
               return ListView(
                 padding: const EdgeInsets.all(20),
