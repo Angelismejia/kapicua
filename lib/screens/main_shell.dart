@@ -26,9 +26,9 @@ class _MainShellState extends State<MainShell> {
 
     final tabs = [
       HomeTab(onNavigateTab: _goToTab),
-      const PlayersScreen(),
       const StatsScreen(),
       if (!isGuest) const CertificadosTab(),
+      const PlayersScreen(),
     ];
     if (_index >= tabs.length) _index = tabs.length - 1;
 
@@ -44,11 +44,6 @@ class _MainShellState extends State<MainShell> {
             label: 'Inicio',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: 'Liga',
-          ),
-          const NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events_rounded),
             label: 'Estadísticas',
@@ -59,6 +54,11 @@ class _MainShellState extends State<MainShell> {
               selectedIcon: Icon(Icons.workspace_premium_rounded),
               label: 'Certificados',
             ),
+          const NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups_rounded),
+            label: 'Liga',
+          ),
         ],
       ),
     );

@@ -50,7 +50,7 @@ class GameResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '¡$winnerName ganó la partida!',
+                      '¡$winnerName ganaron la partida!',
                       style: Theme.of(context).textTheme.headlineSmall,
                       textAlign: TextAlign.center,
                     ),

@@ -75,8 +75,8 @@ class _HomeTabState extends State<HomeTab> {
     final firestore = context.read<FirestoreService>();
     final auth = context.watch<AuthService>();
     final isGuest = firestore.isGuest;
-    const ligaIndex = 1;
-    const certificadosIndex = 3;
+    final ligaIndex = isGuest ? 2 : 3;
+    const certificadosIndex = 2;
 
     return StreamBuilder<List<Player>>(
       stream: firestore.watchAllPlayers(),
@@ -93,10 +93,13 @@ class _HomeTabState extends State<HomeTab> {
           builder: (context, activePlayersSnap) {
             final activePlayers = activePlayersSnap.data ?? [];
 
-            return StreamBuilder<Game?>(
-              stream: firestore.watchActiveGame(),
-              builder: (context, activeGameSnap) {
-                final activeGame = activeGameSnap.data;
+            return StreamBuilder<List<Game>>(
+              stream: firestore.watchActiveGames(),
+              builder: (context, activeGamesSnap) {
+                final activeGames = activeGamesSnap.data ?? [];
+                final playerNames = {
+                  for (final p in allPlayers) p.id: p.displayName,
+                };
 
                 return StreamBuilder<List<PlayerStatEntry>>(
                   stream: firestore.watchAllStatEntries(),
@@ -160,15 +163,21 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             const SizedBox(height: 20),
                             _ChampionCard(championName: monthlyWinner),
-                            if (activeGame != null) ...[
+                            for (final game in activeGames) ...[
                               const SizedBox(height: 20),
                               _ActiveGameCard(
-                                targetScore: activeGame.targetScore,
+                                targetScore: game.targetScore,
+                                teamAName: game.teamAPlayerIds
+                                    .map((id) => playerNames[id] ?? '...')
+                                    .join(' y '),
+                                teamBName: game.teamBPlayerIds
+                                    .map((id) => playerNames[id] ?? '...')
+                                    .join(' y '),
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        ActiveGameScreen(gameId: activeGame.id),
+                                        ActiveGameScreen(gameId: game.id),
                                   ),
                                 ),
                               ),
@@ -185,7 +194,6 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             const SizedBox(height: 14),
                             _QuickActionsGrid(
-                              activeGame: activeGame,
                               onAddPlayer: () =>
                                   showAddPlayerDialog(context, firestore),
                               onNewGame: () => Navigator.push(
@@ -833,9 +841,16 @@ class _ChampionCard extends StatelessWidget {
 
 class _ActiveGameCard extends StatelessWidget {
   final int targetScore;
+  final String teamAName;
+  final String teamBName;
   final VoidCallback onTap;
 
-  const _ActiveGameCard({required this.targetScore, required this.onTap});
+  const _ActiveGameCard({
+    required this.targetScore,
+    required this.teamAName,
+    required this.teamBName,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -866,9 +881,11 @@ class _ActiveGameCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Partida en curso',
-                    style: TextStyle(
+                  Text(
+                    '$teamAName vs $teamBName',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
@@ -899,14 +916,12 @@ class _ActiveGameCard extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  final Game? activeGame;
   final VoidCallback onAddPlayer;
   final VoidCallback onNewGame;
   final VoidCallback onHistory;
   final VoidCallback onPlayers;
 
   const _QuickActionsGrid({
-    required this.activeGame,
     required this.onAddPlayer,
     required this.onNewGame,
     required this.onHistory,
@@ -926,7 +941,6 @@ class _QuickActionsGrid extends StatelessWidget {
         _QuickActionButton(
           icon: Icons.add_circle_outline_rounded,
           label: 'Nueva partida',
-          enabled: activeGame == null,
           onTap: onNewGame,
         ),
         _QuickActionButton(
@@ -953,27 +967,23 @@ class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool enabled;
 
   const _QuickActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return _ScaleOnTap(
-      onTap: enabled ? onTap : null,
+      onTap: onTap,
       child: Material(
-        color: enabled
-            ? context.cardColor
-            : context.cardColor.withValues(alpha: 0.6),
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: enabled ? onTap : null,
+          onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -988,13 +998,7 @@ class _QuickActionButton extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  size: 30,
-                  color: enabled
-                      ? _kPrimaryGreen
-                      : _kPrimaryGreen.withValues(alpha: 0.4),
-                ),
+                Icon(icon, size: 30, color: _kPrimaryGreen),
                 const SizedBox(height: 10),
                 Text(
                   label,
@@ -1003,9 +1007,7 @@ class _QuickActionButton extends StatelessWidget {
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
-                    color: enabled
-                        ? context.homeTextColor
-                        : context.homeMutedColor,
+                    color: context.homeTextColor,
                   ),
                 ),
               ],

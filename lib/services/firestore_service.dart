@@ -151,15 +151,14 @@ class FirestoreService {
 
   // ---- Partidas ----
 
-  Stream<Game?> watchActiveGame() {
+  /// Puede haber varias partidas en curso a la vez (varias mesas jugando
+  /// al mismo tiempo), asi que no se limita a una sola.
+  Stream<List<Game>> watchActiveGames() {
     return _games
         .where('status', isEqualTo: 'in_progress')
-        .limit(1)
         .snapshots()
         .map(
-          (snap) => snap.docs.isEmpty
-              ? null
-              : Game.fromMap(snap.docs.first.id, snap.docs.first.data()),
+          (snap) => snap.docs.map((d) => Game.fromMap(d.id, d.data())).toList(),
         );
   }
 
