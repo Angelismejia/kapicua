@@ -84,7 +84,7 @@ class _StatsScreenState extends State<StatsScreen> {
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
-            fontSize: 32,
+            fontSize: 22,
             color: isDark ? Colors.white : const Color(0xFF222222),
           ),
         ),
@@ -253,7 +253,7 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
-            fontSize: 32,
+            fontSize: 22,
             color: isDark ? Colors.white : const Color(0xFF222222),
           ),
         ),
