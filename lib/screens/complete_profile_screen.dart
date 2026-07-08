@@ -141,7 +141,42 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   'Crea tu acceso',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Asegúrate de escribir correctamente tu correo '
+                          'electrónico. Si algún día olvidas tu contraseña, '
+                          'enviaremos el enlace de recuperación a ese '
+                          'correo. Si está mal escrito, no podrás recibir '
+                          'el mensaje y podrías perder el acceso a tu '
+                          'cuenta.',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimaryContainer,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 AutofillGroup(
                   child: Column(
                     children: [

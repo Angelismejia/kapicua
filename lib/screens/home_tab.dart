@@ -385,24 +385,6 @@ class _HomeTabState extends State<HomeTab> {
       }
     }
 
-    final vallejo = allPlayers
-        .where((p) => p.displayName.toLowerCase().contains('vallejo'))
-        .cast<Player?>()
-        .firstWhere((_) => true, orElse: () => null);
-    if (vallejo != null) {
-      final vallejoEntries =
-          statEntries.where((e) => e.playerId == vallejo.id).toList()
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      if (vallejoEntries.isNotEmpty && !vallejoEntries.first.isWin) {
-        notifications.add(
-          const _Notification(
-            icon: Icons.sentiment_very_dissatisfied_rounded,
-            message: 'Vallejo es un maco 😂',
-          ),
-        );
-      }
-    }
-
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
