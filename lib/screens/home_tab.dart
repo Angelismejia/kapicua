@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/game.dart';
@@ -7,10 +6,17 @@ import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../widgets/add_player_dialog.dart';
 import 'active_game_screen.dart';
 import 'help_screen.dart';
 import 'history_screen.dart';
 import 'new_game_screen.dart';
+
+const _kPrimaryGreen = Color(0xFF2E6B3F);
+const _kSecondaryGreen = Color(0xFF5C9E61);
+const _kLightGreen = Color(0xFFEAF6EB);
+const _kTextColor = Color(0xFF2D2D2D);
+const _kMutedText = Color(0xFF6B756D);
 
 class HomeTab extends StatefulWidget {
   final void Function(int index) onNavigateTab;
@@ -24,6 +30,15 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   final PageController _bannerController = PageController();
   int _bannerPage = 0;
+  double _opacity = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _opacity = 1);
+    });
+  }
 
   @override
   void dispose() {
@@ -42,7 +57,9 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
     final auth = context.watch<AuthService>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final isGuest = firestore.isGuest;
+    final ligaIndex = isGuest ? 2 : 3;
+    const certificadosIndex = 2;
 
     return StreamBuilder<List<Player>>(
       stream: firestore.watchAllPlayers(),
@@ -59,120 +76,107 @@ class _HomeTabState extends State<HomeTab> {
           builder: (context, activePlayersSnap) {
             final activePlayers = activePlayersSnap.data ?? [];
 
-            return StreamBuilder<List<Game>>(
-              stream: firestore.watchFinishedGames(),
-              builder: (context, gamesSnap) {
-                final finishedGames = gamesSnap.data ?? [];
+            return StreamBuilder<Game?>(
+              stream: firestore.watchActiveGame(),
+              builder: (context, activeGameSnap) {
+                final activeGame = activeGameSnap.data;
 
-                return StreamBuilder<Game?>(
-                  stream: firestore.watchActiveGame(),
-                  builder: (context, activeGameSnap) {
-                    final activeGame = activeGameSnap.data;
+                return StreamBuilder<List<PlayerStatEntry>>(
+                  stream: firestore.watchAllStatEntries(),
+                  builder: (context, entriesSnap) {
+                    final statEntries = entriesSnap.data ?? [];
+                    final monthlyWinner = _monthlyLeader(
+                      statEntries,
+                      allPlayers,
+                    );
 
-                    return StreamBuilder<List<PlayerStatEntry>>(
-                      stream: firestore.watchAllStatEntries(),
-                      builder: (context, entriesSnap) {
-                        final statEntries = entriesSnap.data ?? [];
-
-                        return SafeArea(
-                          child: ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                            children: [
-                              _Header(
-                                greeting: _greetingPrefix,
-                                name: me?.displayName,
-                                colorScheme: colorScheme,
-                                onNotificationsTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Muy pronto ✨'),
-                                    ),
-                                  );
-                                },
-                                onSettingsTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const HelpScreen(),
-                                  ),
+                    return SafeArea(
+                      child: AnimatedOpacity(
+                        opacity: _opacity,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                          children: [
+                            _Header(
+                              greeting: _greetingPrefix,
+                              name: me?.displayName,
+                              onNotificationsTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Muy pronto')),
+                                );
+                              },
+                              onSettingsTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HelpScreen(),
                                 ),
                               ),
-                              const SizedBox(height: 24),
-                              _BannerCarousel(
-                                controller: _bannerController,
-                                currentPage: _bannerPage,
-                                onPageChanged: (i) =>
-                                    setState(() => _bannerPage = i),
-                                onCertificadosTap: () =>
-                                    widget.onNavigateTab(2),
-                              ),
-                              const SizedBox(height: 24),
-                              _Dashboard(
-                                totalGames: finishedGames.length,
-                                totalPlayers: activePlayers.length,
-                                allPlayers: allPlayers,
-                                statEntries: statEntries,
-                              ),
-                              const SizedBox(height: 16),
-                              if (finishedGames.isNotEmpty)
-                                _LastGameCard(
-                                  game: finishedGames.first,
-                                  players: {
-                                    for (final p in allPlayers)
-                                      p.id: p.displayName,
-                                  },
-                                ),
-                              if (activeGame != null) ...[
-                                const SizedBox(height: 16),
-                                _ActionCard(
-                                  icon: Icons.play_circle_fill,
-                                  title: 'Partida en curso',
-                                  subtitle:
-                                      'Meta: ${activeGame.targetScore} puntos',
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ActiveGameScreen(
-                                        gameId: activeGame.id,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 24),
-                              Text(
-                                'Menú',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 12),
-                              _ActionCard(
-                                icon: Icons.add_circle_outline,
-                                title: 'Nueva partida',
-                                subtitle: 'Crea y comienza una partida.',
-                                enabled: activeGame == null,
+                            ),
+                            const SizedBox(height: 18),
+                            _BannerCarousel(
+                              controller: _bannerController,
+                              currentPage: _bannerPage,
+                              onPageChanged: (i) =>
+                                  setState(() => _bannerPage = i),
+                              onCertificadosTap: isGuest
+                                  ? null
+                                  : () =>
+                                        widget.onNavigateTab(certificadosIndex),
+                            ),
+                            const SizedBox(height: 18),
+                            _PlayersCard(
+                              totalPlayers: activePlayers.length,
+                              onAddPlayer: () =>
+                                  showAddPlayerDialog(context, firestore),
+                            ),
+                            const SizedBox(height: 18),
+                            _ChampionCard(championName: monthlyWinner),
+                            if (activeGame != null) ...[
+                              const SizedBox(height: 18),
+                              _ActiveGameCard(
+                                targetScore: activeGame.targetScore,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const NewGameScreen(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _ActionCard(
-                                icon: Icons.history,
-                                title: 'Historial',
-                                subtitle: 'Consulta partidas anteriores.',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const HistoryScreen(),
+                                    builder: (_) =>
+                                        ActiveGameScreen(gameId: activeGame.id),
                                   ),
                                 ),
                               ),
                             ],
-                          ),
-                        );
-                      },
+                            const SizedBox(height: 30),
+                            const Text(
+                              'Acciones rápidas',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                color: _kTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            _QuickActionsGrid(
+                              activeGame: activeGame,
+                              onAddPlayer: () =>
+                                  showAddPlayerDialog(context, firestore),
+                              onNewGame: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NewGameScreen(),
+                                ),
+                              ),
+                              onHistory: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HistoryScreen(),
+                                ),
+                              ),
+                              onPlayers: () => widget.onNavigateTab(ligaIndex),
+                            ),
+                          ],
+                        ),
+                      ),
                     );
                   },
                 );
@@ -183,19 +187,38 @@ class _HomeTabState extends State<HomeTab> {
       },
     );
   }
+
+  String? _monthlyLeader(List<PlayerStatEntry> entries, List<Player> players) {
+    final now = DateTime.now();
+    final winsCount = <String, int>{};
+    for (final e in entries) {
+      if (!e.isWin) continue;
+      if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
+        continue;
+      }
+      winsCount[e.playerId] = (winsCount[e.playerId] ?? 0) + 1;
+    }
+    if (winsCount.isEmpty) return null;
+    String bestId = winsCount.keys.first;
+    for (final id in winsCount.keys) {
+      if (winsCount[id]! > winsCount[bestId]!) bestId = id;
+    }
+    for (final p in players) {
+      if (p.id == bestId) return p.displayName;
+    }
+    return null;
+  }
 }
 
 class _Header extends StatelessWidget {
   final String greeting;
   final String? name;
-  final ColorScheme colorScheme;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
 
   const _Header({
     required this.greeting,
     required this.name,
-    required this.colorScheme,
     required this.onNotificationsTap,
     required this.onSettingsTap,
   });
@@ -203,46 +226,55 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayName = (name != null && name!.isNotEmpty) ? name! : null;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Text(
-                displayName != null
-                    ? '👋 $greeting, $displayName'
-                    : '👋 $greeting',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurfaceVariant,
-                  letterSpacing: 0.2,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+            const Spacer(),
             IconButton(
-              icon: const Icon(Icons.notifications_none_rounded),
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: _kTextColor,
+              ),
               tooltip: 'Notificaciones',
               onPressed: onNotificationsTap,
             ),
             IconButton(
-              icon: const Icon(Icons.settings_outlined),
+              icon: const Icon(Icons.settings_outlined, color: _kTextColor),
               tooltip: 'Configuración y ayuda',
               onPressed: onSettingsTap,
             ),
           ],
         ),
-        const SizedBox(height: 6),
         Text(
+          displayName != null ? '$greeting, $displayName' : greeting,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: 32,
+            color: _kTextColor,
+            height: 1.15,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Lista para jugar dominó.',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 16,
+            color: _kMutedText,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
           'Kapicua',
-          textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'AlexBrush',
-            fontSize: 40,
-            color: colorScheme.primary,
-            height: 1.2,
+            fontSize: 52,
+            color: _kPrimaryGreen,
+            height: 1.1,
           ),
         ),
       ],
@@ -254,7 +286,7 @@ class _BannerCarousel extends StatelessWidget {
   final PageController controller;
   final int currentPage;
   final ValueChanged<int> onPageChanged;
-  final VoidCallback onCertificadosTap;
+  final VoidCallback? onCertificadosTap;
 
   const _BannerCarousel({
     required this.controller,
@@ -268,19 +300,19 @@ class _BannerCarousel extends StatelessWidget {
     return Column(
       children: [
         Container(
-          height: 220,
+          height: 180,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 20,
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
             child: PageView(
               controller: controller,
               onPageChanged: onPageChanged,
@@ -308,14 +340,14 @@ class _BannerCarousel extends StatelessWidget {
           children: List.generate(2, (i) {
             final active = i == currentPage;
             return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 250),
               margin: const EdgeInsets.symmetric(horizontal: 3),
               width: active ? 18 : 6,
               height: 6,
               decoration: BoxDecoration(
                 color: active
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outlineVariant,
+                    ? _kPrimaryGreen
+                    : _kPrimaryGreen.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(3),
               ),
             );
@@ -355,8 +387,8 @@ class _BannerSlide extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.05),
-                  const Color(0xFF0D2818).withValues(alpha: 0.85),
+                  Colors.black.withValues(alpha: 0.02),
+                  Colors.black.withValues(alpha: 0.55),
                 ],
               ),
             ),
@@ -364,7 +396,7 @@ class _BannerSlide extends StatelessWidget {
           Positioned(
             left: 20,
             right: 20,
-            bottom: 20,
+            bottom: 18,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -373,7 +405,7 @@ class _BannerSlide extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
                   ),
@@ -384,7 +416,7 @@ class _BannerSlide extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     color: Colors.white70,
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -397,155 +429,68 @@ class _BannerSlide extends StatelessWidget {
   }
 }
 
-class _Dashboard extends StatelessWidget {
-  final int totalGames;
+class _PlayersCard extends StatelessWidget {
   final int totalPlayers;
-  final List<Player> allPlayers;
-  final List<PlayerStatEntry> statEntries;
+  final VoidCallback onAddPlayer;
 
-  const _Dashboard({
-    required this.totalGames,
-    required this.totalPlayers,
-    required this.allPlayers,
-    required this.statEntries,
-  });
+  const _PlayersCard({required this.totalPlayers, required this.onAddPlayer});
 
   @override
   Widget build(BuildContext context) {
-    final winsById = <String, int>{};
-    for (final e in statEntries) {
-      if (e.isWin) winsById[e.playerId] = (winsById[e.playerId] ?? 0) + 1;
-    }
-    String? leaderId;
-    var leaderWins = 0;
-    winsById.forEach((id, wins) {
-      if (wins > leaderWins) {
-        leaderWins = wins;
-        leaderId = id;
-      }
-    });
-    Player? leader;
-    for (final p in allPlayers) {
-      if (p.id == leaderId) leader = p;
-    }
-
-    final monthlyWinner = _monthlyLeader(statEntries, allPlayers);
-
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      children: [
-        _DashboardCard(
-          icon: Icons.casino_outlined,
-          iconBg: const Color(0xFFE8F5E9),
-          value: '$totalGames',
-          label: 'Partidas jugadas',
-        ),
-        _DashboardCard(
-          icon: Icons.groups_outlined,
-          iconBg: const Color(0xFFE8F5E9),
-          value: '$totalPlayers',
-          label: 'En la liga',
-        ),
-        _DashboardCard(
-          icon: Icons.military_tech_outlined,
-          iconBg: const Color(0xFFE8F5E9),
-          value: leader?.displayName ?? '—',
-          label: leader != null
-              ? '$leaderWins victorias · líder'
-              : 'Líder actual',
-        ),
-        _DashboardCard(
-          icon: Icons.local_fire_department_outlined,
-          iconBg: const Color(0xFFE8F5E9),
-          value: monthlyWinner ?? '—',
-          label: 'Ganador del mes',
-        ),
-      ],
-    );
-  }
-
-  String? _monthlyLeader(List<PlayerStatEntry> entries, List<Player> players) {
-    final now = DateTime.now();
-    final winsCount = <String, int>{};
-    for (final e in entries) {
-      if (!e.isWin) continue;
-      if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
-        continue;
-      }
-      winsCount[e.playerId] = (winsCount[e.playerId] ?? 0) + 1;
-    }
-    if (winsCount.isEmpty) return null;
-    String bestId = winsCount.keys.first;
-    for (final id in winsCount.keys) {
-      if (winsCount[id]! > winsCount[bestId]!) bestId = id;
-    }
-    for (final p in players) {
-      if (p.id == bestId) return p.displayName;
-    }
-    return null;
-  }
-}
-
-class _DashboardCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final String value;
-  final String label;
-
-  const _DashboardCard({
-    required this.icon,
-    required this.iconBg,
-    required this.value,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return _SoftCard(
+      child: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: iconBg,
-            child: Icon(icon, size: 18, color: colorScheme.primary),
-          ),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 17,
+          const Icon(Icons.groups_rounded, size: 28, color: _kPrimaryGreen),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$totalPlayers',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 34,
+                    color: _kTextColor,
+                    height: 1,
+                  ),
+                ),
+                const Text(
+                  'Jugadores en la liga',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: _kMutedText,
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11.5,
-              color: colorScheme.onSurfaceVariant,
+          _ScaleOnTap(
+            onTap: onAddPlayer,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: _kPrimaryGreen,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Agregar jugador',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -554,93 +499,52 @@ class _DashboardCard extends StatelessWidget {
   }
 }
 
-class _LastGameCard extends StatelessWidget {
-  final Game game;
-  final Map<String, String> players;
+class _ChampionCard extends StatelessWidget {
+  final String? championName;
 
-  const _LastGameCard({required this.game, required this.players});
-
-  String _relativeDate(DateTime? date) {
-    if (date == null) return '';
-    final now = DateTime.now();
-    final diff = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).difference(DateTime(date.year, date.month, date.day)).inDays;
-    final time = DateFormat('h:mm a', 'es').format(date);
-    if (diff == 0) return 'Hoy · $time';
-    if (diff == 1) return 'Ayer · $time';
-    return '${DateFormat('d MMM', 'es').format(date)} · $time';
-  }
+  const _ChampionCard({required this.championName});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final winnerName = game.winner == 'A'
-        ? game.teamAPlayerIds.map((id) => players[id] ?? '...').join(' y ')
-        : game.teamBPlayerIds.map((id) => players[id] ?? '...').join(' y ');
-    final winnerScore = game.winner == 'A' ? game.teamAScore : game.teamBScore;
-
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: _kLightGreen,
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xFFE8F5E9),
-            child: Icon(
-              Icons.calendar_today_outlined,
-              size: 18,
-              color: colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Última partida',
+                  'Campeón del mes',
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
                     fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _kSecondaryGreen,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  _relativeDate(game.finishedAt),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
+                  championName ?? 'Aún sin definir',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    color: _kTextColor,
                   ),
-                ),
-                Text(
-                  '$winnerName ganó con $winnerScore pts',
-                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => GameDetailScreen(game: game, players: players),
-              ),
-            ),
-            child: const Text('Ver detalle →'),
+          const Icon(
+            Icons.emoji_events_rounded,
+            size: 52,
+            color: _kSecondaryGreen,
           ),
         ],
       ),
@@ -648,78 +552,246 @@ class _LastGameCard extends StatelessWidget {
   }
 }
 
-class _ActionCard extends StatelessWidget {
+class _ActiveGameCard extends StatelessWidget {
+  final int targetScore;
+  final VoidCallback onTap;
+
+  const _ActiveGameCard({required this.targetScore, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return _ScaleOnTap(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          color: _kPrimaryGreen,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _kPrimaryGreen.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.play_circle_fill_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Partida en curso',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Meta: $targetScore puntos',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.5,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionsGrid extends StatelessWidget {
+  final Game? activeGame;
+  final VoidCallback onAddPlayer;
+  final VoidCallback onNewGame;
+  final VoidCallback onHistory;
+  final VoidCallback onPlayers;
+
+  const _QuickActionsGrid({
+    required this.activeGame,
+    required this.onAddPlayer,
+    required this.onNewGame,
+    required this.onHistory,
+    required this.onPlayers,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 18,
+      crossAxisSpacing: 18,
+      childAspectRatio: 1.15,
+      children: [
+        _QuickActionButton(
+          icon: Icons.add_circle_outline_rounded,
+          label: 'Nueva partida',
+          enabled: activeGame == null,
+          onTap: onNewGame,
+        ),
+        _QuickActionButton(
+          icon: Icons.person_add_alt_1_rounded,
+          label: 'Agregar jugador',
+          onTap: onAddPlayer,
+        ),
+        _QuickActionButton(
+          icon: Icons.history_rounded,
+          label: 'Historial',
+          onTap: onHistory,
+        ),
+        _QuickActionButton(
+          icon: Icons.groups_2_rounded,
+          label: 'Jugadores',
+          onTap: onPlayers,
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final String subtitle;
+  final String label;
   final VoidCallback onTap;
   final bool enabled;
 
-  const _ActionCard({
+  const _QuickActionButton({
     required this.icon,
-    required this.title,
-    required this.subtitle,
+    required this.label,
     required this.onTap,
     this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      color: colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
-      elevation: 0,
-      child: InkWell(
+    return _ScaleOnTap(
+      onTap: enabled ? onTap : null,
+      child: Material(
+        color: enabled ? Colors.white : Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
-        onTap: enabled ? onTap : null,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: const Color(0xFFE8F5E9),
-                child: Icon(icon, color: colorScheme.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: enabled ? onTap : null,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 30,
+                  color: enabled
+                      ? _kPrimaryGreen
+                      : _kPrimaryGreen.withValues(alpha: 0.4),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: enabled ? _kTextColor : _kMutedText,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Envoltorio reutilizable: reduce ligeramente de tamaño al presionar,
+/// para que los botones se sientan táctiles sin exagerar la animación.
+class _ScaleOnTap extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _ScaleOnTap({required this.child, required this.onTap});
+
+  @override
+  State<_ScaleOnTap> createState() => _ScaleOnTapState();
+}
+
+class _ScaleOnTapState extends State<_ScaleOnTap> {
+  double _scale = 1;
+
+  void _setScale(double value) {
+    if (widget.onTap == null) return;
+    setState(() => _scale = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => _setScale(0.96),
+      onTapUp: (_) => _setScale(1),
+      onTapCancel: () => _setScale(1),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class _SoftCard extends StatelessWidget {
+  final Widget child;
+
+  const _SoftCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

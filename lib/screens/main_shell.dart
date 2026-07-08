@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/game.dart';
 import '../services/firestore_service.dart';
-import 'active_game_screen.dart';
 import 'certificados_tab.dart';
 import 'home_tab.dart';
-import 'new_game_screen.dart';
 import 'players_screen.dart';
 import 'stats_screen.dart';
 
@@ -37,48 +34,29 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       body: IndexedStack(index: _index, children: tabs),
-      floatingActionButton: _index == 0
-          ? StreamBuilder<Game?>(
-              stream: firestore.watchActiveGame(),
-              builder: (context, snapshot) {
-                final activeGame = snapshot.data;
-                return FloatingActionButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => activeGame != null
-                          ? ActiveGameScreen(gameId: activeGame.id)
-                          : const NewGameScreen(),
-                    ),
-                  ),
-                  child: const Icon(Icons.add, size: 30),
-                );
-              },
-            )
-          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
           const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.home_rounded),
+            selectedIcon: Icon(Icons.home_rounded),
             label: 'Inicio',
           ),
           const NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events),
+            selectedIcon: Icon(Icons.emoji_events_rounded),
             label: 'Estadísticas',
           ),
           if (!isGuest)
             const NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined),
-              selectedIcon: Icon(Icons.workspace_premium),
+              selectedIcon: Icon(Icons.workspace_premium_rounded),
               label: 'Certificados',
             ),
           const NavigationDestination(
             icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
+            selectedIcon: Icon(Icons.groups_rounded),
             label: 'Liga',
           ),
         ],

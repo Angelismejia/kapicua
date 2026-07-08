@@ -117,11 +117,11 @@ class KapicuaApp extends StatelessWidget {
             themeMode: controller.themeMode,
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2E7D32),
+                seedColor: const Color(0xFF2E6B3F),
               ),
               useMaterial3: true,
               fontFamily: 'Poppins',
-              scaffoldBackgroundColor: const Color(0xFFF7F8F7),
+              scaffoldBackgroundColor: const Color(0xFFF7F8F4),
               appBarTheme: const AppBarTheme(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
@@ -130,13 +130,13 @@ class KapicuaApp extends StatelessWidget {
               cardTheme: CardThemeData(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
               ),
             ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2E7D32),
+                seedColor: const Color(0xFF2E6B3F),
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
@@ -149,7 +149,7 @@ class KapicuaApp extends StatelessWidget {
               cardTheme: CardThemeData(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
               ),
             ),
