@@ -23,6 +23,79 @@ Future<void> _addEntries(
   }
 }
 
+void _showAddStatDialog(
+  BuildContext context,
+  FirestoreService firestore,
+  String playerId,
+) {
+  var isWin = true;
+  final quantityController = TextEditingController(text: '1');
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setState) => AlertDialog(
+        title: const Text('Agregar ganadas o perdidas'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Elige si son ganadas o perdidas, y cuántas quieres '
+              'agregar de una vez.',
+            ),
+            const SizedBox(height: 8),
+            RadioListTile<bool>(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Ganada'),
+              value: true,
+              groupValue: isWin,
+              onChanged: (v) => setState(() => isWin = v!),
+            ),
+            RadioListTile<bool>(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Perdida'),
+              value: false,
+              groupValue: isWin,
+              onChanged: (v) => setState(() => isWin = v!),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: quantityController,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Cuántas quieres agregar',
+                helperText:
+                    'Ej. escribe 13 si quieres agregar 13 ganadas '
+                    'ya jugadas antes, de una sola vez.',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final n = int.tryParse(quantityController.text.trim());
+              final count = (n == null || n < 1) ? 1 : n;
+              Navigator.pop(dialogContext);
+              _addEntries(context, firestore, playerId, isWin, count);
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 Future<void> _editEntry(
   BuildContext context,
   FirestoreService firestore,
@@ -116,13 +189,6 @@ void showPlayerStatHistoryDialog(
   Player player,
   bool isAdmin,
 ) {
-  final quantityController = TextEditingController(text: '1');
-
-  int quantity() {
-    final n = int.tryParse(quantityController.text.trim());
-    return (n == null || n < 1) ? 1 : n;
-  }
-
   showDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -133,47 +199,14 @@ void showPlayerStatHistoryDialog(
         child: Column(
           children: [
             if (isAdmin) ...[
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Cantidad',
-                  helperText: 'Ej. pon 13 para agregar 13 ganadas de una vez',
-                  isDense: true,
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar ganadas o perdidas'),
+                  onPressed: () =>
+                      _showAddStatDialog(dialogContext, firestore, player.id),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Ganada'),
-                      onPressed: () => _addEntries(
-                        dialogContext,
-                        firestore,
-                        player.id,
-                        true,
-                        quantity(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Perdida'),
-                      onPressed: () => _addEntries(
-                        dialogContext,
-                        firestore,
-                        player.id,
-                        false,
-                        quantity(),
-                      ),
-                    ),
-                  ),
-                ],
               ),
               const Divider(height: 24),
             ],
