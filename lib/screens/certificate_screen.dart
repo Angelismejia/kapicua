@@ -100,6 +100,12 @@ class _CertificateScreenState extends State<CertificateScreen> {
     try {
       final bytes = await _certificateService.capture(_repaintKey);
       await _printService.shareCertificate(bytes);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No se pudo compartir: $e')));
+      }
     } finally {
       if (mounted) setState(() => _working = false);
     }

@@ -55,6 +55,12 @@ class _StatsScreenState extends State<StatsScreen> {
     try {
       final monthLabel = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
       await _shareStatsImage(_shareKey, monthLabel);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No se pudo compartir: $e')));
+      }
     } finally {
       if (mounted) setState(() => _sharing = false);
     }
@@ -168,17 +174,11 @@ class _StatsScreenState extends State<StatsScreen> {
                   const SizedBox(height: 12),
                   RepaintBoundary(
                     key: _shareKey,
-                    child: _StatsShareCapture(
-                      monthLabel: DateFormat(
-                        'MMMM yyyy',
-                        'es',
-                      ).format(_selectedMonth),
-                      child: _StatsList(
-                        stats: stats,
-                        isAdmin: isAdmin,
-                        firestore: firestore,
-                        forMonth: _selectedMonth,
-                      ),
+                    child: _StatsList(
+                      stats: stats,
+                      isAdmin: isAdmin,
+                      firestore: firestore,
+                      forMonth: _selectedMonth,
                     ),
                   ),
                 ],
@@ -209,6 +209,12 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
     try {
       final monthLabel = DateFormat('MMMM yyyy', 'es').format(DateTime.now());
       await _shareStatsImage(_shareKey, monthLabel);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No se pudo compartir: $e')));
+      }
     } finally {
       if (mounted) setState(() => _sharing = false);
     }
@@ -277,17 +283,11 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
                 children: [
                   RepaintBoundary(
                     key: _shareKey,
-                    child: _StatsShareCapture(
-                      monthLabel: DateFormat(
-                        'MMMM yyyy',
-                        'es',
-                      ).format(DateTime.now()),
-                      child: _StatsList(
-                        stats: stats,
-                        isAdmin: false,
-                        firestore: firestore,
-                        forMonth: DateTime.now(),
-                      ),
+                    child: _StatsList(
+                      stats: stats,
+                      isAdmin: false,
+                      firestore: firestore,
+                      forMonth: DateTime.now(),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -300,66 +300,6 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
             },
           );
         },
-      ),
-    );
-  }
-}
-
-/// Envuelve la tabla de estadísticas con un encabezado de marca para que,
-/// al compartirla como imagen, se entienda de qué liga y mes se trata sin
-/// necesitar contexto adicional.
-class _StatsShareCapture extends StatelessWidget {
-  final String monthLabel;
-  final Widget child;
-
-  const _StatsShareCapture({required this.monthLabel, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF14201A) : const Color(0xFFF4F7F4),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.emoji_events_rounded,
-                color: _kStatsPrimaryGreen,
-                size: 22,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Kapicua',
-                style: TextStyle(
-                  fontFamily: 'AlexBrush',
-                  fontSize: 26,
-                  color: isDark ? _kStatsDarkText : _kStatsPrimaryGreen,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Estadísticas · $monthLabel',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: isDark ? _kStatsDarkMuted : _kStatsLightMuted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
       ),
     );
   }
