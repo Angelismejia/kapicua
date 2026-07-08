@@ -44,7 +44,7 @@ class MonthlyWinnerCard extends StatelessWidget {
                   builder: (_) => CertificateScreen(
                     winnerName: result.player.fullName,
                     monthLabel: monthLabel,
-                    totalScore: result.wins,
+                    totalScore: result.certificateScore,
                   ),
                 ),
               ),
