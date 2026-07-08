@@ -58,9 +58,18 @@ MonthlyWinnerResult? computeMonthlyWinner(
   }
   if (winsCount.isEmpty) return null;
 
+  // El "ganador" es quien tiene mejor porcentaje de victorias ese mes
+  // (no simplemente quien tiene más ganadas), igual que en Estadísticas.
   String bestId = winsCount.keys.first;
+  double bestPct = -1;
   for (final id in winsCount.keys) {
-    if (winsCount[id]! > winsCount[bestId]!) bestId = id;
+    final w = winsCount[id]!;
+    final l = lossesCount[id] ?? 0;
+    final pct = w / (w + l);
+    if (pct > bestPct) {
+      bestPct = pct;
+      bestId = id;
+    }
   }
 
   final player = players

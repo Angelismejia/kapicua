@@ -270,9 +270,8 @@ class _HomeTabState extends State<HomeTab> {
           _Notification(
             icon: Icons.emoji_events_rounded,
             message:
-                '🎉 ¡Es hora de celebrar al campeón del mes! '
-                '${lastMonthWinner.player.displayName} fue el campeón '
-                'de $label con ${lastMonthWinner.wins} victorias.',
+                '🎉 ${lastMonthWinner.player.displayName} se llevó $label '
+                'con ${lastMonthWinner.wins} victorias. ¡A celebrar!',
           ),
         );
       }
@@ -318,7 +317,7 @@ class _HomeTabState extends State<HomeTab> {
       notifications.add(
         const _Notification(
           icon: Icons.rocket_launch_rounded,
-          message: '¡Este mes puede ser tuyo! Anímate a sumar victorias 💪',
+          message: 'Todavía vas a tiempo de ponerte de primero este mes 💪',
         ),
       );
     }
@@ -468,7 +467,7 @@ class _HomeTabState extends State<HomeTab> {
       final lastWinner = computeMonthlyWinner(entries, players, lastMonth);
       if (lastWinner != null) {
         messages.add(
-          '🏆 Ganador del mes pasado: ${lastWinner.player.displayName}',
+          '🏆 El mes pasado se lo llevó ${lastWinner.player.displayName}',
         );
       }
     }
@@ -479,16 +478,13 @@ class _HomeTabState extends State<HomeTab> {
       DateTime(now.year, now.month),
     );
     if (leader != null) {
-      messages.add(
-        '📊 ${leader.player.displayName} tiene el porcentaje más alto '
-        'hasta ahora.',
-      );
+      messages.add('📊 Por ahora, ${leader.player.displayName} va arriba');
       final isMeLeading = me != null && leader.player.id == me.id;
       messages.add(
         isMeLeading
-            ? '🔥 ¡Vas ganando este mes! Sigue así.'
-            : '🔥 ${leader.player.displayName} va ganando este mes. Sigue '
-                  'jugando, el próximo puedes ser tú.',
+            ? '🔥 ¡Vas de primero este mes! No aflojes 💪'
+            : '🔥 ${leader.player.displayName} va de primero este mes. '
+                  '¡Dale que el próximo puedes ser tú!',
       );
     }
 
