@@ -90,8 +90,8 @@ class FirestoreService {
     });
   }
 
-  Future<void> updatePlayerPhotoUrl(String playerId, String? photoUrl) async {
-    await _players.doc(playerId).update({'photoUrl': photoUrl});
+  Future<void> updatePlayerPhoto(String playerId, String? photoBase64) async {
+    await _players.doc(playerId).update({'photoBase64': photoBase64});
   }
 
   /// Elimina el jugador de forma permanente, incluso si ya jugó partidas.

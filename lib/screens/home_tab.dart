@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -121,7 +123,7 @@ class _HomeTabState extends State<HomeTab> {
                             _Header(
                               greeting: _greetingPrefix,
                               name: me?.displayName,
-                              photoUrl: me?.photoUrl,
+                              photoBase64: me?.photoBase64,
                               onNotificationsTap: () => _showNotifications(
                                 context,
                                 me,
@@ -412,7 +414,7 @@ class _HomeTabState extends State<HomeTab> {
 class _Header extends StatelessWidget {
   final String greeting;
   final String? name;
-  final String? photoUrl;
+  final String? photoBase64;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onProfileTap;
@@ -420,7 +422,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.greeting,
     required this.name,
-    required this.photoUrl,
+    required this.photoBase64,
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onProfileTap,
@@ -456,10 +458,10 @@ class _Header extends StatelessWidget {
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: _kPrimaryGreen.withValues(alpha: 0.15),
-                backgroundImage: photoUrl != null
-                    ? NetworkImage(photoUrl!)
+                backgroundImage: photoBase64 != null
+                    ? MemoryImage(base64Decode(photoBase64!))
                     : null,
-                child: photoUrl == null
+                child: photoBase64 == null
                     ? Text(
                         displayName != null && displayName.isNotEmpty
                             ? displayName[0].toUpperCase()

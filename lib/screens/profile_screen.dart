@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -5,8 +7,12 @@ import 'package:provider/provider.dart';
 import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
-import '../services/storage_service.dart';
 import 'auth_screen.dart';
+
+/// Limite conservador para que la foto (ya en base64) quepa comoda dentro
+/// del maximo de 1 MB por documento de Firestore junto con el resto de
+/// los campos del jugador.
+const _kMaxPhotoBytes = 250 * 1024;
 
 const _kPrimaryGreen = Color(0xFF2E6B3F);
 
@@ -40,27 +46,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickPhoto() async {
     final player = widget.player;
-    final uid = context.read<AuthService>().currentUser?.uid;
-    if (player == null || uid == null) return;
-    final storage = context.read<StorageService>();
+    if (player == null) return;
     final firestore = context.read<FirestoreService>();
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      maxWidth: 800,
-      imageQuality: 85,
+      maxWidth: 240,
+      imageQuality: 70,
     );
     if (picked == null || !mounted) return;
 
     setState(() => _uploadingPhoto = true);
     try {
       final bytes = await picked.readAsBytes();
-      final url = await storage.uploadProfilePhoto(uid, bytes);
-      await firestore.updatePlayerPhotoUrl(player.id, url);
+      if (bytes.length > _kMaxPhotoBytes) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Esa foto es muy pesada, prueba con otra.'),
+          ),
+        );
+        return;
+      }
+      await firestore.updatePlayerPhoto(player.id, base64Encode(bytes));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('No se pudo subir la foto: $e')));
+      ).showSnackBar(SnackBar(content: Text('No se pudo guardar la foto: $e')));
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }
@@ -168,10 +180,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CircleAvatar(
                   radius: 50,
                   backgroundColor: _kPrimaryGreen.withValues(alpha: 0.12),
-                  backgroundImage: player?.photoUrl != null
-                      ? NetworkImage(player!.photoUrl!)
+                  backgroundImage: player?.photoBase64 != null
+                      ? MemoryImage(base64Decode(player!.photoBase64!))
                       : null,
-                  child: player?.photoUrl == null
+                  child: player?.photoBase64 == null
                       ? Text(
                           displayName.isNotEmpty
                               ? displayName[0].toUpperCase()

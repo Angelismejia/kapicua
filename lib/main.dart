@@ -11,7 +11,6 @@ import 'screens/family_gate_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
-import 'services/storage_service.dart';
 import 'services/theme_controller.dart';
 
 Future<void> main() async {
@@ -108,7 +107,6 @@ class KapicuaApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<FirestoreService>(create: (_) => FirestoreService()),
-        Provider<StorageService>(create: (_) => StorageService()),
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
         ChangeNotifierProvider<AuthService>.value(value: authService),
       ],
