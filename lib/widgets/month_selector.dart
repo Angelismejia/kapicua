@@ -35,8 +35,8 @@ class MonthSelector extends StatelessWidget {
               capitalized,
               style: const TextStyle(
                 fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
               ),
             ),
             const SizedBox(width: 4),

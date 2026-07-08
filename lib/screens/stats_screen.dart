@@ -74,10 +74,20 @@ class _StatsScreenState extends State<StatsScreen> {
     }
 
     final isAdmin = context.watch<AuthService>().isAdmin;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Estadísticas'),
+        centerTitle: true,
+        title: Text(
+          'Estadísticas',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            fontSize: 32,
+            color: isDark ? Colors.white : const Color(0xFF222222),
+          ),
+        ),
         actions: [
           IconButton(
             icon: _sharing
@@ -133,6 +143,8 @@ class _StatsScreenState extends State<StatsScreen> {
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  const _StatsHeaderAccent(),
+                  const SizedBox(height: 24),
                   if (entriesSnapshot.hasError)
                     Card(
                       color: Theme.of(context).colorScheme.errorContainer,
@@ -161,17 +173,26 @@ class _StatsScreenState extends State<StatsScreen> {
                         ),
                       ),
                     ),
-                  MonthSelector(
-                    month: _selectedMonth,
-                    onChanged: (m) => setState(() => _selectedMonth = m),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: MonthSelector(
+                      month: _selectedMonth,
+                      onChanged: (m) => setState(() => _selectedMonth = m),
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Toca el nombre de un jugador para ver su historial'
                     '${isAdmin ? ' y agregar ganadas o perdidas' : ''}.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.5,
+                      color: Color(0xFF666666),
+                      height: 1.5,
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   RepaintBoundary(
                     key: _shareKey,
                     child: _StatsList(
@@ -223,9 +244,19 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
   @override
   Widget build(BuildContext context) {
     final firestore = widget.firestore;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Estadísticas'),
+        centerTitle: true,
+        title: Text(
+          'Estadísticas',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            fontSize: 32,
+            color: isDark ? Colors.white : const Color(0xFF222222),
+          ),
+        ),
         actions: [
           IconButton(
             icon: _sharing
@@ -281,6 +312,8 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  const _StatsHeaderAccent(),
+                  const SizedBox(height: 24),
                   RepaintBoundary(
                     key: _shareKey,
                     child: _StatsList(
@@ -300,6 +333,62 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// Adorno del encabezado: una línea verde fina a cada lado con un
+/// trofeo dentro de un círculo, a modo de separador elegante y
+/// minimalista entre el título y el selector de mes.
+class _StatsHeaderAccent extends StatelessWidget {
+  const _StatsHeaderAccent();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const green = Color(0xFF2E7D32);
+
+    Widget line() => Container(
+      height: 2,
+      decoration: BoxDecoration(
+        color: green,
+        borderRadius: BorderRadius.circular(1),
+      ),
+    );
+
+    return Center(
+      child: FractionallySizedBox(
+        widthFactor: 0.55,
+        child: Row(
+          children: [
+            Expanded(child: line()),
+            const SizedBox(width: 10),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark ? _kStatsDarkCard : Colors.white,
+                border: Border.all(color: green, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                color: green,
+                size: 17,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: line()),
+          ],
+        ),
       ),
     );
   }
