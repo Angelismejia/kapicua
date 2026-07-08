@@ -1052,6 +1052,7 @@ class _ActiveGameCard extends StatelessWidget {
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Icon(
               Icons.play_circle_fill_rounded,
@@ -1062,18 +1063,39 @@ class _ActiveGameCard extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '$teamAName vs $teamBName',
-                    maxLines: 1,
+                    teamAName,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontSize: 14.5,
                       color: Colors.white,
                     ),
                   ),
+                  const Text(
+                    'vs',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11.5,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  Text(
+                    teamBName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14.5,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     'Meta: $targetScore puntos',
                     style: const TextStyle(
@@ -1085,6 +1107,7 @@ class _ActiveGameCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             const Icon(
               Icons.arrow_forward_rounded,
               color: Colors.white,

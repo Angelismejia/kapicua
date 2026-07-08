@@ -77,6 +77,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Estadísticas'),
         actions: [
           IconButton(
             icon: _sharing
@@ -132,8 +133,6 @@ class _StatsScreenState extends State<StatsScreen> {
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  const _StatsHeaderAccent(),
-                  const SizedBox(height: 12),
                   if (entriesSnapshot.hasError)
                     Card(
                       color: Theme.of(context).colorScheme.errorContainer,
@@ -162,26 +161,17 @@ class _StatsScreenState extends State<StatsScreen> {
                         ),
                       ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: MonthSelector(
-                      month: _selectedMonth,
-                      onChanged: (m) => setState(() => _selectedMonth = m),
-                    ),
+                  MonthSelector(
+                    month: _selectedMonth,
+                    onChanged: (m) => setState(() => _selectedMonth = m),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     'Toca el nombre de un jugador para ver su historial'
                     '${isAdmin ? ' y agregar ganadas o perdidas' : ''}.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12.5,
-                      color: Color(0xFF666666),
-                      height: 1.5,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   RepaintBoundary(
                     key: _shareKey,
                     child: _StatsList(
@@ -235,6 +225,7 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
     final firestore = widget.firestore;
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Estadísticas'),
         actions: [
           IconButton(
             icon: _sharing
@@ -290,8 +281,6 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  const _StatsHeaderAccent(),
-                  const SizedBox(height: 12),
                   RepaintBoundary(
                     key: _shareKey,
                     child: _StatsList(
@@ -312,45 +301,6 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
           );
         },
       ),
-    );
-  }
-}
-
-/// Adorno del encabezado: el nombre de la pantalla entre dos líneas
-/// verdes finas, a modo de título elegante y minimalista (reemplaza al
-/// título repetido que antes iba arriba, en la barra superior).
-class _StatsHeaderAccent extends StatelessWidget {
-  const _StatsHeaderAccent();
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const green = Color(0xFF2E7D32);
-
-    Widget line() => Container(
-      height: 2,
-      decoration: BoxDecoration(
-        color: green,
-        borderRadius: BorderRadius.circular(1),
-      ),
-    );
-
-    return Row(
-      children: [
-        Expanded(child: line()),
-        const SizedBox(width: 12),
-        Text(
-          'Estadísticas',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            fontSize: 19,
-            color: isDark ? Colors.white : const Color(0xFF222222),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: line()),
-      ],
     );
   }
 }

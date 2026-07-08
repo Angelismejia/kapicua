@@ -12,45 +12,309 @@ import 'game_result_screen.dart';
 const _pointPresets = [25, 50, 75, 100];
 const _kPrimaryGreen = Color(0xFF2E6B3F);
 
-/// Selector de equipo más visual que un par de radio buttons: dos
-/// botones grandes lado a lado, claramente resaltado el que está
-/// elegido — y al ser Expanded, se adapta a cualquier ancho de pantalla.
-Widget _teamSelectorRow(String winningTeam, ValueChanged<String> onSelect) {
-  Widget button(String value, String label) {
-    final selected = winningTeam == value;
+/// Un campo de puntos por equipo, lado a lado, cada uno con sus propios
+/// atajos rápidos. En dominó ambos equipos pueden anotar puntos en la
+/// misma ronda (ej. cierre con fichas en ambas manos), así que se
+/// escriben los dos valores por separado en vez de elegir un único
+/// "ganador de la ronda".
+Widget _teamPointsFields(
+  TextEditingController teamAController,
+  TextEditingController teamBController,
+  StateSetter setState,
+) {
+  Widget column(TextEditingController controller, String label) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            backgroundColor: selected
-                ? _kPrimaryGreen.withValues(alpha: 0.12)
-                : null,
-            side: BorderSide(
-              color: selected ? _kPrimaryGreen : Colors.grey.shade400,
-              width: selected ? 2 : 1,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+              decoration: InputDecoration(
+                labelText: label,
+                border: const OutlineInputBorder(),
+              ),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final preset in _pointPresets)
+                  ActionChip(
+                    label: Text('$preset'),
+                    onPressed: () =>
+                        setState(() => controller.text = '$preset'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      column(teamAController, 'Casa'),
+      column(teamBController, 'Visita'),
+    ],
+  );
+}
+
+/// Pastilla de marcador por equipo, al estilo de las apps clásicas de
+/// anotar dominó: nombre del equipo y botón "+" para sumar una ronda a
+/// la izquierda, puntaje actual bien grande a la derecha.
+class _TeamScorePill extends StatelessWidget {
+  final String label;
+  final String playerNames;
+  final int score;
+  final VoidCallback onAdd;
+
+  const _TeamScorePill({
+    required this.label,
+    required this.playerNames,
+    required this.score,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: _kPrimaryGreen,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: _kPrimaryGreen.withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (playerNames.isNotEmpty)
+                    Text(
+                      playerNames,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10.5,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  Material(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: onAdd,
+                      child: const Padding(
+                        padding: EdgeInsets.all(5),
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '$score',
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w800,
+                fontSize: 30,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Diálogo rápido para sumar una ronda desde el botón "+" de la pastilla
+/// de un equipo: teclado numérico propio (más rápido en el celular que
+/// el teclado del sistema) y dos formas de confirmar — "Para ambos" si
+/// los dos equipos anotaron el mismo puntaje esa ronda (ej. tranca), u
+/// "OK" si solo anotó el equipo cuyo "+" se tocó.
+class _QuickAddRoundDialog extends StatefulWidget {
+  final String teamLabel;
+  final void Function(int value, bool bothTeams) onSubmit;
+
+  const _QuickAddRoundDialog({required this.teamLabel, required this.onSubmit});
+
+  @override
+  State<_QuickAddRoundDialog> createState() => _QuickAddRoundDialogState();
+}
+
+class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
+  String _digits = '';
+
+  void _tapDigit(String d) {
+    if (_digits.length >= 3) return;
+    setState(() => _digits += d);
+  }
+
+  void _backspace() {
+    if (_digits.isEmpty) return;
+    setState(() => _digits = _digits.substring(0, _digits.length - 1));
+  }
+
+  void _submit(bool bothTeams) {
+    widget.onSubmit(int.tryParse(_digits) ?? 0, bothTeams);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final display = _digits.isEmpty ? '0' : _digits;
+
+    Widget keypadButton(String label, {VoidCallback? onTap, Widget? child}) {
+      return Expanded(
+        child: AspectRatio(
+          aspectRatio: 1.5,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Material(
+              color: Colors.grey.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: onTap,
+                child: Center(
+                  child:
+                      child ??
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 22,
+                        ),
+                      ),
+                ),
+              ),
+            ),
           ),
-          onPressed: () => onSelect(value),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        ),
+      );
+    }
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (selected) ...[
-                const Icon(
-                  Icons.check_circle_rounded,
-                  size: 18,
+              Text(
+                widget.teamLabel,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
                   color: _kPrimaryGreen,
                 ),
-                const SizedBox(width: 6),
-              ],
+              ),
+              const SizedBox(height: 12),
               Text(
-                label,
-                style: TextStyle(
+                display,
+                style: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  color: selected ? _kPrimaryGreen : null,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 48,
                 ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _submit(true),
+                      child: const Text(
+                        'Para ambos',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontFamily: 'Poppins'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _kPrimaryGreen,
+                      ),
+                      onPressed: () => _submit(false),
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              for (final row in const [
+                ['1', '2', '3'],
+                ['4', '5', '6'],
+                ['7', '8', '9'],
+              ])
+                Row(
+                  children: [
+                    for (final d in row)
+                      keypadButton(d, onTap: () => _tapDigit(d)),
+                  ],
+                ),
+              Row(
+                children: [
+                  keypadButton('', onTap: null),
+                  keypadButton('0', onTap: () => _tapDigit('0')),
+                  keypadButton(
+                    '',
+                    onTap: _backspace,
+                    child: const Icon(Icons.backspace_outlined, size: 20),
+                  ),
+                ],
               ),
             ],
           ),
@@ -58,8 +322,6 @@ Widget _teamSelectorRow(String winningTeam, ValueChanged<String> onSelect) {
       ),
     );
   }
-
-  return Row(children: [button('A', 'Casa'), button('B', 'Visita')]);
 }
 
 class ActiveGameScreen extends StatefulWidget {
@@ -79,16 +341,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     final firestore = context.read<FirestoreService>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Partida en curso'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.restart_alt),
-            tooltip: 'Cancelar partida',
-            onPressed: () => _confirmCancel(context, firestore),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Partida en curso')),
       body: StreamBuilder<Game?>(
         stream: firestore.watchGame(widget.gameId),
         builder: (context, gameSnapshot) {
@@ -129,118 +382,133 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    Text(
+                      'Meta: ${game.targetScore} puntos',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            'Meta: ${game.targetScore} puntos',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
+                        _TeamScorePill(
+                          label: 'Casa',
+                          playerNames: teamAName,
+                          score: game.teamAScore,
+                          onAdd: () =>
+                              _showQuickAddDialog(context, firestore, 'A'),
                         ),
-                        FilledButton.icon(
-                          onPressed: () => _showRoundDialog(context, firestore),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Agregar ronda'),
+                        const SizedBox(width: 12),
+                        _TeamScorePill(
+                          label: 'Visita',
+                          playerNames: teamBName,
+                          score: game.teamBScore,
+                          onAdd: () =>
+                              _showQuickAddDialog(context, firestore, 'B'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Toca una ronda para editarla o borrarla.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Toca una ronda para editarla, o la X para borrarla.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Expanded(
                       child: Card(
                         clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          children: [
-                            IntrinsicHeight(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: ScoreSheetHeader(
-                                      label: 'Casa',
-                                      playerNames: teamAName,
-                                    ),
+                        child: StreamBuilder<List<Round>>(
+                          stream: firestore.watchRounds(widget.gameId),
+                          builder: (context, roundsSnapshot) {
+                            final rounds = roundsSnapshot.data ?? [];
+                            if (rounds.isEmpty) {
+                              return const Center(
+                                child: Text('Todavía no hay rondas.'),
+                              );
+                            }
+                            return ListView.builder(
+                              itemCount: rounds.length,
+                              itemBuilder: (context, index) {
+                                final round = rounds[index];
+                                return InkWell(
+                                  onTap: () => _showEditRoundDialog(
+                                    context,
+                                    firestore,
+                                    round,
                                   ),
-                                  const VerticalDivider(width: 1, thickness: 1),
-                                  Expanded(
-                                    child: ScoreSheetHeader(
-                                      label: 'Visita',
-                                      playerNames: teamBName,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Divider(height: 1, thickness: 1),
-                            Expanded(
-                              child: StreamBuilder<List<Round>>(
-                                stream: firestore.watchRounds(widget.gameId),
-                                builder: (context, roundsSnapshot) {
-                                  final rounds = roundsSnapshot.data ?? [];
-                                  if (rounds.isEmpty) {
-                                    return const Center(
-                                      child: Text('Todavía no hay rondas.'),
-                                    );
-                                  }
-                                  return ListView.builder(
-                                    itemCount: rounds.length,
-                                    itemBuilder: (context, index) {
-                                      final round = rounds[index];
-                                      return GestureDetector(
-                                        onTap: () => _showRoundOptions(
-                                          context,
-                                          firestore,
-                                          round,
-                                        ),
-                                        child: IntrinsicHeight(
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: ScoreSheetCell(
-                                                  value: round.teamAPoints,
-                                                ),
-                                              ),
-                                              const VerticalDivider(
-                                                width: 1,
-                                                thickness: 1,
-                                              ),
-                                              Expanded(
-                                                child: ScoreSheetCell(
-                                                  value: round.teamBPoints,
-                                                ),
-                                              ),
-                                            ],
+                                  child: IntrinsicHeight(
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 22,
+                                          child: Text(
+                                            '${index + 1}',
+                                            textAlign: TextAlign.center,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
                                           ),
                                         ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                            const Divider(height: 1, thickness: 2),
-                            IntrinsicHeight(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: ScoreSheetTotal(
-                                      value: game.teamAScore,
+                                        Expanded(
+                                          child: ScoreSheetCell(
+                                            value: round.teamAPoints,
+                                          ),
+                                        ),
+                                        const VerticalDivider(
+                                          width: 1,
+                                          thickness: 1,
+                                        ),
+                                        Expanded(
+                                          child: ScoreSheetCell(
+                                            value: round.teamBPoints,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.close_rounded,
+                                            color: Colors.red,
+                                            size: 18,
+                                          ),
+                                          tooltip: 'Eliminar ronda',
+                                          onPressed: () => _confirmDeleteRound(
+                                            context,
+                                            firestore,
+                                            round,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const VerticalDivider(width: 1, thickness: 1),
-                                  Expanded(
-                                    child: ScoreSheetTotal(
-                                      value: game.teamBScore,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red, width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => _confirmCancel(context, firestore),
+                        child: const Text(
+                          'REINICIAR',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
@@ -252,46 +520,6 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
         },
       ),
     );
-  }
-
-  void _showRoundOptions(
-    BuildContext context,
-    FirestoreService firestore,
-    Round round,
-  ) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.scoreboard_outlined),
-              title: Text('Ronda: ${round.teamAPoints} - ${round.teamBPoints}'),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Editar puntos'),
-              onTap: () => Navigator.pop(sheetContext, 'edit'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Eliminar ronda'),
-              onTap: () => Navigator.pop(sheetContext, 'delete'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (!context.mounted) return;
-    if (action == 'edit') {
-      _showEditRoundDialog(context, firestore, round);
-    } else if (action == 'delete') {
-      _confirmDeleteRound(context, firestore, round);
-    }
   }
 
   void _confirmDeleteRound(
@@ -332,11 +560,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     FirestoreService firestore,
     Round round,
   ) {
-    var winningTeam = round.teamAPoints >= round.teamBPoints ? 'A' : 'B';
-    final initialPoints = winningTeam == 'A'
-        ? round.teamAPoints
-        : round.teamBPoints;
-    final pointsController = TextEditingController(text: '$initialPoints');
+    final teamAController = TextEditingController(text: '${round.teamAPoints}');
+    final teamBController = TextEditingController(text: '${round.teamBPoints}');
 
     showDialog(
       context: context,
@@ -349,42 +574,11 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '¿Quién ganó la ronda?',
+                  'Puntos de cada equipo en esta ronda',
                   style: TextStyle(fontFamily: 'Poppins'),
                 ),
-                const SizedBox(height: 8),
-                _teamSelectorRow(
-                  winningTeam,
-                  (v) => setState(() => winningTeam = v),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: pointsController,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Puntos de la ronda',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final preset in _pointPresets)
-                      ActionChip(
-                        label: Text('$preset'),
-                        onPressed: () =>
-                            setState(() => pointsController.text = '$preset'),
-                      ),
-                  ],
-                ),
+                const SizedBox(height: 12),
+                _teamPointsFields(teamAController, teamBController, setState),
               ],
             ),
           ),
@@ -395,9 +589,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             ),
             FilledButton(
               onPressed: () {
-                final points = int.tryParse(pointsController.text.trim()) ?? 0;
-                final teamAPoints = winningTeam == 'A' ? points : 0;
-                final teamBPoints = winningTeam == 'B' ? points : 0;
+                final teamAPoints =
+                    int.tryParse(teamAController.text.trim()) ?? 0;
+                final teamBPoints =
+                    int.tryParse(teamBController.text.trim()) ?? 0;
                 firestore.updateRound(
                   widget.gameId,
                   round.id,
@@ -414,83 +609,20 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     );
   }
 
-  void _showRoundDialog(
+  void _showQuickAddDialog(
     BuildContext context,
     FirestoreService firestore,
-  ) async {
-    final game = await firestore.watchGame(widget.gameId).first;
-    if (game == null || !context.mounted) return;
-
-    var winningTeam = 'A';
-    final pointsController = TextEditingController();
-
+    String team,
+  ) {
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setState) => AlertDialog(
-          title: Text('Ronda ${game.roundCount + 1}'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '¿Quién ganó la ronda?',
-                  style: TextStyle(fontFamily: 'Poppins'),
-                ),
-                const SizedBox(height: 8),
-                _teamSelectorRow(
-                  winningTeam,
-                  (v) => setState(() => winningTeam = v),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: pointsController,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Puntos de la ronda',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final preset in _pointPresets)
-                      ActionChip(
-                        label: Text('$preset'),
-                        onPressed: () =>
-                            setState(() => pointsController.text = '$preset'),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final points = int.tryParse(pointsController.text.trim()) ?? 0;
-                final teamAPoints = winningTeam == 'A' ? points : 0;
-                final teamBPoints = winningTeam == 'B' ? points : 0;
-                firestore.addRound(widget.gameId, teamAPoints, teamBPoints);
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
+      builder: (dialogContext) => _QuickAddRoundDialog(
+        teamLabel: team == 'A' ? 'Casa' : 'Visita',
+        onSubmit: (value, bothTeams) {
+          final teamAPoints = bothTeams ? value : (team == 'A' ? value : 0);
+          final teamBPoints = bothTeams ? value : (team == 'B' ? value : 0);
+          firestore.addRound(widget.gameId, teamAPoints, teamBPoints);
+        },
       ),
     );
   }
