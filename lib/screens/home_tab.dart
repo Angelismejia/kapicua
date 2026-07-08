@@ -252,12 +252,14 @@ class _Header extends StatelessWidget {
         ),
         Text(
           displayName != null ? '$greeting, $displayName' : greeting,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 28,
+            fontWeight: FontWeight.w500,
+            fontSize: 22,
             color: _kTextColor,
-            height: 1.2,
+            height: 1.25,
           ),
         ),
         const SizedBox(height: 4),
@@ -282,22 +284,25 @@ class _KapicuaLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    return Center(
-      child: SizedBox(
-        width: width * 0.52,
-        child: const FittedBox(
-          fit: BoxFit.contain,
-          child: Text(
-            'Kapicua',
-            style: TextStyle(
-              fontFamily: 'AlexBrush',
-              fontSize: 64,
-              color: _kPrimaryGreen,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Center(
+          child: SizedBox(
+            width: constraints.maxWidth * 0.52,
+            child: const FittedBox(
+              fit: BoxFit.contain,
+              child: Text(
+                'Kapicua',
+                style: TextStyle(
+                  fontFamily: 'AlexBrush',
+                  fontSize: 64,
+                  color: _kPrimaryGreen,
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -320,7 +325,9 @@ class _BannerCarousel extends StatelessWidget {
     return Column(
       children: [
         AspectRatio(
-          aspectRatio: 16 / 9,
+          // La imagen del banner (dominó/Presidente/logo) es panorámica,
+          // no 16:9 — usamos su proporción real para no recortarla.
+          aspectRatio: 900 / 410,
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
