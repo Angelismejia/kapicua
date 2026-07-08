@@ -467,7 +467,7 @@ class _HomeTabState extends State<HomeTab> {
       final lastWinner = computeMonthlyWinner(entries, players, lastMonth);
       if (lastWinner != null) {
         messages.add(
-          '🏆 El mes pasado se lo llevó ${lastWinner.player.displayName}',
+          'El mes pasado se lo llevó ${lastWinner.player.displayName}',
         );
       }
     }
@@ -478,13 +478,13 @@ class _HomeTabState extends State<HomeTab> {
       DateTime(now.year, now.month),
     );
     if (leader != null) {
-      messages.add('📊 Por ahora, ${leader.player.displayName} va arriba');
+      messages.add('Por ahora, ${leader.player.displayName} va arriba');
       final isMeLeading = me != null && leader.player.id == me.id;
       messages.add(
         isMeLeading
-            ? '🔥 ¡Vas de primero este mes! No aflojes 💪'
-            : '🔥 ${leader.player.displayName} va de primero este mes. '
-                  '¡Dale que el próximo puedes ser tú!',
+            ? '¡Vas de primero este mes! No aflojes'
+            : '${leader.player.displayName} va de primero este mes. '
+                  'Dale que el próximo puedes ser tú.',
       );
     }
 

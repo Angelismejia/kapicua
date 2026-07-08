@@ -46,13 +46,24 @@ class _CertificadosTabState extends State<CertificadosTab> {
             stream: firestore.watchAllStatEntries(),
             builder: (context, entriesSnap) {
               final entries = entriesSnap.data ?? [];
-              // Siempre hay alguien "arriba" en la tabla, aunque todavía
-              // nadie tenga una ganada registrada ese mes.
-              final leader = computeMonthlyLeaderOrFallback(
-                entries,
-                players,
-                _selectedMonth,
+
+              // Si el mes no tiene ni una sola ganada o perdida registrada
+              // (ej. un mes anterior a que se empezara a usar la app), no
+              // se inventa un líder: no hay nada que mostrar. El "siempre
+              // hay alguien arriba" solo aplica a un mes que sí se está
+              // jugando (aunque nadie tenga una ganada todavía).
+              final hasActivityThisMonth = entries.any(
+                (e) =>
+                    e.createdAt.year == _selectedMonth.year &&
+                    e.createdAt.month == _selectedMonth.month,
               );
+              final leader = hasActivityThisMonth
+                  ? computeMonthlyLeaderOrFallback(
+                      entries,
+                      players,
+                      _selectedMonth,
+                    )
+                  : null;
               final isMeTheLeader =
                   leader != null && me != null && leader.player.id == me.id;
 
@@ -64,7 +75,12 @@ class _CertificadosTabState extends State<CertificadosTab> {
                     onChanged: (m) => setState(() => _selectedMonth = m),
                   ),
                   const SizedBox(height: 16),
-                  ..._buildChampionSection(isAdmin, leader, isMeTheLeader),
+                  ..._buildChampionSection(
+                    isAdmin,
+                    leader,
+                    isMeTheLeader,
+                    players.isEmpty,
+                  ),
                   if (isAdmin) ...[
                     const SizedBox(height: 24),
                     Text(
@@ -98,17 +114,21 @@ class _CertificadosTabState extends State<CertificadosTab> {
     bool isAdmin,
     MonthlyWinnerResult? leader,
     bool isMeTheLeader,
+    bool noPlayers,
   ) {
     if (leader == null) {
-      // No hay ni un jugador en la liga todavía.
-      return const [
-        Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Agrega jugadores a la liga para ver certificados.'),
+      if (noPlayers) {
+        return const [
+          Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Agrega jugadores a la liga para ver certificados.'),
+            ),
           ),
-        ),
-      ];
+        ];
+      }
+      // Mes sin ninguna actividad registrada: no se inventa nada.
+      return const [];
     }
 
     final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
@@ -133,7 +153,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
         : '${leader.player.displayName} va ganando este mes, pero el '
               'resultado todavía no está definido.';
     final personalText = isMeTheLeader
-        ? '¡Estás ganando este mes! Sigue así, vas muy bien. 🔥'
+        ? '¡Estás ganando este mes! Sigue así, vas muy bien.'
         : 'Sigue jugando, el próximo mes puede ser tuyo.';
 
     return [

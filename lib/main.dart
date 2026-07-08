@@ -208,16 +208,14 @@ class KapicuaApp extends StatelessWidget {
                 firestoreService.isGuest = false;
                 firestoreService.guestUid = null;
 
-                return StreamBuilder<List<Player>>(
-                  stream: firestoreService.watchAllPlayers(),
-                  builder: (context, playersSnapshot) {
-                    if (!playersSnapshot.hasData) {
+                return FutureBuilder<Player?>(
+                  future: firestoreService.findPlayerByAuthUid(user.uid),
+                  builder: (context, playerSnapshot) {
+                    if (playerSnapshot.connectionState ==
+                        ConnectionState.waiting) {
                       return _loadingScaffold();
                     }
-                    final hasLinkedPlayer = playersSnapshot.data!.any(
-                      (p) => p.authUid == user.uid,
-                    );
-                    if (hasLinkedPlayer) {
+                    if (playerSnapshot.data != null) {
                       firestoreService.isGuest = false;
                       return const MainShell();
                     }

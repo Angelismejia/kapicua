@@ -43,6 +43,15 @@ class FirestoreService {
 
   // ---- Jugadores ----
 
+  /// Busca solo el jugador vinculado a esta cuenta (consulta puntual, no
+  /// un listener), para decidir a dónde entrar justo después de iniciar
+  /// sesión sin tener que esperar a cargar toda la lista de la liga.
+  Future<Player?> findPlayerByAuthUid(String uid) async {
+    final snap = await _players.where('authUid', isEqualTo: uid).limit(1).get();
+    if (snap.docs.isEmpty) return null;
+    return Player.fromMap(snap.docs.first.id, snap.docs.first.data());
+  }
+
   Stream<List<Player>> watchActivePlayers() {
     return _players
         .where('active', isEqualTo: true)
