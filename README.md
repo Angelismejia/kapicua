@@ -1,5 +1,7 @@
 # Kapicua
 
+https://kapicua.web.app/
+
 **Kapicua** es un anotador de dominó hecho en Flutter con Firebase, pensado para llevar el control de partidas entre amigos.
 
 ## ¿Qué hace?
