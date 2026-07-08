@@ -282,7 +282,19 @@ void showPlayerStatHistoryDialog(
         return AlertDialog(
           title: Row(
             children: [
-              Expanded(child: Text(player.displayName)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(player.displayName),
+                    Text(
+                      DateFormat('MMMM yyyy', 'es').format(forMonth),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
               if (isAdmin)
                 IconButton(
                   icon: Icon(selecting ? Icons.close : Icons.checklist_rounded),
@@ -335,10 +347,18 @@ void showPlayerStatHistoryDialog(
                   child: StreamBuilder<List<PlayerStatEntry>>(
                     stream: firestore.watchPlayerStatEntries(player.id),
                     builder: (context, snapshot) {
-                      final entries = snapshot.data ?? [];
+                      final entries = (snapshot.data ?? [])
+                          .where(
+                            (e) =>
+                                e.createdAt.year == forMonth.year &&
+                                e.createdAt.month == forMonth.month,
+                          )
+                          .toList();
                       if (entries.isEmpty) {
                         return const Center(
-                          child: Text('Todavía no hay partidas registradas.'),
+                          child: Text(
+                            'No hay ganadas ni perdidas registradas este mes.',
+                          ),
                         );
                       }
                       return ListView.builder(

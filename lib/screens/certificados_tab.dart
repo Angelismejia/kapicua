@@ -109,8 +109,21 @@ class _CertificadosTabState extends State<CertificadosTab> {
     bool isMeTheWinner,
   ) {
     if (monthlyWinner != null) {
+      // Si el mes sigue en curso, se aclara que todavía no hay un ganador
+      // oficial (el certificado no existe hasta que termine el mes),
+      // pero igual se muestra quién va ganando por ahora.
+      final notice = monthlyWinner.isMonthOver
+          ? const <Widget>[]
+          : <Widget>[
+              Text(
+                'Todavía no hay un ganador oficial este mes.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+            ];
+
       if (isAdmin || isMeTheWinner) {
-        return [MonthlyWinnerCard(result: monthlyWinner)];
+        return [...notice, MonthlyWinnerCard(result: monthlyWinner)];
       }
       // No admin y no es quien ganó: informativo, sin botón de certificado.
       final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
@@ -119,6 +132,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
           : 'Por ahora, en $label va ganando '
                 '${monthlyWinner.player.displayName}.';
       return [
+        ...notice,
         Card(
           child: Padding(padding: const EdgeInsets.all(16), child: Text(text)),
         ),
