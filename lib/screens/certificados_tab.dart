@@ -418,7 +418,10 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   Icons.emoji_events_rounded,
                   color: Colors.amber,
                 ),
-                title: Text(DateFormat('MMMM yyyy', 'es').format(won[i].month)),
+                title: Text(
+                  'Fuiste el ganador de '
+                  '${DateFormat('MMMM yyyy', 'es').format(won[i].month)}',
+                ),
                 subtitle: Text(
                   '${won[i].wins} ganadas · ${won[i].losses} perdidas · '
                   '${won[i].winPercentage.toStringAsFixed(0)}%',
