@@ -6,8 +6,13 @@ import '../utils/monthly_winner.dart';
 
 class MonthlyWinnerCard extends StatelessWidget {
   final MonthlyWinnerResult result;
+  final bool canGenerate;
 
-  const MonthlyWinnerCard({super.key, required this.result});
+  const MonthlyWinnerCard({
+    super.key,
+    required this.result,
+    this.canGenerate = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,21 +47,23 @@ class MonthlyWinnerCard extends StatelessWidget {
               '${result.winPercentage.toStringAsFixed(0)}%',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              icon: const Icon(Icons.workspace_premium),
-              label: const Text('Generar certificado'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CertificateScreen(
-                    winnerName: result.player.fullName,
-                    monthLabel: monthLabel,
-                    totalScore: result.certificateScore,
+            if (canGenerate) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                icon: const Icon(Icons.workspace_premium),
+                label: const Text('Generar certificado'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CertificateScreen(
+                      winnerName: result.player.fullName,
+                      monthLabel: monthLabel,
+                      totalScore: result.certificateScore,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

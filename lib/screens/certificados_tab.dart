@@ -401,48 +401,10 @@ class _CertificadosTabState extends State<CertificadosTab> {
 
     final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
 
-    if (isAdmin) {
-      return [
-        if (!leader.isMonthOver) ...[
-          Text(
-            'Todavía no hay ganador oficial este mes.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-        ],
-        MonthlyWinnerCard(result: leader),
-        if (isManualOverride) ...[
-          const SizedBox(height: 12),
-          Text(
-            'Este ganador se puso a mano. Si te equivocaste, corrígelo aquí.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Corregir'),
-                  onPressed: onEditOverride,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.restart_alt),
-                  label: const Text('Restablecer'),
-                  onPressed: onClearOverride,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ];
-    }
-
-    // No admin: mensaje general de quién va/fue ganando, y uno
-    // personalizado según si el que ve la pantalla es quien lidera.
+    // Mensaje personal: general de quién va/fue ganando, y uno según si
+    // el que ve la pantalla es quien lidera, está cerca, o va atrás.
+    // Se ve igual para admins y no admins — lo único que cambia es
+    // quién puede generar el certificado desde la tarjeta de arriba.
     final statusText = leader.isMonthOver
         ? 'El ganador de $label fue ${leader.player.displayName}.'
         : '${leader.player.displayName} va ganando este mes, pero el '
@@ -457,6 +419,42 @@ class _CertificadosTabState extends State<CertificadosTab> {
     }
 
     return [
+      if (isAdmin && !leader.isMonthOver) ...[
+        Text(
+          'Todavía no hay ganador oficial este mes.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+      ],
+      MonthlyWinnerCard(result: leader, canGenerate: isAdmin),
+      if (isAdmin && isManualOverride) ...[
+        const SizedBox(height: 12),
+        Text(
+          'Este ganador se puso a mano. Si te equivocaste, corrígelo aquí.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Corregir'),
+                onPressed: onEditOverride,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.restart_alt),
+                label: const Text('Restablecer'),
+                onPressed: onClearOverride,
+              ),
+            ),
+          ],
+        ),
+      ],
+      const SizedBox(height: 16),
       Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -475,10 +473,6 @@ class _CertificadosTabState extends State<CertificadosTab> {
           ),
         ),
       ),
-      if (isMeTheLeader) ...[
-        const SizedBox(height: 16),
-        MonthlyWinnerCard(result: leader),
-      ],
     ];
   }
 
