@@ -29,6 +29,21 @@ const _kDarkText = Color(0xFFEDF2ED);
 const _kDarkMuted = Color(0xFFA9B4AA);
 const _kDarkLightGreen = Color(0xFF203A28);
 
+/// Chiste personal para cuando tu última ganada/perdida registrada fue
+/// una perdida — se elige uno al azar cada vez que se abren las
+/// notificaciones, para que no se sienta repetitivo. "{name}" se
+/// reemplaza por el nombre del jugador.
+const _kRoastMessages = [
+  '{name}, hoy viniste fue a calentar la silla.',
+  'El que pierda hoy invita la próxima Presidente — creo que te tocó a ti.',
+  'Hoy las fichas no cooperaron contigo, {name}.',
+  'Ni el café te despertó pa\' jugar hoy.',
+  'Hasta los buenos jugadores tienen sus días malos.',
+  'Respira... y pide revancha.',
+  'Hoy tocó aprender humildad. La próxima vienes más preparado.',
+  'El dominó da muchas vueltas — hoy no fue tu día, ya vendrá otro.',
+];
+
 /// Colores que cambian según el tema, para que las tarjetas de Inicio se
 /// vean bien tanto en modo claro como oscuro (antes eran fijos y en modo
 /// oscuro las tarjetas blancas quedaban chocando contra el fondo oscuro).
@@ -340,6 +355,23 @@ class _HomeTabState extends State<HomeTab> {
                   'Ya llevas ${myWins.length} victoria'
                   '${myWins.length == 1 ? '' : 's'} en la liga.',
             ),
+          );
+        }
+      }
+
+      // Si lo último que se le registró fue una perdida reciente, un
+      // chistecito personal en vez de puro ánimo serio.
+      final myRecent = myEntries.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (myRecent.isNotEmpty && !myRecent.first.isWin) {
+        final daysSinceLoss = now.difference(myRecent.first.createdAt).inDays;
+        if (daysSinceLoss <= 2) {
+          final pick =
+              _kRoastMessages[now.millisecondsSinceEpoch %
+                      _kRoastMessages.length]
+                  .replaceAll('{name}', me.displayName);
+          notifications.add(
+            _Notification(icon: Icons.mood_bad_rounded, message: pick),
           );
         }
       }
