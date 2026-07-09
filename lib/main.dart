@@ -92,6 +92,60 @@ class _GuestOrFamilyGateState extends State<_GuestOrFamilyGate> {
   }
 }
 
+/// Busca el jugador vinculado a esta cuenta una sola vez por uid, en vez
+/// de volver a consultar cada vez que se reconstruye el widget (algo que
+/// puede pasar más de una vez seguida justo al iniciar sesión, si no se
+/// memoriza el Future esto reinicia la consulta cada vez y la pantalla
+/// se queda pegada esperando sin avanzar nunca).
+class _PlayerLookupGate extends StatefulWidget {
+  final String uid;
+
+  const _PlayerLookupGate({required this.uid});
+
+  @override
+  State<_PlayerLookupGate> createState() => _PlayerLookupGateState();
+}
+
+class _PlayerLookupGateState extends State<_PlayerLookupGate> {
+  late Future<Player?> _playerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _playerFuture = context.read<FirestoreService>().findPlayerByAuthUid(
+      widget.uid,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlayerLookupGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.uid != widget.uid) {
+      _playerFuture = context.read<FirestoreService>().findPlayerByAuthUid(
+        widget.uid,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final firestoreService = context.read<FirestoreService>();
+    return FutureBuilder<Player?>(
+      future: _playerFuture,
+      builder: (context, playerSnapshot) {
+        if (playerSnapshot.connectionState == ConnectionState.waiting) {
+          return _loadingScaffold();
+        }
+        if (playerSnapshot.data != null) {
+          firestoreService.isGuest = false;
+          return const MainShell();
+        }
+        return _GuestOrFamilyGate(uid: widget.uid);
+      },
+    );
+  }
+}
+
 class KapicuaApp extends StatelessWidget {
   final ThemeController themeController;
   final AuthService authService;
@@ -208,21 +262,7 @@ class KapicuaApp extends StatelessWidget {
                 firestoreService.isGuest = false;
                 firestoreService.guestUid = null;
 
-                return FutureBuilder<Player?>(
-                  future: firestoreService.findPlayerByAuthUid(user.uid),
-                  builder: (context, playerSnapshot) {
-                    if (playerSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return _loadingScaffold();
-                    }
-                    if (playerSnapshot.data != null) {
-                      firestoreService.isGuest = false;
-                      return const MainShell();
-                    }
-
-                    return _GuestOrFamilyGate(uid: user.uid);
-                  },
-                );
+                return _PlayerLookupGate(uid: user.uid);
               },
             ),
           );
