@@ -119,9 +119,18 @@ void _showAddStatDialog(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Agregar en ${DateFormat('MMMM yyyy', 'es').format(forMonth)}',
+                    '¿Qué anotamos?',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    DateFormat('MMMM yyyy', 'es').format(forMonth),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -139,7 +148,7 @@ void _showAddStatDialog(
                     ),
                   ),
                   Text(
-                    'cuántas quieres agregar de una vez',
+                    '¿Cuántas fueron?',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
