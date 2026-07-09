@@ -107,7 +107,7 @@ class _StatsScreenState extends State<StatsScreen> {
               );
 
               final stats =
-                  players.map((player) {
+                  players.where((p) => p.active).map((player) {
                     var won = 0;
                     var lost = 0;
                     for (final e in entries) {
@@ -251,7 +251,7 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
               final games = gamesSnapshot.data ?? [];
 
               final stats =
-                  players.map((player) {
+                  players.where((p) => p.active).map((player) {
                     var won = 0;
                     var lost = 0;
                     for (final g in games) {
