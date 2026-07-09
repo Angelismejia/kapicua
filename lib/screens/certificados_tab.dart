@@ -325,11 +325,6 @@ class _CertificadosTabState extends State<CertificadosTab> {
                             () =>
                                 firestore.clearMonthlyOverride(_selectedMonth),
                           ),
-                          if (me != null) ...[
-                            ..._buildMyCertificateHistory(
-                              _myWonMonths(entries, players, me, allOverrides),
-                            ),
-                          ],
                           if (isAdmin) ...[
                             const SizedBox(height: 24),
                             Text(
@@ -347,6 +342,11 @@ class _CertificadosTabState extends State<CertificadosTab> {
                               label: const Text('Certificado manual'),
                               onPressed: () =>
                                   showManualCertificateDialog(context, players),
+                            ),
+                          ],
+                          if (me != null) ...[
+                            ..._buildMyCertificateHistory(
+                              _myWonMonths(entries, players, me, allOverrides),
                             ),
                           ],
                         ],
