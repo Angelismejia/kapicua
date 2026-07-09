@@ -17,7 +17,23 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
-  void _goToTab(int index) => setState(() => _index = index);
+  // Cada vez que se sale y se vuelve a entrar a Estadísticas o
+  // Certificados, se les da una llave nueva para que empiecen de cero
+  // (mes actual) en vez de quedarse pegadas en el mes que se dejó
+  // seleccionado la última vez.
+  int _statsVisitKey = 0;
+  int _certificadosVisitKey = 0;
+
+  void _selectTab(int index) {
+    if (index == _index) return;
+    setState(() {
+      _statsVisitKey++;
+      _certificadosVisitKey++;
+      _index = index;
+    });
+  }
+
+  void _goToTab(int index) => _selectTab(index);
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +42,9 @@ class _MainShellState extends State<MainShell> {
 
     final tabs = [
       HomeTab(onNavigateTab: _goToTab),
-      const StatsScreen(),
-      if (!isGuest) const CertificadosTab(),
+      StatsScreen(key: ValueKey('stats-$_statsVisitKey')),
+      if (!isGuest)
+        CertificadosTab(key: ValueKey('certificados-$_certificadosVisitKey')),
       const PlayersScreen(),
     ];
     if (_index >= tabs.length) _index = tabs.length - 1;
@@ -36,7 +53,7 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: _selectTab,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.home_rounded),

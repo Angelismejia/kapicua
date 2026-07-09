@@ -57,6 +57,16 @@ class FirestoreService {
         .map((doc) => doc.data());
   }
 
+  /// Todos los ganadores puestos a mano (no solo el del mes seleccionado
+  /// en el calendario), llave "yyyy-MM" -> datos, para poder armar el
+  /// historial completo de certificados de un jugador.
+  Stream<Map<String, Map<String, dynamic>>> watchAllMonthlyOverrides() {
+    return _db
+        .collection('monthlyOverrides')
+        .snapshots()
+        .map((snap) => {for (final d in snap.docs) d.id: d.data()});
+  }
+
   Future<void> setMonthlyOverride(
     DateTime month,
     String playerId,

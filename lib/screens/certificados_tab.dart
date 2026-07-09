@@ -16,23 +16,50 @@ import 'certificate_screen.dart';
 /// Todos los meses (ya terminados) que este jugador ganó, sin importar
 /// cuál mes esté seleccionado en el calendario de arriba — para que su
 /// historial de certificados se vea completo siempre, no solo el mes
-/// que esté mirando en ese momento.
+/// que esté mirando en ese momento. Incluye tanto los meses con ganadas
+/// reales como los ganadores viejos puestos a mano por un admin.
 List<MonthlyWinnerResult> _myWonMonths(
   List<PlayerStatEntry> entries,
   List<Player> players,
   Player me,
+  Map<String, Map<String, dynamic>> overrides,
 ) {
   final months = <DateTime>{};
   for (final e in entries) {
     months.add(DateTime(e.createdAt.year, e.createdAt.month));
   }
   final won = <MonthlyWinnerResult>[];
+  final wonMonthKeys = <String>{};
   for (final month in months) {
     final leader = computeMonthlyLeaderOrFallback(entries, players, month);
     if (leader != null && leader.isMonthOver && leader.player.id == me.id) {
       won.add(leader);
+      wonMonthKeys.add(
+        '${month.year}-${month.month.toString().padLeft(2, '0')}',
+      );
     }
   }
+
+  // Meses viejos sin ninguna ganada/perdida registrada, pero con un
+  // ganador declarado a mano por un admin.
+  overrides.forEach((monthKey, data) {
+    if (wonMonthKeys.contains(monthKey)) return;
+    if (data['playerId'] != me.id) return;
+    final parts = monthKey.split('-');
+    if (parts.length != 2) return;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    if (year == null || month == null) return;
+    won.add(
+      MonthlyWinnerResult(
+        player: me,
+        month: DateTime(year, month),
+        wins: (data['wins'] as num?)?.toInt() ?? 0,
+        losses: (data['losses'] as num?)?.toInt() ?? 0,
+      ),
+    );
+  });
+
   won.sort((a, b) => b.month.compareTo(a.month));
   return won;
 }
@@ -207,63 +234,72 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   final isMeTheLeader =
                       leader != null && me != null && leader.player.id == me.id;
 
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      MonthSelector(
-                        month: _selectedMonth,
-                        onChanged: (m) => setState(() => _selectedMonth = m),
-                      ),
-                      const SizedBox(height: 16),
-                      ..._buildChampionSection(
-                        isAdmin,
-                        leader,
-                        isMeTheLeader,
-                        players.isEmpty,
-                        !hasActivityThisMonth && override == null,
-                        !hasActivityThisMonth && override != null,
-                        () => _showSetOverrideDialog(
-                          context,
-                          firestore,
-                          players,
-                          _selectedMonth,
-                        ),
-                        () => _showSetOverrideDialog(
-                          context,
-                          firestore,
-                          players,
-                          _selectedMonth,
-                          currentPlayer: leader?.player,
-                          currentWins: leader?.wins ?? 1,
-                          currentLosses: leader?.losses ?? 0,
-                        ),
-                        () => firestore.clearMonthlyOverride(_selectedMonth),
-                      ),
-                      if (me != null) ...[
-                        ..._buildMyCertificateHistory(
-                          _myWonMonths(entries, players, me),
-                        ),
-                      ],
-                      if (isAdmin) ...[
-                        const SizedBox(height: 24),
-                        Text(
-                          '¿Necesitas otro certificado?',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Genera uno manualmente con cualquier nombre, mes o puntaje.',
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          icon: const Icon(Icons.edit_document),
-                          label: const Text('Certificado manual'),
-                          onPressed: () =>
-                              showManualCertificateDialog(context, players),
-                        ),
-                      ],
-                    ],
+                  return StreamBuilder<Map<String, Map<String, dynamic>>>(
+                    stream: firestore.watchAllMonthlyOverrides(),
+                    builder: (context, allOverridesSnap) {
+                      final allOverrides = allOverridesSnap.data ?? {};
+
+                      return ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          MonthSelector(
+                            month: _selectedMonth,
+                            onChanged: (m) =>
+                                setState(() => _selectedMonth = m),
+                          ),
+                          const SizedBox(height: 16),
+                          ..._buildChampionSection(
+                            isAdmin,
+                            leader,
+                            isMeTheLeader,
+                            players.isEmpty,
+                            !hasActivityThisMonth && override == null,
+                            !hasActivityThisMonth && override != null,
+                            () => _showSetOverrideDialog(
+                              context,
+                              firestore,
+                              players,
+                              _selectedMonth,
+                            ),
+                            () => _showSetOverrideDialog(
+                              context,
+                              firestore,
+                              players,
+                              _selectedMonth,
+                              currentPlayer: leader?.player,
+                              currentWins: leader?.wins ?? 1,
+                              currentLosses: leader?.losses ?? 0,
+                            ),
+                            () =>
+                                firestore.clearMonthlyOverride(_selectedMonth),
+                          ),
+                          if (me != null) ...[
+                            ..._buildMyCertificateHistory(
+                              _myWonMonths(entries, players, me, allOverrides),
+                            ),
+                          ],
+                          if (isAdmin) ...[
+                            const SizedBox(height: 24),
+                            Text(
+                              '¿Necesitas otro certificado?',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Genera uno manualmente con cualquier nombre, mes o puntaje.',
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              icon: const Icon(Icons.edit_document),
+                              label: const Text('Certificado manual'),
+                              onPressed: () =>
+                                  showManualCertificateDialog(context, players),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   );
                 },
               );
