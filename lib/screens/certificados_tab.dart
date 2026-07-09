@@ -280,8 +280,8 @@ class _CertificadosTabState extends State<CertificadosTab> {
         : '${leader.player.displayName} va ganando este mes, pero el '
               'resultado todavía no está definido.';
     final personalText = isMeTheLeader
-        ? '¡Estás ganando este mes! Sigue así, vas muy bien.'
-        : 'Sigue jugando, el próximo mes puede ser tuyo.';
+        ? '¡La estás rompiendo este mes! No aflojes, sigue así.'
+        : 'Todavía queda mes por delante — dale que esto se puede voltear.';
 
     return [
       Card(
