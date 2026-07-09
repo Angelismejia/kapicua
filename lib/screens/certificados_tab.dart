@@ -164,11 +164,45 @@ class CertificadosTab extends StatefulWidget {
   State<CertificadosTab> createState() => _CertificadosTabState();
 }
 
+/// Frases cuando vas de primero este mes. Se elige una al azar cada vez
+/// que se entra a la pantalla, para que no se sienta repetitivo.
+const _kLeaderMessages = [
+  '¡Vas de primero este mes! Ahora toca defender el puesto.',
+  'El liderato es tuyo — que no te lo quiten tan fácil.',
+  'Sigues arriba. Todos quieren tu puesto, no lo sueltes.',
+  'De primero y con todo. Mantén el ritmo hasta que se acabe el mes.',
+];
+
+/// Frases cuando estás cerca del que va ganando (a pocas ganadas).
+const _kCloseMessages = [
+  'Estás cerca del primer lugar — una buena racha y te pones arriba.',
+  'No estás lejos de la punta. Unas ganadas más y volteas esto.',
+  'El primer puesto está al alcance. Ve por él.',
+  'Todavía puedes voltear esto antes de que se acabe el mes.',
+];
+
+/// Frases generales para cuando vas más atrás o recién empiezas el mes.
+const _kBehindMessages = [
+  'Todavía queda mes por delante — dale que esto se puede voltear.',
+  'No importa cómo empiezas el mes, importa cómo lo terminas.',
+  'Cada partida es una oportunidad de subir en la tabla.',
+  'El dominó da muchas vueltas — hoy vas abajo, el mes que viene puedes ser el campeón.',
+  'Sigue jugando, todavía hay tiempo de remontar.',
+];
+
 class _CertificadosTabState extends State<CertificadosTab> {
   late DateTime _selectedMonth = DateTime(
     DateTime.now().year,
     DateTime.now().month,
   );
+
+  // Se elige una sola vez por visita a la pantalla (no en cada rebuild,
+  // que pasaría seguido por los streams de Firestore), para que el
+  // mensaje se sienta estable mientras se está viendo, pero cambie la
+  // próxima vez que se entre a Certificados.
+  final int _messageSeed = DateTime.now().microsecondsSinceEpoch;
+
+  String _pickMessage(List<String> pool) => pool[_messageSeed % pool.length];
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +268,23 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   final isMeTheLeader =
                       leader != null && me != null && leader.player.id == me.id;
 
+                  // Cuántas ganadas me faltan para alcanzar al líder este
+                  // mes (solo tiene sentido si todavía no soy yo quien va
+                  // arriba), para elegir un mensaje motivador acorde.
+                  int? gapToLeader;
+                  if (leader != null && me != null && !isMeTheLeader) {
+                    final myWins = entries
+                        .where(
+                          (e) =>
+                              e.playerId == me!.id &&
+                              e.isWin &&
+                              e.createdAt.year == _selectedMonth.year &&
+                              e.createdAt.month == _selectedMonth.month,
+                        )
+                        .length;
+                    gapToLeader = leader.wins - myWins;
+                  }
+
                   return StreamBuilder<Map<String, Map<String, dynamic>>>(
                     stream: firestore.watchAllMonthlyOverrides(),
                     builder: (context, allOverridesSnap) {
@@ -252,6 +303,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
                             isAdmin,
                             leader,
                             isMeTheLeader,
+                            gapToLeader,
                             players.isEmpty,
                             !hasActivityThisMonth && override == null,
                             !hasActivityThisMonth && override != null,
@@ -314,6 +366,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
     bool isAdmin,
     MonthlyWinnerResult? leader,
     bool isMeTheLeader,
+    int? gapToLeader,
     bool noPlayers,
     bool canSetOverride,
     bool isManualOverride,
@@ -394,9 +447,14 @@ class _CertificadosTabState extends State<CertificadosTab> {
         ? 'El ganador de $label fue ${leader.player.displayName}.'
         : '${leader.player.displayName} va ganando este mes, pero el '
               'resultado todavía no está definido.';
-    final personalText = isMeTheLeader
-        ? '¡La estás rompiendo este mes! No aflojes, sigue así.'
-        : 'Todavía queda mes por delante — dale que esto se puede voltear.';
+    final String personalText;
+    if (isMeTheLeader) {
+      personalText = _pickMessage(_kLeaderMessages);
+    } else if (gapToLeader != null && gapToLeader >= 1 && gapToLeader <= 3) {
+      personalText = _pickMessage(_kCloseMessages);
+    } else {
+      personalText = _pickMessage(_kBehindMessages);
+    }
 
     return [
       Card(
