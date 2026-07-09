@@ -137,33 +137,8 @@ class FirestoreService {
     );
   }
 
-  /// Si ya tiene alguna ganada o perdida registrada, borrarlo del todo
-  /// haría que desaparezca de certificados y estadísticas viejas.
-  Future<bool> _hasStatHistory(String playerId) async {
-    final snap = await _statEntries(playerId).limit(1).get();
-    return snap.docs.isNotEmpty;
-  }
-
   Future<void> removePlayer(String playerId) async {
-    final usedInA = await _games
-        .where('teamAPlayerIds', arrayContains: playerId)
-        .limit(1)
-        .get();
-    final usedInB = usedInA.docs.isNotEmpty
-        ? usedInA
-        : await _games
-              .where('teamBPlayerIds', arrayContains: playerId)
-              .limit(1)
-              .get();
-    final hasHistory =
-        usedInA.docs.isNotEmpty ||
-        usedInB.docs.isNotEmpty ||
-        await _hasStatHistory(playerId);
-    if (!hasHistory) {
-      await _players.doc(playerId).delete();
-    } else {
-      await _players.doc(playerId).update({'active': false});
-    }
+    await _players.doc(playerId).update({'active': false});
   }
 
   Future<void> reactivatePlayer(String playerId) async {
@@ -185,21 +160,6 @@ class FirestoreService {
 
   Future<void> updatePlayerPhoto(String playerId, String? photoBase64) async {
     await _players.doc(playerId).update({'photoBase64': photoBase64});
-  }
-
-  /// Elimina el jugador de forma permanente. Si ya tiene ganadas o
-  /// perdidas registradas, no se deja borrar del todo (se perdería su
-  /// nombre de certificados y estadísticas viejas) — solo puede quedar
-  /// inactivo.
-  Future<void> deletePlayerPermanently(String playerId) async {
-    if (await _hasStatHistory(playerId)) {
-      throw Exception(
-        'No se puede eliminar para siempre: tiene ganadas o perdidas '
-        'registradas y se perderían de las estadísticas y certificados '
-        'viejos. Puedes dejarlo inactivo en su lugar.',
-      );
-    }
-    await _players.doc(playerId).delete();
   }
 
   /// Une a dos fichas de jugador que en realidad son la misma persona

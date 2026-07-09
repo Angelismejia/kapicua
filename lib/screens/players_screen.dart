@@ -42,6 +42,48 @@ class PlayersScreen extends StatelessWidget {
                     _AddPlayerCard(
                       onAdd: () => showAddPlayerDialog(context, firestore),
                     ),
+                    if (isAdmin) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 20,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Un jugador nunca se borra desde la app. '
+                                '"Marcar como inactivo" solo lo saca de la '
+                                'lista de jugadores activos, pero su '
+                                'historial de ganadas, perdidas y '
+                                'certificados queda intacto y se puede '
+                                'reactivar cuando quieras. Si de verdad hay '
+                                'que borrar uno para siempre, se hace a mano '
+                                'desde la consola de Firebase.',
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimaryContainer,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     if (players.isEmpty)
                       const Padding(
@@ -80,33 +122,20 @@ class PlayersScreen extends StatelessWidget {
                                     if (player.active)
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline),
-                                        tooltip: 'Eliminar',
+                                        tooltip: 'Marcar como inactivo',
                                         onPressed: () => _confirmRemove(
                                           context,
                                           firestore,
                                           player,
                                         ),
                                       )
-                                    else ...[
+                                    else
                                       IconButton(
                                         icon: const Icon(Icons.restore),
                                         tooltip: 'Reactivar',
                                         onPressed: () => firestore
                                             .reactivatePlayer(player.id),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_forever_outlined,
-                                        ),
-                                        tooltip: 'Eliminar definitivamente',
-                                        onPressed: () =>
-                                            _confirmPermanentDelete(
-                                              context,
-                                              firestore,
-                                              player,
-                                            ),
-                                      ),
-                                    ],
                                   ],
                                 ),
                         );
@@ -197,47 +226,6 @@ class PlayersScreen extends StatelessWidget {
     );
   }
 
-  void _confirmPermanentDelete(
-    BuildContext context,
-    FirestoreService firestore,
-    Player player,
-  ) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar definitivamente'),
-        content: Text(
-          '¿Borrar a ${player.displayName} para siempre? Si ya tiene '
-          'ganadas o perdidas registradas, no se podrá borrar (para no '
-          'perder su historial de certificados y estadísticas).',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              try {
-                await firestore.deletePlayerPermanently(player.id);
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))),
-                );
-              }
-            },
-            child: const Text('Eliminar para siempre'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _confirmRemove(
     BuildContext context,
     FirestoreService firestore,
@@ -246,9 +234,11 @@ class PlayersScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar jugador'),
+        title: const Text('Marcar como inactivo'),
         content: Text(
-          '¿Quitar a ${player.displayName} de la lista de jugadores activos?',
+          '¿Quitar a ${player.displayName} de la lista de jugadores '
+          'activos? Su historial de ganadas, perdidas y certificados no '
+          'se borra, y lo puedes reactivar cuando quieras.',
         ),
         actions: [
           TextButton(
@@ -260,7 +250,7 @@ class PlayersScreen extends StatelessWidget {
               firestore.removePlayer(player.id);
               Navigator.pop(dialogContext);
             },
-            child: const Text('Eliminar'),
+            child: const Text('Marcar inactivo'),
           ),
         ],
       ),
