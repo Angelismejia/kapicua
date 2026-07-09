@@ -244,9 +244,17 @@ class KapicuaApp extends StatelessWidget {
                   return _loadingScaffold();
                 }
                 final user = snapshot.data;
-                if (user == null) return const AuthScreen();
-
                 final firestoreService = context.read<FirestoreService>();
+
+                if (user == null) {
+                  // Sin sesión: nunca debe quedar leyendo un espacio de
+                  // invitado viejo (ej. si cerró sesión después de "Jugar
+                  // sin cuenta"), o la pantalla de registro real vería la
+                  // lista de jugadores vacía en vez de la de la familia.
+                  firestoreService.isGuest = false;
+                  firestoreService.guestUid = null;
+                  return const AuthScreen();
+                }
 
                 // "Jugar sin cuenta": anónimo, va directo a su propio
                 // espacio de invitado, sin PIN ni preguntas.
