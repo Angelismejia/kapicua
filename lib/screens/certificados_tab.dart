@@ -484,14 +484,32 @@ class _CertificadosTabState extends State<CertificadosTab> {
 
   /// Lista de todos los meses ya ganados por el jugador que tiene la
   /// sesión abierta, sin importar el mes que esté seleccionado arriba
-  /// en el calendario — su historial completo de certificados.
+  /// en el calendario — su historial completo de certificados. Siempre
+  /// se muestra el título, aunque todavía no haya ninguno, para que se
+  /// note que la sección existe.
   List<Widget> _buildMyCertificateHistory(List<MonthlyWinnerResult> won) {
-    if (won.isEmpty) return const [];
+    if (won.isEmpty) {
+      return [
+        const SizedBox(height: 28),
+        Text(
+          'Mis certificados',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Todavía no tienes ningún mes ganado. Cuando ganes uno, va a '
+          'aparecer aquí.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ];
+    }
 
     return [
       const SizedBox(height: 28),
       Text(
-        'Tus certificados',
+        'Mis certificados',
         style: Theme.of(
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
