@@ -7,11 +7,13 @@ import '../utils/monthly_winner.dart';
 class MonthlyWinnerCard extends StatelessWidget {
   final MonthlyWinnerResult result;
   final bool canGenerate;
+  final bool isMe;
 
   const MonthlyWinnerCard({
     super.key,
     required this.result,
     this.canGenerate = true,
+    this.isMe = false,
   });
 
   @override
@@ -34,9 +36,36 @@ class MonthlyWinnerCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              result.player.displayName,
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    result.player.displayName,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                if (isMe) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '¡Eres tú!',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 8),
             Text(

@@ -426,7 +426,11 @@ class _CertificadosTabState extends State<CertificadosTab> {
         ),
         const SizedBox(height: 8),
       ],
-      MonthlyWinnerCard(result: leader, canGenerate: isAdmin),
+      MonthlyWinnerCard(
+        result: leader,
+        canGenerate: isAdmin,
+        isMe: isMeTheLeader,
+      ),
       if (isAdmin && isManualOverride) ...[
         const SizedBox(height: 12),
         Text(

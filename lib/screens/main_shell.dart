@@ -24,24 +24,37 @@ class _MainShellState extends State<MainShell> {
   int _statsVisitKey = 0;
   int _certificadosVisitKey = 0;
 
-  void _selectTab(int index) {
-    if (index == _index) return;
+  // Tocar el ícono de Estadísticas o Certificados siempre reinicia esa
+  // pantalla al mes actual, así ya estuvieras en otra pestaña o ya
+  // estuvieras parado justo ahí (para cuando se quiere "volver arriba"
+  // sin salir primero a otra pestaña).
+  void _selectTab(
+    int index, {
+    required int statsIndex,
+    required int certificadosIndex,
+  }) {
     setState(() {
-      _statsVisitKey++;
-      _certificadosVisitKey++;
+      if (index == statsIndex) _statsVisitKey++;
+      if (index == certificadosIndex) _certificadosVisitKey++;
       _index = index;
     });
   }
-
-  void _goToTab(int index) => _selectTab(index);
 
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
     final isGuest = firestore.isGuest;
+    const statsIndex = 1;
+    final certificadosIndex = isGuest ? -1 : 2;
+
+    void selectTab(int index) => _selectTab(
+      index,
+      statsIndex: statsIndex,
+      certificadosIndex: certificadosIndex,
+    );
 
     final tabs = [
-      HomeTab(onNavigateTab: _goToTab),
+      HomeTab(onNavigateTab: selectTab),
       StatsScreen(key: ValueKey('stats-$_statsVisitKey')),
       if (!isGuest)
         CertificadosTab(key: ValueKey('certificados-$_certificadosVisitKey')),
@@ -53,7 +66,7 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: _selectTab,
+        onDestinationSelected: selectTab,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.home_rounded),
