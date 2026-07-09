@@ -105,8 +105,9 @@ class HelpScreen extends StatelessWidget {
             icon: Icons.scoreboard,
             title: 'Agregar ronda',
             description:
-                'Después de cada mano, indica qué equipo ganó la ronda y sus puntos. '
-                'La app suma el total automáticamente y detecta cuando un equipo llega a la meta.',
+                'Después de cada mano, toca el "+" del equipo que anotó y escribe sus '
+                'puntos (o "Para ambos" si los dos anotaron igual). La app suma el total '
+                'automáticamente y detecta cuando un equipo llega a la meta.',
           ),
           const _HelpStep(
             icon: Icons.history,

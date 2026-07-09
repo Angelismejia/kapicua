@@ -71,7 +71,7 @@ class GameResultScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: _ResultTeam(
-                                  label: 'Casa',
+                                  label: game.teamALabel ?? 'Casa',
                                   playerNames: teamAName,
                                   score: game.teamAScore,
                                   won: teamAWon,
@@ -80,7 +80,7 @@ class GameResultScreen extends StatelessWidget {
                               const VerticalDivider(width: 1, thickness: 1),
                               Expanded(
                                 child: _ResultTeam(
-                                  label: 'Visita',
+                                  label: game.teamBLabel ?? 'Visita',
                                   playerNames: teamBName,
                                   score: game.teamBScore,
                                   won: !teamAWon,

@@ -292,14 +292,14 @@ class GameDetailScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ScoreSheetHeader(
-                            label: 'Casa',
+                            label: game.teamALabel ?? 'Casa',
                             playerNames: teamAName,
                           ),
                         ),
                         const VerticalDivider(width: 1, thickness: 1),
                         Expanded(
                           child: ScoreSheetHeader(
-                            label: 'Visita',
+                            label: game.teamBLabel ?? 'Visita',
                             playerNames: teamBName,
                           ),
                         ),

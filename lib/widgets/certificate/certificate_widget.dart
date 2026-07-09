@@ -91,7 +91,7 @@ class CertificateWidget extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const TextSpan(
-                        text: ', logrando un impresionante porcentaje de ',
+                        text: ', logrando un impresionante puntaje de ',
                       ),
                       TextSpan(
                         text: '$totalScore puntos',
