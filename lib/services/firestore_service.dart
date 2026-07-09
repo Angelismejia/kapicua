@@ -335,6 +335,21 @@ class FirestoreService {
     await batch.commit();
   }
 
+  /// Cancela una partida en curso por completo (ej. se escogieron mal
+  /// los jugadores desde el principio): borra la partida y sus rondas,
+  /// sin dejar nada para seguir jugando. Distinto de [resetGame], que
+  /// solo pone el marcador en 0-0 pero mantiene la misma partida.
+  Future<void> cancelGame(String gameId) async {
+    final gameRef = _games.doc(gameId);
+    final roundsSnap = await gameRef.collection('rounds').get();
+    final batch = _db.batch();
+    for (final doc in roundsSnap.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(gameRef);
+    await batch.commit();
+  }
+
   /// Borra todas las partidas (terminadas y en curso) y sus rondas, por
   /// si se usaron partidas de prueba y se quiere empezar de cero antes de
   /// usar la app de verdad. No toca las estadísticas manuales.

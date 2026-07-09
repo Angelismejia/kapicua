@@ -454,7 +454,16 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     final firestore = context.read<FirestoreService>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Partida en curso')),
+      appBar: AppBar(
+        title: const Text('Partida en curso'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Cancelar partida',
+            onPressed: () => _confirmCancelGame(context, firestore),
+          ),
+        ],
+      ),
       body: StreamBuilder<Game?>(
         stream: firestore.watchGame(widget.gameId),
         builder: (context, gameSnapshot) {
@@ -783,6 +792,37 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               Navigator.pop(dialogContext);
             },
             child: const Text('Sí, reiniciar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmCancelGame(BuildContext context, FirestoreService firestore) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancelar partida'),
+        content: const Text(
+          '¿Seguro que quieres cancelar esta partida por completo? Se '
+          'borrará junto con las rondas anotadas, y no quedará nada para '
+          'seguir jugando con este Casa y Visita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () {
+              firestore.cancelGame(widget.gameId);
+              Navigator.pop(dialogContext);
+              Navigator.pop(context);
+            },
+            child: const Text('Sí, cancelar'),
           ),
         ],
       ),
