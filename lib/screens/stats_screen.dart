@@ -51,6 +51,20 @@ class _StatsScreenState extends State<StatsScreen> {
   final _shareKey = GlobalKey();
   bool _sharing = false;
 
+  // Guardados una sola vez en vez de llamarse dentro de build(): así,
+  // cambiar de mes o cualquier otro setState de esta pantalla no
+  // desconecta y vuelve a conectar los mismos listeners de Firestore.
+  late final Stream<List<Player>> _playersStream;
+  late final Stream<List<PlayerStatEntry>> _entriesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final firestore = context.read<FirestoreService>();
+    _playersStream = firestore.watchAllPlayers();
+    _entriesStream = firestore.watchAllStatEntries();
+  }
+
   Future<void> _share() async {
     setState(() => _sharing = true);
     try {
@@ -94,11 +108,11 @@ class _StatsScreenState extends State<StatsScreen> {
         ],
       ),
       body: StreamBuilder<List<Player>>(
-        stream: firestore.watchAllPlayers(),
+        stream: _playersStream,
         builder: (context, playersSnapshot) {
           final players = playersSnapshot.data ?? [];
           return StreamBuilder<List<PlayerStatEntry>>(
-            stream: firestore.watchAllStatEntries(),
+            stream: _entriesStream,
             builder: (context, entriesSnapshot) {
               final entries = (entriesSnapshot.data ?? []).where(
                 (e) =>
@@ -205,6 +219,16 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
   final _shareKey = GlobalKey();
   bool _sharing = false;
 
+  late final Stream<List<Player>> _playersStream;
+  late final Stream<List<Game>> _gamesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _playersStream = widget.firestore.watchAllPlayers();
+    _gamesStream = widget.firestore.watchFinishedGames();
+  }
+
   Future<void> _share() async {
     setState(() => _sharing = true);
     try {
@@ -242,11 +266,11 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
         ],
       ),
       body: StreamBuilder<List<Player>>(
-        stream: firestore.watchAllPlayers(),
+        stream: _playersStream,
         builder: (context, playersSnapshot) {
           final players = playersSnapshot.data ?? [];
           return StreamBuilder<List<Game>>(
-            stream: firestore.watchFinishedGames(),
+            stream: _gamesStream,
             builder: (context, gamesSnapshot) {
               final games = gamesSnapshot.data ?? [];
 

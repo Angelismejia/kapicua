@@ -204,16 +204,43 @@ class _CertificadosTabState extends State<CertificadosTab> {
 
   String _pickMessage(List<String> pool) => pool[_messageSeed % pool.length];
 
+  // Guardados una sola vez (o solo cuando cambia el mes) en vez de
+  // llamarse dentro de build(): así, cualquier otro rebuild de esta
+  // pantalla no desconecta y vuelve a conectar los mismos listeners de
+  // Firestore.
+  late final Stream<List<Player>> _playersStream;
+  late final Stream<List<PlayerStatEntry>> _entriesStream;
+  late final Stream<Map<String, Map<String, dynamic>>> _allOverridesStream;
+  late Stream<Map<String, dynamic>?> _overrideStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final firestore = context.read<FirestoreService>();
+    _playersStream = firestore.watchAllPlayers();
+    _entriesStream = firestore.watchAllStatEntries();
+    _allOverridesStream = firestore.watchAllMonthlyOverrides();
+    _overrideStream = firestore.watchMonthlyOverride(_selectedMonth);
+  }
+
+  void _changeMonth(DateTime month) {
+    setState(() {
+      _selectedMonth = month;
+      _overrideStream = context.read<FirestoreService>().watchMonthlyOverride(
+        month,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final firestore = context.read<FirestoreService>();
     final auth = context.watch<AuthService>();
     final isAdmin = auth.isAdmin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Certificados')),
       body: StreamBuilder<List<Player>>(
-        stream: firestore.watchAllPlayers(),
+        stream: _playersStream,
         builder: (context, playersSnap) {
           final players = playersSnap.data ?? [];
 
@@ -223,7 +250,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
           }
 
           return StreamBuilder<List<PlayerStatEntry>>(
-            stream: firestore.watchAllStatEntries(),
+            stream: _entriesStream,
             builder: (context, entriesSnap) {
               final entries = entriesSnap.data ?? [];
 
@@ -240,7 +267,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
               );
 
               return StreamBuilder<Map<String, dynamic>?>(
-                stream: firestore.watchMonthlyOverride(_selectedMonth),
+                stream: _overrideStream,
                 builder: (context, overrideSnap) {
                   final override = overrideSnap.data;
 
@@ -286,17 +313,17 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   }
 
                   return StreamBuilder<Map<String, Map<String, dynamic>>>(
-                    stream: firestore.watchAllMonthlyOverrides(),
+                    stream: _allOverridesStream,
                     builder: (context, allOverridesSnap) {
                       final allOverrides = allOverridesSnap.data ?? {};
+                      final firestore = context.read<FirestoreService>();
 
                       return ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
                           MonthSelector(
                             month: _selectedMonth,
-                            onChanged: (m) =>
-                                setState(() => _selectedMonth = m),
+                            onChanged: _changeMonth,
                           ),
                           const SizedBox(height: 16),
                           ..._buildChampionSection(

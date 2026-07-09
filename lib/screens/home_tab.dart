@@ -69,9 +69,21 @@ class _HomeTabState extends State<HomeTab> {
   int _bannerPage = 0;
   double _opacity = 0;
 
+  // Guardados una sola vez en vez de llamarse dentro de build(): así, el
+  // fade-in inicial, el swipe del carrusel o cualquier otro setState de
+  // esta pantalla no desconecta y vuelve a conectar los mismos listeners
+  // de Firestore (antes cada rebuild creaba 3 listeners nuevos).
+  late final Stream<List<Player>> _playersStream;
+  late final Stream<List<Game>> _activeGamesStream;
+  late final Stream<List<PlayerStatEntry>> _statEntriesStream;
+
   @override
   void initState() {
     super.initState();
+    final firestore = context.read<FirestoreService>();
+    _playersStream = firestore.watchAllPlayers();
+    _activeGamesStream = firestore.watchActiveGames();
+    _statEntriesStream = firestore.watchAllStatEntries();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _opacity = 1);
     });
@@ -99,7 +111,7 @@ class _HomeTabState extends State<HomeTab> {
     const certificadosIndex = 2;
 
     return StreamBuilder<List<Player>>(
-      stream: firestore.watchAllPlayers(),
+      stream: _playersStream,
       builder: (context, allPlayersSnap) {
         final allPlayers = allPlayersSnap.data ?? [];
         // En vez de un segundo listener a Firestore solo para los
@@ -113,7 +125,7 @@ class _HomeTabState extends State<HomeTab> {
         }
 
         return StreamBuilder<List<Game>>(
-          stream: firestore.watchActiveGames(),
+          stream: _activeGamesStream,
           builder: (context, activeGamesSnap) {
             final activeGames = activeGamesSnap.data ?? [];
             final playerNames = {
@@ -121,7 +133,7 @@ class _HomeTabState extends State<HomeTab> {
             };
 
             return StreamBuilder<List<PlayerStatEntry>>(
-              stream: firestore.watchAllStatEntries(),
+              stream: _statEntriesStream,
               builder: (context, entriesSnap) {
                 final statEntries = entriesSnap.data ?? [];
                 final championMessages = _championMessages(

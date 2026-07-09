@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,13 @@ import 'services/theme_controller.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // En web, la caché local de Firestore viene apagada por defecto: sin
+  // ella, cada inicio de sesión espera a la red antes de mostrar nada.
+  // Con esto, lo que ya se vio antes aparece al instante mientras se
+  // sincroniza en segundo plano.
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
   await initializeDateFormatting('es');
   final themeController = ThemeController();
   await themeController.load();
