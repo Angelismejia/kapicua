@@ -126,7 +126,7 @@ class _HomeTabState extends State<HomeTab> {
                 final statEntries = entriesSnap.data ?? [];
                 final championMessages = _championMessages(
                   statEntries,
-                  allPlayers,
+                  activePlayers,
                   me,
                   auth,
                 );
@@ -146,7 +146,7 @@ class _HomeTabState extends State<HomeTab> {
                           onNotificationsTap: () => _showNotifications(
                             context,
                             me,
-                            allPlayers,
+                            activePlayers,
                             statEntries,
                             auth,
                           ),
@@ -289,13 +289,17 @@ class _HomeTabState extends State<HomeTab> {
     }
 
     // Competencia reñida: si los dos que más ganan este mes están a lo
-    // sumo a 1 victoria de diferencia, se avisa.
+    // sumo a 1 victoria de diferencia, se avisa. Solo cuenta a jugadores
+    // activos (si alguien quedó inactivo, no debe seguir apareciendo
+    // como si todavía estuviera compitiendo).
+    final activeIds = allPlayers.map((p) => p.id).toSet();
     final currentMonthWins = <String, int>{};
     for (final e in statEntries) {
       if (!e.isWin) continue;
       if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
         continue;
       }
+      if (!activeIds.contains(e.playerId)) continue;
       currentMonthWins[e.playerId] = (currentMonthWins[e.playerId] ?? 0) + 1;
     }
     final ranked = currentMonthWins.entries.toList()
