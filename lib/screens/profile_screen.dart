@@ -117,6 +117,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _editNameDialog(Player player) async {
+    final firestore = context.read<FirestoreService>();
+    final fullNameController = TextEditingController(text: player.fullName);
+    final shortNameController = TextEditingController(
+      text: player.shortName ?? '',
+    );
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Editar nombre'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: fullNameController,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Nombre completo'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: shortNameController,
+              decoration: const InputDecoration(
+                labelText: 'Apodo o nombre corto (opcional)',
+                helperText: 'Así aparecerá en las listas y partidas',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final fullName = fullNameController.text.trim();
+              if (fullName.isEmpty) return;
+              Navigator.pop(dialogContext);
+              try {
+                await firestore.updatePlayer(
+                  player.id,
+                  fullName,
+                  shortName: shortNameController.text,
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('No se pudo guardar: $e')),
+                );
+              }
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _signOut() async {
     final auth = context.read<AuthService>();
     await auth.signOut();
@@ -248,15 +307,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Center(
-            child: Text(
-              displayName,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  displayName,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                ),
               ),
-            ),
+              if (player != null) ...[
+                const SizedBox(width: 6),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  tooltip: 'Editar nombre',
+                  onPressed: () => _editNameDialog(player),
+                ),
+              ],
+            ],
           ),
           if (hasEmailAccount) ...[
             Center(
