@@ -7,6 +7,7 @@ import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/add_player_dialog.dart';
+import '../widgets/merge_players_dialog.dart';
 
 class PlayersScreen extends StatelessWidget {
   const PlayersScreen({super.key});
@@ -16,90 +17,104 @@ class PlayersScreen extends StatelessWidget {
     final firestore = context.read<FirestoreService>();
     final isAdmin = context.watch<AuthService>().isAdmin;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Jugadores')),
-      body: StreamBuilder<List<Player>>(
-        stream: firestore.watchAllPlayers(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final players = snapshot.data!;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            children: [
-              _AddPlayerCard(
-                onAdd: () => showAddPlayerDialog(context, firestore),
-              ),
-              const SizedBox(height: 12),
-              if (players.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text('Todavía no hay jugadores en la liga.'),
-                  ),
-                )
-              else
-                ...players.map((player) {
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(player.displayName),
-                    subtitle: Text(
-                      [
-                        if (player.shortName != null &&
-                            player.shortName!.isNotEmpty)
-                          player.fullName,
-                        if (!player.active) 'Inactivo',
-                      ].join(' · '),
-                    ),
-                    trailing: !isAdmin
-                        ? null
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined),
-                                tooltip: 'Editar',
-                                onPressed: () =>
-                                    _showEditDialog(context, firestore, player),
-                              ),
-                              if (player.active)
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline),
-                                  tooltip: 'Eliminar',
-                                  onPressed: () => _confirmRemove(
-                                    context,
-                                    firestore,
-                                    player,
-                                  ),
-                                )
-                              else ...[
-                                IconButton(
-                                  icon: const Icon(Icons.restore),
-                                  tooltip: 'Reactivar',
-                                  onPressed: () =>
-                                      firestore.reactivatePlayer(player.id),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_forever_outlined,
-                                  ),
-                                  tooltip: 'Eliminar definitivamente',
-                                  onPressed: () => _confirmPermanentDelete(
-                                    context,
-                                    firestore,
-                                    player,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                  );
-                }),
+    return StreamBuilder<List<Player>>(
+      stream: firestore.watchAllPlayers(),
+      builder: (context, snapshot) {
+        final players = snapshot.data ?? [];
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Jugadores'),
+            actions: [
+              if (isAdmin && players.length >= 2)
+                IconButton(
+                  icon: const Icon(Icons.merge_type_rounded),
+                  tooltip: 'Unificar jugadores duplicados',
+                  onPressed: () =>
+                      showMergePlayersDialog(context, firestore, players),
+                ),
             ],
-          );
-        },
-      ),
+          ),
+          body: !snapshot.hasData
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  children: [
+                    _AddPlayerCard(
+                      onAdd: () => showAddPlayerDialog(context, firestore),
+                    ),
+                    const SizedBox(height: 12),
+                    if (players.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: Text('Todavía no hay jugadores en la liga.'),
+                        ),
+                      )
+                    else
+                      ...players.map((player) {
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(player.displayName),
+                          subtitle: Text(
+                            [
+                              if (player.shortName != null &&
+                                  player.shortName!.isNotEmpty)
+                                player.fullName,
+                              if (!player.active) 'Inactivo',
+                            ].join(' · '),
+                          ),
+                          trailing: !isAdmin
+                              ? null
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined),
+                                      tooltip: 'Editar',
+                                      onPressed: () => _showEditDialog(
+                                        context,
+                                        firestore,
+                                        player,
+                                      ),
+                                    ),
+                                    if (player.active)
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline),
+                                        tooltip: 'Eliminar',
+                                        onPressed: () => _confirmRemove(
+                                          context,
+                                          firestore,
+                                          player,
+                                        ),
+                                      )
+                                    else ...[
+                                      IconButton(
+                                        icon: const Icon(Icons.restore),
+                                        tooltip: 'Reactivar',
+                                        onPressed: () => firestore
+                                            .reactivatePlayer(player.id),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete_forever_outlined,
+                                        ),
+                                        tooltip: 'Eliminar definitivamente',
+                                        onPressed: () =>
+                                            _confirmPermanentDelete(
+                                              context,
+                                              firestore,
+                                              player,
+                                            ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                        );
+                      }),
+                  ],
+                ),
+        );
+      },
     );
   }
 

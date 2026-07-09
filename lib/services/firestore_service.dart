@@ -202,6 +202,65 @@ class FirestoreService {
     await _players.doc(playerId).delete();
   }
 
+  /// Une a dos fichas de jugador que en realidad son la misma persona
+  /// (ej. perdió el acceso a su cuenta vieja y se registró de nuevo con
+  /// otro correo, quedando dos jugadores separados con su mismo nombre).
+  /// Todo el historial de [removePlayerId] (ganadas/perdidas, partidas
+  /// jugadas, ganadores de meses viejos puestos a mano) pasa a quedar
+  /// bajo [keepPlayerId], y [removePlayerId] se borra al final. La
+  /// cuenta (authUid), foto y nombre de [keepPlayerId] no se tocan.
+  Future<void> mergePlayers({
+    required String keepPlayerId,
+    required String removePlayerId,
+  }) async {
+    if (keepPlayerId == removePlayerId) {
+      throw Exception('No puedes unificar un jugador consigo mismo.');
+    }
+
+    // 1) Pasar las ganadas/perdidas al jugador que se mantiene.
+    final oldEntries = await _statEntries(removePlayerId).get();
+    if (oldEntries.docs.isNotEmpty) {
+      final batch = _db.batch();
+      final newEntriesRef = _statEntries(keepPlayerId);
+      for (final doc in oldEntries.docs) {
+        batch.set(newEntriesRef.doc(), doc.data());
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+
+    // 2) Corregir las partidas viejas para que digan el jugador que se
+    // mantiene, no el que se va a borrar.
+    Future<void> fixGamesField(String field) async {
+      final snap = await _games
+          .where(field, arrayContains: removePlayerId)
+          .get();
+      for (final doc in snap.docs) {
+        final ids = List<String>.from(doc.data()[field] as List? ?? []);
+        final updated = ids
+            .map((id) => id == removePlayerId ? keepPlayerId : id)
+            .toSet() // por si el jugador que se mantiene ya estaba ahí
+            .toList();
+        await doc.reference.update({field: updated});
+      }
+    }
+
+    await fixGamesField('teamAPlayerIds');
+    await fixGamesField('teamBPlayerIds');
+
+    // 3) Corregir los ganadores de meses viejos puestos a mano.
+    final overrides = await _db
+        .collection('monthlyOverrides')
+        .where('playerId', isEqualTo: removePlayerId)
+        .get();
+    for (final doc in overrides.docs) {
+      await doc.reference.update({'playerId': keepPlayerId});
+    }
+
+    // 4) Borrar la ficha duplicada: ya no le queda historial propio.
+    await _players.doc(removePlayerId).delete();
+  }
+
   // ---- Historial manual de ganadas/perdidas ----
   // Las estadísticas no dependen de las partidas anotadas en la app: el
   // administrador agrega cada ganada/perdida a mano, con su fecha.
