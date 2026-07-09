@@ -166,8 +166,9 @@ class PlayersScreen extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar definitivamente'),
         content: Text(
-          '¿Borrar a ${player.displayName} para siempre? Su nombre ya no podrá mostrarse '
-          'en partidas o certificados antiguos donde haya participado.',
+          '¿Borrar a ${player.displayName} para siempre? Si ya tiene '
+          'ganadas o perdidas registradas, no se podrá borrar (para no '
+          'perder su historial de certificados y estadísticas).',
         ),
         actions: [
           TextButton(
@@ -178,9 +179,16 @@ class PlayersScreen extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            onPressed: () {
-              firestore.deletePlayerPermanently(player.id);
+            onPressed: () async {
               Navigator.pop(dialogContext);
+              try {
+                await firestore.deletePlayerPermanently(player.id);
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))),
+                );
+              }
             },
             child: const Text('Eliminar para siempre'),
           ),
