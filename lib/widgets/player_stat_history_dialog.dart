@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/firestore_service.dart';
+import 'number_keypad.dart';
 
 /// Mensaje de confirmación arriba de la pantalla (no abajo como el
 /// SnackBar normal), para que se note justo después de borrar/editar.
@@ -57,6 +57,8 @@ Future<void> _addEntries(
   }
 }
 
+const _kStatsGreen = Color(0xFF2E6B3F);
+
 void _showAddStatDialog(
   BuildContext context,
   FirestoreService firestore,
@@ -64,70 +66,130 @@ void _showAddStatDialog(
   DateTime forMonth,
 ) {
   var isWin = true;
-  final quantityController = TextEditingController(text: '1');
+  var digits = '';
+
+  Widget typeButton(
+    bool value,
+    String label,
+    bool isWinState,
+    void Function(void Function()) setState,
+  ) {
+    final selected = isWinState == value;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: selected
+                ? _kStatsGreen.withValues(alpha: 0.12)
+                : null,
+            side: BorderSide(
+              color: selected ? _kStatsGreen : Colors.grey.shade400,
+              width: selected ? 2 : 1,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          onPressed: () => setState(() => isWin = value),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: selected ? _kStatsGreen : null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   showDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
-      builder: (dialogContext, setState) => AlertDialog(
-        title: const Text('Agregar ganadas o perdidas'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Se guardará en ${DateFormat('MMMM yyyy', 'es').format(forMonth)}. '
-              'Elige si son ganadas o perdidas, y cuántas quieres '
-              'agregar de una vez.',
-            ),
-            const SizedBox(height: 8),
-            RadioListTile<bool>(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Ganada'),
-              value: true,
-              groupValue: isWin,
-              onChanged: (v) => setState(() => isWin = v!),
-            ),
-            RadioListTile<bool>(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Perdida'),
-              value: false,
-              groupValue: isWin,
-              onChanged: (v) => setState(() => isWin = v!),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: quantityController,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Cuántas quieres agregar',
-                helperText:
-                    'Ej. escribe 13 si quieres agregar 13 ganadas '
-                    'ya jugadas antes, de una sola vez.',
+      builder: (dialogContext, setState) {
+        final display = digits.isEmpty ? '1' : digits;
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Agregar en ${DateFormat('MMMM yyyy', 'es').format(forMonth)}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      typeButton(true, 'Ganada', isWin, setState),
+                      typeButton(false, 'Perdida', isWin, setState),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    display,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 48,
+                    ),
+                  ),
+                  Text(
+                    'cuántas quieres agregar de una vez',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  NumberKeypad(
+                    onDigit: (d) => setState(() {
+                      if (digits.length < 3) digits += d;
+                    }),
+                    onBackspace: () => setState(() {
+                      if (digits.isNotEmpty) {
+                        digits = digits.substring(0, digits.length - 1);
+                      }
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: _kStatsGreen,
+                          ),
+                          onPressed: () {
+                            final count = int.tryParse(display) ?? 1;
+                            Navigator.pop(dialogContext);
+                            _addEntries(
+                              context,
+                              firestore,
+                              playerId,
+                              isWin,
+                              count < 1 ? 1 : count,
+                              forMonth,
+                            );
+                          },
+                          child: const Text('Guardar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
           ),
-          FilledButton(
-            onPressed: () {
-              final n = int.tryParse(quantityController.text.trim());
-              final count = (n == null || n < 1) ? 1 : n;
-              Navigator.pop(dialogContext);
-              _addEntries(context, firestore, playerId, isWin, count, forMonth);
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
+        );
+      },
     ),
   );
 }
@@ -361,60 +423,90 @@ void showPlayerStatHistoryDialog(
                           ),
                         );
                       }
-                      return ListView.builder(
-                        itemCount: entries.length,
-                        itemBuilder: (context, index) {
-                          final entry = entries[index];
-                          final isSelected = selectedIds.contains(entry.id);
-                          return ListTile(
-                            dense: true,
-                            leading: selecting
-                                ? Checkbox(
-                                    value: isSelected,
-                                    onChanged: (_) => setState(() {
-                                      if (isSelected) {
-                                        selectedIds.remove(entry.id);
-                                      } else {
-                                        selectedIds.add(entry.id);
-                                      }
-                                    }),
-                                  )
-                                : Icon(
-                                    entry.isWin
-                                        ? Icons.emoji_events
-                                        : Icons.close_rounded,
-                                    color: entry.isWin
-                                        ? Colors.green
-                                        : Colors.redAccent,
-                                  ),
-                            title: Text(entry.isWin ? 'Ganada' : 'Perdida'),
-                            subtitle: Text(
-                              DateFormat(
-                                'd MMM yyyy, h:mm a',
-                                'es',
-                              ).format(entry.createdAt),
+                      final allSelected = entries.every(
+                        (e) => selectedIds.contains(e.id),
+                      );
+                      return Column(
+                        children: [
+                          if (selecting)
+                            CheckboxListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              title: const Text('Seleccionar todas'),
+                              value: allSelected,
+                              onChanged: (_) => setState(() {
+                                if (allSelected) {
+                                  selectedIds.clear();
+                                } else {
+                                  selectedIds
+                                    ..clear()
+                                    ..addAll(entries.map((e) => e.id));
+                                }
+                              }),
                             ),
-                            trailing: isAdmin && !selecting
-                                ? const Icon(Icons.chevron_right)
-                                : null,
-                            onTap: !isAdmin
-                                ? null
-                                : selecting
-                                ? () => setState(() {
-                                    if (isSelected) {
-                                      selectedIds.remove(entry.id);
-                                    } else {
-                                      selectedIds.add(entry.id);
-                                    }
-                                  })
-                                : () => _editEntry(
-                                    context,
-                                    firestore,
-                                    player.id,
-                                    entry,
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: entries.length,
+                              itemBuilder: (context, index) {
+                                final entry = entries[index];
+                                final isSelected = selectedIds.contains(
+                                  entry.id,
+                                );
+                                return ListTile(
+                                  dense: true,
+                                  leading: selecting
+                                      ? Checkbox(
+                                          value: isSelected,
+                                          onChanged: (_) => setState(() {
+                                            if (isSelected) {
+                                              selectedIds.remove(entry.id);
+                                            } else {
+                                              selectedIds.add(entry.id);
+                                            }
+                                          }),
+                                        )
+                                      : Icon(
+                                          entry.isWin
+                                              ? Icons.emoji_events
+                                              : Icons.close_rounded,
+                                          color: entry.isWin
+                                              ? Colors.green
+                                              : Colors.redAccent,
+                                        ),
+                                  title: Text(
+                                    entry.isWin ? 'Ganada' : 'Perdida',
                                   ),
-                          );
-                        },
+                                  subtitle: Text(
+                                    DateFormat(
+                                      'd MMM yyyy, h:mm a',
+                                      'es',
+                                    ).format(entry.createdAt),
+                                  ),
+                                  trailing: isAdmin && !selecting
+                                      ? const Icon(Icons.chevron_right)
+                                      : null,
+                                  onTap: !isAdmin
+                                      ? null
+                                      : selecting
+                                      ? () => setState(() {
+                                          if (isSelected) {
+                                            selectedIds.remove(entry.id);
+                                          } else {
+                                            selectedIds.add(entry.id);
+                                          }
+                                        })
+                                      : () => _editEntry(
+                                          context,
+                                          firestore,
+                                          player.id,
+                                          entry,
+                                        ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),

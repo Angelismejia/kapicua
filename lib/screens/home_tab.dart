@@ -87,141 +87,136 @@ class _HomeTabState extends State<HomeTab> {
       stream: firestore.watchAllPlayers(),
       builder: (context, allPlayersSnap) {
         final allPlayers = allPlayersSnap.data ?? [];
+        // En vez de un segundo listener a Firestore solo para los
+        // activos, se filtran los mismos jugadores ya cargados arriba
+        // (menos listeners = pantalla de Inicio más liviana y rápida).
+        final activePlayers = allPlayers.where((p) => p.active).toList();
 
         Player? me;
         for (final p in allPlayers) {
           if (p.authUid == auth.currentUser?.uid) me = p;
         }
 
-        return StreamBuilder<List<Player>>(
-          stream: firestore.watchActivePlayers(),
-          builder: (context, activePlayersSnap) {
-            final activePlayers = activePlayersSnap.data ?? [];
+        return StreamBuilder<List<Game>>(
+          stream: firestore.watchActiveGames(),
+          builder: (context, activeGamesSnap) {
+            final activeGames = activeGamesSnap.data ?? [];
+            final playerNames = {
+              for (final p in allPlayers) p.id: p.displayName,
+            };
 
-            return StreamBuilder<List<Game>>(
-              stream: firestore.watchActiveGames(),
-              builder: (context, activeGamesSnap) {
-                final activeGames = activeGamesSnap.data ?? [];
-                final playerNames = {
-                  for (final p in allPlayers) p.id: p.displayName,
-                };
+            return StreamBuilder<List<PlayerStatEntry>>(
+              stream: firestore.watchAllStatEntries(),
+              builder: (context, entriesSnap) {
+                final statEntries = entriesSnap.data ?? [];
+                final championMessages = _championMessages(
+                  statEntries,
+                  allPlayers,
+                  me,
+                  auth,
+                );
 
-                return StreamBuilder<List<PlayerStatEntry>>(
-                  stream: firestore.watchAllStatEntries(),
-                  builder: (context, entriesSnap) {
-                    final statEntries = entriesSnap.data ?? [];
-                    final championMessages = _championMessages(
-                      statEntries,
-                      allPlayers,
-                      me,
-                      auth,
-                    );
-
-                    return SafeArea(
-                      child: AnimatedOpacity(
-                        opacity: _opacity,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                          children: [
-                            _Header(
-                              greeting: _greetingPrefix,
-                              name: me?.displayName,
-                              photoBase64: me?.photoBase64,
-                              onNotificationsTap: () => _showNotifications(
-                                context,
-                                me,
-                                allPlayers,
-                                statEntries,
-                                auth,
-                              ),
-                              onSettingsTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const HelpScreen(),
-                                ),
-                              ),
-                              onProfileTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProfileScreen(player: me),
-                                ),
-                              ),
+                return SafeArea(
+                  child: AnimatedOpacity(
+                    opacity: _opacity,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                      children: [
+                        _Header(
+                          greeting: _greetingPrefix,
+                          name: me?.displayName,
+                          photoBase64: me?.photoBase64,
+                          onNotificationsTap: () => _showNotifications(
+                            context,
+                            me,
+                            allPlayers,
+                            statEntries,
+                            auth,
+                          ),
+                          onSettingsTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HelpScreen(),
                             ),
-                            const SizedBox(height: 24),
-                            const _KapicuaLogo(),
-                            const SizedBox(height: 28),
-                            _BannerCarousel(
-                              controller: _bannerController,
-                              currentPage: _bannerPage,
-                              onPageChanged: (i) =>
-                                  setState(() => _bannerPage = i),
-                              onCertificadosTap: isGuest
-                                  ? null
-                                  : () =>
-                                        widget.onNavigateTab(certificadosIndex),
+                          ),
+                          onProfileTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProfileScreen(player: me),
                             ),
-                            const SizedBox(height: 24),
-                            _PlayersCard(
-                              totalPlayers: activePlayers.length,
-                              onAddPlayer: () =>
-                                  showAddPlayerDialog(context, firestore),
-                            ),
-                            const SizedBox(height: 20),
-                            _ChampionCarousel(messages: championMessages),
-                            for (final game in activeGames) ...[
-                              const SizedBox(height: 20),
-                              _ActiveGameCard(
-                                targetScore: game.targetScore,
-                                teamAName: game.teamAPlayerIds
-                                    .map((id) => playerNames[id] ?? '...')
-                                    .join(' y '),
-                                teamBName: game.teamBPlayerIds
-                                    .map((id) => playerNames[id] ?? '...')
-                                    .join(' y '),
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ActiveGameScreen(gameId: game.id),
-                                  ),
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 30),
-                            Text(
-                              'Acciones rápidas',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: context.homeTextColor,
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            _QuickActionsGrid(
-                              onAddPlayer: () =>
-                                  showAddPlayerDialog(context, firestore),
-                              onNewGame: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const NewGameScreen(),
-                                ),
-                              ),
-                              onHistory: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const HistoryScreen(),
-                                ),
-                              ),
-                              onPlayers: () => widget.onNavigateTab(ligaIndex),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                        const SizedBox(height: 24),
+                        const _KapicuaLogo(),
+                        const SizedBox(height: 28),
+                        _BannerCarousel(
+                          controller: _bannerController,
+                          currentPage: _bannerPage,
+                          onPageChanged: (i) => setState(() => _bannerPage = i),
+                          onCertificadosTap: isGuest
+                              ? null
+                              : () => widget.onNavigateTab(certificadosIndex),
+                        ),
+                        const SizedBox(height: 24),
+                        _PlayersCard(
+                          totalPlayers: activePlayers.length,
+                          onAddPlayer: () =>
+                              showAddPlayerDialog(context, firestore),
+                        ),
+                        const SizedBox(height: 20),
+                        _ChampionCarousel(messages: championMessages),
+                        for (final game in activeGames) ...[
+                          const SizedBox(height: 20),
+                          _ActiveGameCard(
+                            targetScore: game.targetScore,
+                            teamAName: game.teamAPlayerIds
+                                .map((id) => playerNames[id] ?? '...')
+                                .join(' y '),
+                            teamBName: game.teamBPlayerIds
+                                .map((id) => playerNames[id] ?? '...')
+                                .join(' y '),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ActiveGameScreen(gameId: game.id),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 30),
+                        Text(
+                          'Acciones rápidas',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: context.homeTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _QuickActionsGrid(
+                          onAddPlayer: () =>
+                              showAddPlayerDialog(context, firestore),
+                          onNewGame: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NewGameScreen(),
+                            ),
+                          ),
+                          onHistory: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HistoryScreen(),
+                            ),
+                          ),
+                          onPlayers: () => widget.onNavigateTab(ligaIndex),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             );

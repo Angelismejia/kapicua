@@ -6,6 +6,7 @@ import '../models/game.dart';
 import '../models/player.dart';
 import '../models/round.dart';
 import '../services/firestore_service.dart';
+import '../widgets/number_keypad.dart';
 import '../widgets/score_sheet.dart';
 import 'game_result_screen.dart';
 
@@ -295,37 +296,6 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
   Widget build(BuildContext context) {
     final display = _digits.isEmpty ? '0' : _digits;
 
-    Widget keypadButton(String label, {VoidCallback? onTap, Widget? child}) {
-      return Expanded(
-        child: AspectRatio(
-          aspectRatio: 1.5,
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: Material(
-              color: Colors.grey.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: onTap,
-                child: Center(
-                  child:
-                      child ??
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22,
-                        ),
-                      ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -407,28 +377,7 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              for (final row in const [
-                ['1', '2', '3'],
-                ['4', '5', '6'],
-                ['7', '8', '9'],
-              ])
-                Row(
-                  children: [
-                    for (final d in row)
-                      keypadButton(d, onTap: () => _tapDigit(d)),
-                  ],
-                ),
-              Row(
-                children: [
-                  keypadButton('', onTap: null),
-                  keypadButton('0', onTap: () => _tapDigit('0')),
-                  keypadButton(
-                    '',
-                    onTap: _backspace,
-                    child: const Icon(Icons.backspace_outlined, size: 20),
-                  ),
-                ],
-              ),
+              NumberKeypad(onDigit: _tapDigit, onBackspace: _backspace),
             ],
           ),
         ),
