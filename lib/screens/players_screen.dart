@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -117,6 +119,30 @@ class PlayersScreen extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Center(
+              child: CircleAvatar(
+                radius: 36,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.12),
+                backgroundImage: player.photoBase64 != null
+                    ? MemoryImage(base64Decode(player.photoBase64!))
+                    : null,
+                child: player.photoBase64 == null
+                    ? Text(
+                        player.displayName.isNotEmpty
+                            ? player.displayName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 26,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: fullNameController,
               autofocus: true,
