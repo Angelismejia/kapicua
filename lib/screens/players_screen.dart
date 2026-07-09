@@ -42,48 +42,6 @@ class PlayersScreen extends StatelessWidget {
                     _AddPlayerCard(
                       onAdd: () => showAddPlayerDialog(context, firestore),
                     ),
-                    if (isAdmin) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              size: 20,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onPrimaryContainer,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Un jugador nunca se borra desde la app. '
-                                '"Marcar como inactivo" solo lo saca de la '
-                                'lista de jugadores activos, pero su '
-                                'historial de ganadas, perdidas y '
-                                'certificados queda intacto y se puede '
-                                'reactivar cuando quieras. Si de verdad hay '
-                                'que borrar uno para siempre, se hace a mano '
-                                'desde la consola de Firebase.',
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 12),
                     if (players.isEmpty)
                       const Padding(
@@ -92,58 +50,85 @@ class PlayersScreen extends StatelessWidget {
                           child: Text('Todavía no hay jugadores en la liga.'),
                         ),
                       )
-                    else
-                      ...players.map((player) {
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(player.displayName),
-                          subtitle: Text(
-                            [
-                              if (player.shortName != null &&
-                                  player.shortName!.isNotEmpty)
-                                player.fullName,
-                              if (!player.active) 'Inactivo',
-                            ].join(' · '),
+                    else ...[
+                      ...players
+                          .where((p) => p.active)
+                          .map(
+                            (player) => _playerTile(
+                              context,
+                              firestore,
+                              isAdmin,
+                              player,
+                            ),
                           ),
-                          trailing: !isAdmin
-                              ? null
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined),
-                                      tooltip: 'Editar',
-                                      onPressed: () => _showEditDialog(
-                                        context,
-                                        firestore,
-                                        player,
-                                      ),
-                                    ),
-                                    if (player.active)
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline),
-                                        tooltip: 'Marcar como inactivo',
-                                        onPressed: () => _confirmRemove(
-                                          context,
-                                          firestore,
-                                          player,
-                                        ),
-                                      )
-                                    else
-                                      IconButton(
-                                        icon: const Icon(Icons.restore),
-                                        tooltip: 'Reactivar',
-                                        onPressed: () => firestore
-                                            .reactivatePlayer(player.id),
-                                      ),
-                                  ],
-                                ),
-                        );
-                      }),
+                      if (players.any((p) => !p.active))
+                        Theme(
+                          data: Theme.of(
+                            context,
+                          ).copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: Text(
+                              'Jugadores inactivos '
+                              '(${players.where((p) => !p.active).length})',
+                            ),
+                            children: players
+                                .where((p) => !p.active)
+                                .map(
+                                  (player) => _playerTile(
+                                    context,
+                                    firestore,
+                                    isAdmin,
+                                    player,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
         );
       },
+    );
+  }
+
+  Widget _playerTile(
+    BuildContext context,
+    FirestoreService firestore,
+    bool isAdmin,
+    Player player,
+  ) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(player.displayName),
+      subtitle: player.shortName != null && player.shortName!.isNotEmpty
+          ? Text(player.fullName)
+          : null,
+      trailing: !isAdmin
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Editar',
+                  onPressed: () => _showEditDialog(context, firestore, player),
+                ),
+                if (player.active)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Marcar como inactivo',
+                    onPressed: () => _confirmRemove(context, firestore, player),
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.restore),
+                    tooltip: 'Reactivar',
+                    onPressed: () => firestore.reactivatePlayer(player.id),
+                  ),
+              ],
+            ),
     );
   }
 
