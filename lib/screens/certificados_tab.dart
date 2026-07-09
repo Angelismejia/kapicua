@@ -11,22 +11,55 @@ import '../utils/monthly_winner.dart';
 import '../widgets/manual_certificate_dialog.dart';
 import '../widgets/month_selector.dart';
 import '../widgets/monthly_winner_card.dart';
+import 'certificate_screen.dart';
+
+/// Todos los meses (ya terminados) que este jugador ganó, sin importar
+/// cuál mes esté seleccionado en el calendario de arriba — para que su
+/// historial de certificados se vea completo siempre, no solo el mes
+/// que esté mirando en ese momento.
+List<MonthlyWinnerResult> _myWonMonths(
+  List<PlayerStatEntry> entries,
+  List<Player> players,
+  Player me,
+) {
+  final months = <DateTime>{};
+  for (final e in entries) {
+    months.add(DateTime(e.createdAt.year, e.createdAt.month));
+  }
+  final won = <MonthlyWinnerResult>[];
+  for (final month in months) {
+    final leader = computeMonthlyLeaderOrFallback(entries, players, month);
+    if (leader != null && leader.isMonthOver && leader.player.id == me.id) {
+      won.add(leader);
+    }
+  }
+  won.sort((a, b) => b.month.compareTo(a.month));
+  return won;
+}
 
 void _showSetOverrideDialog(
   BuildContext context,
   FirestoreService firestore,
   List<Player> players,
-  DateTime month,
-) {
-  Player? selected = players.isNotEmpty ? players.first : null;
-  final winsController = TextEditingController(text: '1');
-  final lossesController = TextEditingController(text: '0');
+  DateTime month, {
+  Player? currentPlayer,
+  int currentWins = 1,
+  int currentLosses = 0,
+}) {
+  Player? selected =
+      currentPlayer ?? (players.isNotEmpty ? players.first : null);
+  final winsController = TextEditingController(text: '$currentWins');
+  final lossesController = TextEditingController(text: '$currentLosses');
 
   showDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (dialogContext, setState) => AlertDialog(
-        title: const Text('Establecer ganador de este mes'),
+        title: Text(
+          currentPlayer == null
+              ? 'Establecer ganador de este mes'
+              : 'Corregir ganador de este mes',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,13 +221,29 @@ class _CertificadosTabState extends State<CertificadosTab> {
                         isMeTheLeader,
                         players.isEmpty,
                         !hasActivityThisMonth && override == null,
+                        !hasActivityThisMonth && override != null,
                         () => _showSetOverrideDialog(
                           context,
                           firestore,
                           players,
                           _selectedMonth,
                         ),
+                        () => _showSetOverrideDialog(
+                          context,
+                          firestore,
+                          players,
+                          _selectedMonth,
+                          currentPlayer: leader?.player,
+                          currentWins: leader?.wins ?? 1,
+                          currentLosses: leader?.losses ?? 0,
+                        ),
+                        () => firestore.clearMonthlyOverride(_selectedMonth),
                       ),
+                      if (me != null) ...[
+                        ..._buildMyCertificateHistory(
+                          _myWonMonths(entries, players, me),
+                        ),
+                      ],
                       if (isAdmin) ...[
                         const SizedBox(height: 24),
                         Text(
@@ -231,7 +280,10 @@ class _CertificadosTabState extends State<CertificadosTab> {
     bool isMeTheLeader,
     bool noPlayers,
     bool canSetOverride,
+    bool isManualOverride,
     VoidCallback onSetOverride,
+    VoidCallback onEditOverride,
+    VoidCallback onClearOverride,
   ) {
     if (leader == null) {
       if (noPlayers) {
@@ -270,6 +322,33 @@ class _CertificadosTabState extends State<CertificadosTab> {
           const SizedBox(height: 8),
         ],
         MonthlyWinnerCard(result: leader),
+        if (isManualOverride) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Este ganador se puso a mano. Si te equivocaste, corrígelo aquí.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Corregir'),
+                  onPressed: onEditOverride,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('Restablecer'),
+                  onPressed: onClearOverride,
+                ),
+              ),
+            ],
+          ),
+        ],
       ];
     }
 
@@ -306,6 +385,63 @@ class _CertificadosTabState extends State<CertificadosTab> {
         const SizedBox(height: 16),
         MonthlyWinnerCard(result: leader),
       ],
+    ];
+  }
+
+  /// Lista de todos los meses ya ganados por el jugador que tiene la
+  /// sesión abierta, sin importar el mes que esté seleccionado arriba
+  /// en el calendario — su historial completo de certificados.
+  List<Widget> _buildMyCertificateHistory(List<MonthlyWinnerResult> won) {
+    if (won.isEmpty) return const [];
+
+    return [
+      const SizedBox(height: 28),
+      Text(
+        'Tus certificados',
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Todos los meses que has ganado, para que los tengas a la mano.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      const SizedBox(height: 8),
+      Card(
+        child: Column(
+          children: [
+            for (var i = 0; i < won.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              ListTile(
+                leading: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: Colors.amber,
+                ),
+                title: Text(DateFormat('MMMM yyyy', 'es').format(won[i].month)),
+                subtitle: Text(
+                  '${won[i].wins} ganadas · ${won[i].losses} perdidas · '
+                  '${won[i].winPercentage.toStringAsFixed(0)}%',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CertificateScreen(
+                      winnerName: won[i].player.fullName,
+                      monthLabel: DateFormat(
+                        'MMMM yyyy',
+                        'es',
+                      ).format(won[i].month),
+                      totalScore: won[i].certificateScore,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     ];
   }
 }
