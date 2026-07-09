@@ -120,8 +120,31 @@ class HelpScreen extends StatelessWidget {
             title: 'Estadísticas',
             description:
                 'Ganadas, perdidas, total y porcentaje de cada jugador, llevado a mano por '
-                'el administrador — no depende de las partidas anotadas arriba.',
+                'el administrador — no depende de las partidas anotadas arriba. Toca el '
+                'ícono de compartir arriba para mandar una imagen de la tabla por WhatsApp.',
           ),
+          const _HelpStep(
+            icon: Icons.workspace_premium_outlined,
+            title: 'Certificados',
+            description:
+                'Cada mes se le hace un certificado a quien va ganando. Ábrelo y toca '
+                '"Compartir" para mandarlo por WhatsApp, o "Descargar" para guardarlo.',
+          ),
+          const _HelpStep(
+            icon: Icons.account_circle_outlined,
+            title: 'Tu perfil',
+            description:
+                'Desde el ícono de tu foto en Inicio puedes cambiar tu foto de perfil '
+                'y tu contraseña.',
+          ),
+          if (isAdmin)
+            const _HelpStep(
+              icon: Icons.admin_panel_settings_outlined,
+              title: 'Permisos de administrador',
+              description:
+                  'Desde tu perfil puedes dar o quitar permisos de administrador a otros '
+                  'jugadores que ya tengan cuenta creada.',
+            ),
         ],
       ),
     );

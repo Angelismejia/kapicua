@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -451,14 +452,21 @@ class _StatsRow extends StatelessWidget {
             CircleAvatar(
               radius: 18,
               backgroundColor: _kStatsPrimaryGreen.withValues(alpha: 0.12),
-              child: Text(
-                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  color: _kStatsPrimaryGreen,
-                ),
-              ),
+              backgroundImage: stats.player.photoBase64 != null
+                  ? MemoryImage(base64Decode(stats.player.photoBase64!))
+                  : null,
+              child: stats.player.photoBase64 == null
+                  ? Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        color: _kStatsPrimaryGreen,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
