@@ -31,8 +31,12 @@ class MonthlyWinnerCard extends StatelessWidget {
           children: [
             Text(
               isMonthOver
-                  ? 'El ganador de $monthLabelLower fue'
-                  : 'Va ganando este mes',
+                  ? (isMe
+                        ? '¡Felicidades, ganaste $monthLabelLower!'
+                        : 'El ganador de $monthLabelLower fue')
+                  : (isMe
+                        ? '¡Felicidades, vas ganando este mes!'
+                        : 'Va ganando este mes'),
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
