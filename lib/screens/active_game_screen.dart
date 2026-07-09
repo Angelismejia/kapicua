@@ -624,7 +624,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          onPressed: () => _confirmCancel(context, firestore),
+                          onPressed: () => _confirmReset(context, firestore),
                           child: const Text(
                             'REINICIAR',
                             style: TextStyle(
@@ -759,14 +759,15 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     );
   }
 
-  void _confirmCancel(BuildContext context, FirestoreService firestore) {
+  void _confirmReset(BuildContext context, FirestoreService firestore) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancelar partida'),
+        title: const Text('Reiniciar partida'),
         content: const Text(
-          '¿Seguro que quieres cancelar esta partida? Se borrarán las rondas '
-          'anotadas y podrás iniciar una nueva.',
+          '¿Seguro que quieres reiniciar esta partida? El marcador vuelve a '
+          '0-0 y se borran las rondas anotadas, pero sigues jugando con el '
+          'mismo Casa y Visita.',
         ),
         actions: [
           TextButton(
@@ -778,11 +779,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
             onPressed: () {
-              firestore.cancelGame(widget.gameId);
+              firestore.resetGame(widget.gameId);
               Navigator.pop(dialogContext);
-              Navigator.pop(context);
             },
-            child: const Text('Sí, cancelar'),
+            child: const Text('Sí, reiniciar'),
           ),
         ],
       ),
