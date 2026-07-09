@@ -133,15 +133,23 @@ class _FamilyGateScreenState extends State<FamilyGateScreen> {
 
   Future<void> _continueAsGuest() async {
     setState(() => _loading = true);
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final firestore = context.read<FirestoreService>();
-    await firestore.createGuestProfile(uid);
-    firestore.isGuest = true;
-    firestore.guestUid = uid;
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainShell()),
-    );
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final firestore = context.read<FirestoreService>();
+      await firestore.createGuestProfile(uid);
+      firestore.isGuest = true;
+      firestore.guestUid = uid;
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo continuar: $e')));
+    }
   }
 }

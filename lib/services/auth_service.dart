@@ -56,13 +56,22 @@ class AuthService extends ChangeNotifier {
     super.dispose();
   }
 
+  /// Tiempo máximo de espera para cualquier llamada a Firebase Auth. Sin
+  /// esto, una conexión lenta o caída deja el botón "cargando" pegado
+  /// para siempre porque el Future nunca se resuelve por sí solo.
+  static const _authTimeout = Duration(seconds: 20);
+
   Future<String?> signUp(String email, String password) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      await _auth
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          )
+          .timeout(_authTimeout);
       return null;
+    } on TimeoutException {
+      return 'Tardó demasiado en responder. Revisa tu conexión e intenta de nuevo.';
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
     } catch (e) {
@@ -72,11 +81,12 @@ class AuthService extends ChangeNotifier {
 
   Future<String?> signIn(String email, String password) async {
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      await _auth
+          .signInWithEmailAndPassword(email: email.trim(), password: password)
+          .timeout(_authTimeout);
       return null;
+    } on TimeoutException {
+      return 'Tardó demasiado en responder. Revisa tu conexión e intenta de nuevo.';
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
     } catch (e) {
@@ -86,11 +96,17 @@ class AuthService extends ChangeNotifier {
 
   Future<String?> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(
-        email: email.trim(),
-        actionCodeSettings: ActionCodeSettings(url: 'https://kapicua.web.app'),
-      );
+      await _auth
+          .sendPasswordResetEmail(
+            email: email.trim(),
+            actionCodeSettings: ActionCodeSettings(
+              url: 'https://kapicua.web.app',
+            ),
+          )
+          .timeout(_authTimeout);
       return null;
+    } on TimeoutException {
+      return 'Tardó demasiado en responder. Revisa tu conexión e intenta de nuevo.';
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
     } catch (e) {
@@ -135,9 +151,11 @@ class AuthService extends ChangeNotifier {
         email: email,
         password: currentPassword,
       );
-      await user.reauthenticateWithCredential(credential);
-      await user.updatePassword(newPassword);
+      await user.reauthenticateWithCredential(credential).timeout(_authTimeout);
+      await user.updatePassword(newPassword).timeout(_authTimeout);
       return null;
+    } on TimeoutException {
+      return 'Tardó demasiado en responder. Revisa tu conexión e intenta de nuevo.';
     } on FirebaseAuthException catch (e) {
       return _mapAuthError(e.code);
     } catch (e) {
@@ -147,8 +165,17 @@ class AuthService extends ChangeNotifier {
 
   /// Para jugar sin ninguna cuenta: no pide nada, entra directo como
   /// invitado (sus partidas no se sincronizan con otro dispositivo).
-  Future<void> playWithoutAccount() async {
-    await _auth.signInAnonymously();
+  Future<String?> playWithoutAccount() async {
+    try {
+      await _auth.signInAnonymously().timeout(_authTimeout);
+      return null;
+    } on TimeoutException {
+      return 'Tardó demasiado en responder. Revisa tu conexión e intenta de nuevo.';
+    } on FirebaseAuthException catch (e) {
+      return _mapAuthError(e.code);
+    } catch (e) {
+      return 'No se pudo continuar: $e';
+    }
   }
 
   Future<void> signOut() => _auth.signOut();

@@ -157,13 +157,25 @@ class _AuthScreenState extends State<AuthScreen> {
       _loading = true;
       _error = null;
     });
-    final error = await auth.signIn(email, password);
-    if (error == null) TextInput.finishAutofillContext();
-    if (!mounted) return;
-    setState(() {
-      _loading = false;
-      _error = error;
-    });
+    String? error;
+    try {
+      error = await auth.signIn(email, password);
+      if (error == null) {
+        try {
+          TextInput.finishAutofillContext();
+        } catch (_) {
+          // El autofill del navegador es una ayuda extra, no debe poder
+          // dejar el botón "cargando" pegado si falla.
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error;
+        });
+      }
+    }
   }
 
   Future<void> _forgotPassword(AuthService auth) async {
@@ -223,6 +235,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _playWithoutAccount(AuthService auth) async {
     setState(() => _loading = true);
-    await auth.playWithoutAccount();
+    final error = await auth.playWithoutAccount();
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    }
+    // Si no hubo error, la pantalla se reemplaza sola (main.dart detecta
+    // la sesión anónima nueva), así que no hace falta apagar _loading.
   }
 }

@@ -244,60 +244,71 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   Future<void> _submit(AuthService auth, FirestoreService firestore) async {
     setState(() => _loading = true);
 
-    var uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-      if (email.isEmpty || password.isEmpty) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Escribe tu correo y contraseña.')),
-        );
-        return;
+    try {
+      var uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) {
+        final email = _emailController.text.trim();
+        final password = _passwordController.text;
+        if (email.isEmpty || password.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Escribe tu correo y contraseña.')),
+          );
+          return;
+        }
+        final error = await auth.signUp(email, password);
+        if (error != null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error)));
+          return;
+        }
+        uid = FirebaseAuth.instance.currentUser!.uid;
+        try {
+          TextInput.finishAutofillContext();
+        } catch (_) {
+          // El autofill del navegador es una ayuda extra, no debe poder
+          // dejar el flujo de registro pegado si falla.
+        }
       }
-      final error = await auth.signUp(email, password);
-      if (error != null) {
-        if (!mounted) return;
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
-        return;
-      }
-      uid = FirebaseAuth.instance.currentUser!.uid;
-      TextInput.finishAutofillContext();
-    }
 
-    if (_selectedPlayerId == _newPlayerSentinel) {
-      final fullName = _fullNameController.text.trim();
-      if (fullName.isEmpty) {
-        setState(() => _loading = false);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Escribe tu nombre completo.')),
-        );
-        return;
+      if (_selectedPlayerId == _newPlayerSentinel) {
+        final fullName = _fullNameController.text.trim();
+        if (fullName.isEmpty) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Escribe tu nombre completo.')),
+          );
+          return;
+        }
+        await FirebaseFirestore.instance.collection('players').add({
+          'fullName': fullName,
+          'shortName': _shortNameController.text.trim().isEmpty
+              ? null
+              : _shortNameController.text.trim(),
+          'active': true,
+          'authUid': uid,
+        });
+      } else {
+        await FirebaseFirestore.instance
+            .collection('players')
+            .doc(_selectedPlayerId)
+            .update({'authUid': uid});
       }
-      await FirebaseFirestore.instance.collection('players').add({
-        'fullName': fullName,
-        'shortName': _shortNameController.text.trim().isEmpty
-            ? null
-            : _shortNameController.text.trim(),
-        'active': true,
-        'authUid': uid,
-      });
-    } else {
-      await FirebaseFirestore.instance
-          .collection('players')
-          .doc(_selectedPlayerId)
-          .update({'authUid': uid});
-    }
 
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const MainShell()),
-      (route) => false,
-    );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo completar: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 }
