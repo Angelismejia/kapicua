@@ -42,8 +42,13 @@ service cloud.firestore {
       allow read: if true;
 
       // Crear un jugador nuevo (ej. al registrarse) lo puede hacer
-      // cualquier cuenta real de la familia.
-      allow create: if isFamilyMember();
+      // cualquier cuenta real de la familia, pero solo puede quedar
+      // vinculado a su propia cuenta (o sin vincular todavía) — nunca a
+      // la cuenta de otra persona.
+      allow create: if isAdmin() ||
+        (isFamilyMember() &&
+         (request.resource.data.authUid == request.auth.uid ||
+          request.resource.data.authUid == null));
 
       // Editar un jugador ya existente: un admin puede editar cualquier
       // campo; alguien de la familia solo puede (a) cambiar su propia
