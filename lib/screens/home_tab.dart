@@ -281,7 +281,7 @@ class _HomeTabState extends State<HomeTab> {
           _Notification(
             icon: Icons.emoji_events_rounded,
             message:
-                '🎉 ${lastMonthWinner.player.displayName} se llevó $label '
+                '${lastMonthWinner.player.displayName} se llevó $label '
                 'con ${lastMonthWinner.wins} victorias. ¡A celebrar!',
           ),
         );
@@ -312,7 +312,7 @@ class _HomeTabState extends State<HomeTab> {
       notifications.add(
         _Notification(
           icon: Icons.bolt_rounded,
-          message: '⚔️ ¡Reñida competencia este mes entre $nameA y $nameB!',
+          message: '¡Reñida competencia este mes entre $nameA y $nameB!',
         ),
       );
     }
@@ -328,7 +328,7 @@ class _HomeTabState extends State<HomeTab> {
       notifications.add(
         const _Notification(
           icon: Icons.rocket_launch_rounded,
-          message: 'Todavía vas a tiempo de ponerte de primero este mes 💪',
+          message: 'Todavía vas a tiempo de ponerte de primero este mes.',
         ),
       );
     }
@@ -344,7 +344,7 @@ class _HomeTabState extends State<HomeTab> {
           notifications.add(
             const _Notification(
               icon: Icons.emoji_events_rounded,
-              message: '¡Ganaste una partida esta semana! Sigue así 🏆',
+              message: '¡Ganaste una partida esta semana! Sigue así.',
             ),
           );
         } else {
@@ -384,14 +384,14 @@ class _HomeTabState extends State<HomeTab> {
         notifications.add(
           const _Notification(
             icon: Icons.waving_hand_rounded,
-            message: '¡Bienvenido a Kapicua! 🎉 Que gane el mejor.',
+            message: '¡Bienvenido a Kapicua! Que gane el mejor.',
           ),
         );
       } else if (daysSince >= 30) {
         notifications.add(
           _Notification(
             icon: Icons.celebration_rounded,
-            message: '¡Llevas $daysSince días jugando en Kapicua! 🎉',
+            message: '¡Llevas $daysSince días jugando en Kapicua!',
           ),
         );
       }
@@ -405,7 +405,7 @@ class _HomeTabState extends State<HomeTab> {
           _Notification(
             icon: Icons.local_fire_department_rounded,
             message:
-                '🔥 ¡${player.displayName} va en una lisa de $streak '
+                '¡${player.displayName} va en una lisa de $streak '
                 'partidas seguidas!',
           ),
         );

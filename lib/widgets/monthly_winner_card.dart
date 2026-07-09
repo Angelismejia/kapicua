@@ -35,9 +35,7 @@ class MonthlyWinnerCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              isMonthOver
-                  ? result.player.displayName
-                  : '🔥 ${result.player.displayName}',
+              result.player.displayName,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),

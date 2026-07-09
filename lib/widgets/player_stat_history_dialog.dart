@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -353,6 +355,28 @@ void showPlayerStatHistoryDialog(
         return AlertDialog(
           title: Row(
             children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.12),
+                backgroundImage: player.photoBase64 != null
+                    ? MemoryImage(base64Decode(player.photoBase64!))
+                    : null,
+                child: player.photoBase64 == null
+                    ? Text(
+                        player.displayName.isNotEmpty
+                            ? player.displayName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 22,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
