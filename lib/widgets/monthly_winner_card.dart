@@ -40,7 +40,9 @@ class MonthlyWinnerCard extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    result.player.displayName,
+                    isMonthOver
+                        ? result.player.displayName
+                        : '🔥 ${result.player.displayName}',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ),
