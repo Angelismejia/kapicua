@@ -50,6 +50,7 @@ class HelpScreen extends StatelessWidget {
     final themeController = context.watch<ThemeController>();
     final isAdmin = context.watch<AuthService>().isAdmin;
     final firestore = context.read<FirestoreService>();
+    final isGuest = firestore.isGuest;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración y ayuda')),
@@ -87,12 +88,15 @@ class HelpScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
-          const _HelpStep(
+          _HelpStep(
             icon: Icons.people,
             title: 'Jugadores',
-            description:
-                'Agrega a todos los participantes de tu liga de dominó. '
-                'Puedes eliminar a alguien más adelante sin perder su historial.',
+            description: isGuest
+                ? 'Agrega a quienes están jugando contigo. Puedes eliminar a '
+                      'alguien más adelante sin perder su historial.'
+                : 'Agrega a todos los participantes de tu liga de dominó. '
+                      'Puedes eliminar a alguien más adelante sin perder su '
+                      'historial.',
           ),
           const _HelpStep(
             icon: Icons.add_circle,
@@ -115,27 +119,35 @@ class HelpScreen extends StatelessWidget {
             description:
                 'Consulta todas las partidas ya terminadas y el detalle ronda por ronda.',
           ),
-          const _HelpStep(
+          _HelpStep(
             icon: Icons.emoji_events,
             title: 'Estadísticas',
-            description:
-                'Ganadas, perdidas, total y porcentaje de cada jugador, llevado a mano por '
-                'el administrador — no depende de las partidas anotadas arriba. Toca el '
-                'ícono de compartir arriba para mandar una imagen de la tabla por WhatsApp.',
+            description: isGuest
+                ? 'Ganadas, perdidas, total y porcentaje de cada jugador, '
+                      'calculado automáticamente según las partidas que ya '
+                      'jugaste.'
+                : 'Ganadas, perdidas, total y porcentaje de cada jugador, '
+                      'llevado a mano por el administrador — no depende de '
+                      'las partidas anotadas arriba. Toca el ícono de '
+                      'compartir arriba para mandar una imagen de la tabla '
+                      'por WhatsApp.',
           ),
-          const _HelpStep(
-            icon: Icons.workspace_premium_outlined,
-            title: 'Certificados',
-            description:
-                'Cada mes se le hace un certificado a quien va ganando. Ábrelo y toca '
-                '"Compartir" para mandarlo por WhatsApp, o "Descargar" para guardarlo.',
-          ),
-          const _HelpStep(
+          if (!isGuest)
+            const _HelpStep(
+              icon: Icons.workspace_premium_outlined,
+              title: 'Certificados',
+              description:
+                  'Cada mes se le hace un certificado a quien va ganando. Ábrelo y toca '
+                  '"Compartir" para mandarlo por WhatsApp, o "Descargar" para guardarlo.',
+            ),
+          _HelpStep(
             icon: Icons.account_circle_outlined,
             title: 'Tu perfil',
-            description:
-                'Desde el ícono de tu foto en Inicio puedes cambiar tu foto de perfil '
-                'y tu contraseña.',
+            description: isGuest
+                ? 'Desde el ícono de tu foto en Inicio puedes cambiar tu '
+                      'nombre y tu foto de perfil.'
+                : 'Desde el ícono de tu foto en Inicio puedes cambiar tu '
+                      'foto de perfil y tu contraseña.',
           ),
           if (isAdmin)
             const _HelpStep(
