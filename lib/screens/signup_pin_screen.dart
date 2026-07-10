@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'auth_screen.dart';
-import 'complete_profile_screen.dart';
 import 'family_gate_screen.dart' show kFamilyPin;
+import 'select_player_screen.dart';
 
 /// Primer paso para registrarse: hay que saber el PIN familiar antes de
 /// poder crear una cuenta nueva.
@@ -99,7 +99,7 @@ class _SignupPinScreenState extends State<SignupPinScreen> {
     }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const CompleteProfileScreen()),
+      MaterialPageRoute(builder: (_) => const SelectPlayerScreen()),
     );
   }
 }

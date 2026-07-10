@@ -4,23 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'auth_screen.dart';
 import 'main_shell.dart';
 
-const _newPlayerSentinel = '__new__';
-
 class CompleteProfileScreen extends StatefulWidget {
-  const CompleteProfileScreen({super.key});
+  /// Jugador elegido en la pantalla anterior (SelectPlayerScreen), o
+  /// null si dijo que era nuevo. Ya viene decidido, así que aquí no se
+  /// vuelve a preguntar.
+  final String? selectedPlayerId;
+
+  const CompleteProfileScreen({super.key, required this.selectedPlayerId});
 
   @override
   State<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
 }
 
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
-  String _selectedPlayerId = _newPlayerSentinel;
   bool _loading = false;
   bool _obscurePassword = true;
   late final TextEditingController _fullNameController;
@@ -29,19 +30,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _passwordController = TextEditingController();
 
   bool get _needsAccount => FirebaseAuth.instance.currentUser == null;
-
-  // Guardado una sola vez en vez de llamarse dentro de build(): así,
-  // escribir en los campos de texto (que reconstruye la pantalla) no
-  // desconecta y vuelve a conectar este mismo listener, lo que hacía
-  // parpadear la lista de jugadores vacía por un instante cada vez.
-  late final Stream<List<Player>> _playersStream;
+  bool get _isNewPlayer => widget.selectedPlayerId == null;
 
   @override
   void initState() {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
     _fullNameController = TextEditingController(text: user?.displayName ?? '');
-    _playersStream = context.read<FirestoreService>().watchAllPlayers();
   }
 
   @override
@@ -91,54 +86,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '¡Ya casi! Solo falta ubicarte en la liga.',
+                _isNewPlayer
+                    ? '¡Ya casi! Escribe tu nombre para crear tu ficha.'
+                    : '¡Ya casi! Solo falta crear tu acceso.',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 20),
-              StreamBuilder<List<Player>>(
-                stream: _playersStream,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    );
-                  }
-                  final unlinked = snapshot.data!
-                      .where((p) => p.authUid == null)
-                      .toList();
-                  return DropdownButtonFormField<String>(
-                    initialValue: _selectedPlayerId,
-                    decoration: const InputDecoration(
-                      labelText: '¿Ya estás en la lista de jugadores?',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: _newPlayerSentinel,
-                        child: Text('Soy nuevo, no estoy en la lista'),
-                      ),
-                      ...unlinked.map(
-                        (p) => DropdownMenuItem(
-                          value: p.id,
-                          child: Text('Soy ${p.fullName}'),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) => setState(
-                      () => _selectedPlayerId = value ?? _newPlayerSentinel,
-                    ),
-                  );
-                },
-              ),
-              if (_selectedPlayerId == _newPlayerSentinel) ...[
-                const SizedBox(height: 12),
+              if (_isNewPlayer) ...[
+                const SizedBox(height: 20),
                 TextField(
                   controller: _fullNameController,
                   decoration: const InputDecoration(
@@ -291,7 +245,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         }
       }
 
-      if (_selectedPlayerId == _newPlayerSentinel) {
+      if (_isNewPlayer) {
         final fullName = _fullNameController.text.trim();
         if (fullName.isEmpty) {
           if (!mounted) return;
@@ -311,7 +265,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       } else {
         await FirebaseFirestore.instance
             .collection('players')
-            .doc(_selectedPlayerId)
+            .doc(widget.selectedPlayerId)
             .update({'authUid': uid});
       }
 

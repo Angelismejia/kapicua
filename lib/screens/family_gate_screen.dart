@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'auth_screen.dart';
-import 'complete_profile_screen.dart';
 import 'main_shell.dart';
+import 'select_player_screen.dart';
 
 /// Se pasa en tiempo de compilación (--dart-define=FAMILY_PIN=...) para
 /// que no quede escrito en el código ni en git.
@@ -127,7 +127,7 @@ class _FamilyGateScreenState extends State<FamilyGateScreen> {
     }
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const CompleteProfileScreen()),
+      MaterialPageRoute(builder: (_) => const SelectPlayerScreen()),
     );
   }
 
