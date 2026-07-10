@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import 'auth_gate.dart';
+import 'main_shell.dart';
 import 'signup_pin_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -183,41 +186,61 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _error = 'Escribe tu correo y contraseña.');
       return;
     }
+    debugPrint('[Login] Botón de login presionado');
     setState(() {
       _loading = true;
       _error = null;
       _statusMessage = 'Conectando con el servidor...';
     });
     _startElapsedTimer();
+
     String? error;
     try {
+      debugPrint('[Login] Iniciando autenticación');
       error = await auth.signIn(email, password);
-      if (error == null) {
-        if (mounted) {
-          setState(() => _statusMessage = 'Sesión iniciada, cargando...');
-        }
-        try {
-          TextInput.finishAutofillContext();
-        } catch (_) {
-          // El autofill del navegador es una ayuda extra, no debe poder
-          // dejar el botón "cargando" pegado si falla.
-        }
-      }
     } catch (e) {
       // Red de seguridad: nada debe poder fallar en silencio. Si algo
       // no esperado se escapa de auth.signIn, se muestra tal cual en
       // vez de dejar la pantalla sin ninguna explicación.
       error = 'Error inesperado: $e';
-    } finally {
-      if (error != null) _stopElapsedTimer();
-      if (mounted) {
-        setState(() {
-          _loading = error == null;
-          _error = error;
-          _statusMessage = null;
-        });
-      }
+      debugPrint('[Login] Excepción inesperada: $e');
     }
+
+    _stopElapsedTimer();
+    if (!mounted) return;
+
+    if (error != null) {
+      debugPrint('[Login] Error de autenticación: $error');
+      setState(() {
+        _loading = false;
+        _error = error;
+        _statusMessage = null;
+      });
+      debugPrint('[Login] Loader finalizado');
+      return;
+    }
+
+    debugPrint(
+      '[Login] Firebase respondió correctamente. '
+      'Usuario autenticado: ${auth.currentUser?.uid}',
+    );
+    try {
+      TextInput.finishAutofillContext();
+    } catch (_) {
+      // El autofill del navegador es una ayuda extra, no debe poder
+      // dejar el botón "cargando" pegado si falla.
+    }
+
+    // No se espera a que authStateChanges() avise por su cuenta: ese
+    // aviso puede tardar o no llegar a tiempo y deja la pantalla
+    // esperando para siempre aunque el login ya haya funcionado. Se
+    // navega de inmediato con el resultado que ya se tiene.
+    debugPrint('[Login] Mostrando Inicio');
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => PlayerLookupGate(uid: auth.currentUser!.uid),
+      ),
+    );
   }
 
   Future<void> _forgotPassword(AuthService auth) async {
@@ -284,8 +307,15 @@ class _AuthScreenState extends State<AuthScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error)));
+      return;
     }
-    // Si no hubo error, la pantalla se reemplaza sola (main.dart detecta
-    // la sesión anónima nueva), así que no hace falta apagar _loading.
+    // Se navega de inmediato en vez de esperar a que authStateChanges()
+    // avise por su cuenta (ese aviso puede tardar o no llegar a tiempo).
+    final firestoreService = context.read<FirestoreService>();
+    firestoreService.isGuest = true;
+    firestoreService.guestUid = auth.currentUser?.uid;
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
   }
 }

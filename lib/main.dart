@@ -5,9 +5,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
-import 'models/player.dart';
+import 'screens/auth_gate.dart';
 import 'screens/auth_screen.dart';
-import 'screens/family_gate_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
@@ -38,158 +37,6 @@ Widget _loadingScaffold() {
       ),
     ),
   );
-}
-
-/// Límite de tiempo para las consultas de Firestore que deciden qué
-/// pantalla mostrar justo después de iniciar sesión. Sin esto, una
-/// consulta que se traba por mala señal deja la pantalla de carga para
-/// siempre, sin ningún error ni forma de reintentar.
-const _kGateTimeout = Duration(seconds: 15);
-
-Widget _errorScaffold(String message, VoidCallback onRetry) {
-  return Scaffold(
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.wifi_off_rounded, size: 40),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// Resuelve si el usuario entra como invitado o debe ver el PIN familiar.
-/// Guarda el Future en el estado para no repetir la consulta cada vez que
-/// la lista de jugadores se actualiza (lo que antes hacía parpadear la
-/// pantalla de carga).
-class _GuestOrFamilyGate extends StatefulWidget {
-  final String uid;
-
-  const _GuestOrFamilyGate({required this.uid});
-
-  @override
-  State<_GuestOrFamilyGate> createState() => _GuestOrFamilyGateState();
-}
-
-class _GuestOrFamilyGateState extends State<_GuestOrFamilyGate> {
-  late Future<bool> _guestFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _startLookup();
-  }
-
-  void _startLookup() {
-    _guestFuture = context
-        .read<FirestoreService>()
-        .hasGuestProfile(widget.uid)
-        .timeout(_kGateTimeout);
-  }
-
-  @override
-  void didUpdateWidget(covariant _GuestOrFamilyGate oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.uid != widget.uid) {
-      _startLookup();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final firestoreService = context.read<FirestoreService>();
-    return FutureBuilder<bool>(
-      future: _guestFuture,
-      builder: (context, guestSnapshot) {
-        if (guestSnapshot.connectionState == ConnectionState.waiting) {
-          return _loadingScaffold();
-        }
-        if (guestSnapshot.hasError) {
-          return _errorScaffold(
-            'No se pudo conectar. Revisa tu conexión e intenta de nuevo.',
-            () => setState(_startLookup),
-          );
-        }
-        if (guestSnapshot.data == true) {
-          firestoreService.isGuest = true;
-          firestoreService.guestUid = widget.uid;
-          return const MainShell();
-        }
-        return const FamilyGateScreen();
-      },
-    );
-  }
-}
-
-/// Busca el jugador vinculado a esta cuenta una sola vez por uid, en vez
-/// de volver a consultar cada vez que se reconstruye el widget (algo que
-/// puede pasar más de una vez seguida justo al iniciar sesión, si no se
-/// memoriza el Future esto reinicia la consulta cada vez y la pantalla
-/// se queda pegada esperando sin avanzar nunca).
-class _PlayerLookupGate extends StatefulWidget {
-  final String uid;
-
-  const _PlayerLookupGate({required this.uid});
-
-  @override
-  State<_PlayerLookupGate> createState() => _PlayerLookupGateState();
-}
-
-class _PlayerLookupGateState extends State<_PlayerLookupGate> {
-  late Future<Player?> _playerFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _startLookup();
-  }
-
-  void _startLookup() {
-    _playerFuture = context
-        .read<FirestoreService>()
-        .findPlayerByAuthUid(widget.uid)
-        .timeout(_kGateTimeout);
-  }
-
-  @override
-  void didUpdateWidget(covariant _PlayerLookupGate oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.uid != widget.uid) {
-      _startLookup();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final firestoreService = context.read<FirestoreService>();
-    return FutureBuilder<Player?>(
-      future: _playerFuture,
-      builder: (context, playerSnapshot) {
-        if (playerSnapshot.connectionState == ConnectionState.waiting) {
-          return _loadingScaffold();
-        }
-        if (playerSnapshot.hasError) {
-          return _errorScaffold(
-            'No se pudo conectar. Revisa tu conexión e intenta de nuevo.',
-            () => setState(_startLookup),
-          );
-        }
-        if (playerSnapshot.data != null) {
-          firestoreService.isGuest = false;
-          return const MainShell();
-        }
-        return _GuestOrFamilyGate(uid: widget.uid);
-      },
-    );
-  }
 }
 
 class KapicuaApp extends StatelessWidget {
@@ -316,7 +163,7 @@ class KapicuaApp extends StatelessWidget {
                 firestoreService.isGuest = false;
                 firestoreService.guestUid = null;
 
-                return _PlayerLookupGate(uid: user.uid);
+                return PlayerLookupGate(uid: user.uid);
               },
             ),
           );
