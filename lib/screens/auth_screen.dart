@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -25,29 +23,8 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Contador visible de segundos mientras carga: para saber con certeza
-  // si la app sigue "viva" esperando una respuesta o si el navegador se
-  // congeló por completo (si el contador también se detiene, es el
-  // segundo caso).
-  Timer? _elapsedTimer;
-  int _elapsedSeconds = 0;
-
-  void _startElapsedTimer() {
-    _elapsedSeconds = 0;
-    _elapsedTimer?.cancel();
-    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _elapsedSeconds++);
-    });
-  }
-
-  void _stopElapsedTimer() {
-    _elapsedTimer?.cancel();
-    _elapsedTimer = null;
-  }
-
   @override
   void dispose() {
-    _elapsedTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -136,8 +113,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   const CircularProgressIndicator(),
                   const SizedBox(height: 12),
                   Text(
-                    '${_statusMessage ?? 'Un momento...'} '
-                    '($_elapsedSeconds s)',
+                    _statusMessage ?? 'Un momento...',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ] else ...[
@@ -192,7 +168,6 @@ class _AuthScreenState extends State<AuthScreen> {
       _error = null;
       _statusMessage = 'Conectando con el servidor...';
     });
-    _startElapsedTimer();
 
     String? error;
     try {
@@ -206,7 +181,6 @@ class _AuthScreenState extends State<AuthScreen> {
       debugPrint('[Login] Excepción inesperada: $e');
     }
 
-    _stopElapsedTimer();
     if (!mounted) return;
 
     if (error != null) {
