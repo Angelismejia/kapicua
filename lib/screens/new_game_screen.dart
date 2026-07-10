@@ -22,6 +22,11 @@ class _NewGameScreenState extends State<NewGameScreen> {
   int? _selectedPreset = 200;
   final _customTargetController = TextEditingController();
   bool _creating = false;
+  // Para jugar suelto sin tener que agregar a nadie primero: los
+  // equipos quedan como "Casa"/"Visita" (renombrables luego desde el
+  // anotador) y la partida no queda ligada a ningún jugador ni
+  // estadística.
+  bool _quickMode = false;
 
   @override
   void dispose() {
@@ -33,98 +38,136 @@ class _NewGameScreenState extends State<NewGameScreen> {
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nueva partida'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add_alt_1),
-            tooltip: 'Agregar jugador a la liga',
-            onPressed: () => showAddPlayerDialog(context, firestore),
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<Player>>(
-        stream: firestore.watchActivePlayers(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final players = snapshot.data!;
-          if (players.isEmpty) {
-            return const Center(
-              child: Text(
-                'Agrega jugadores primero desde la pantalla de Jugadores.',
+    return StreamBuilder<List<Player>>(
+      stream: firestore.watchActivePlayers(),
+      builder: (context, snapshot) {
+        final players = snapshot.data ?? [];
+        // Sin nadie agregado todavía, no tiene caso ofrecer el
+        // interruptor: se juega rápido sí o sí.
+        final quickMode = _quickMode || players.isEmpty;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Nueva partida'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.person_add_alt_1),
+                tooltip: 'Agregar jugador a la liga',
+                onPressed: () => showAddPlayerDialog(context, firestore),
               ),
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                'Meta de puntos',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final preset in _targetPresets)
-                    ChoiceChip(
-                      label: Text('$preset'),
-                      selected: _selectedPreset == preset,
-                      onSelected: (_) =>
-                          setState(() => _selectedPreset = preset),
-                    ),
-                  ChoiceChip(
-                    label: const Text('Personalizado'),
-                    selected: _selectedPreset == null,
-                    onSelected: (_) => setState(() => _selectedPreset = null),
-                  ),
-                ],
-              ),
-              if (_selectedPreset == null) ...[
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _customTargetController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Meta personalizada',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              _TeamPicker(
-                label: 'Casa',
-                players: players,
-                selected: _teamA,
-                otherTeam: _teamB,
-                onChanged: () => setState(() {}),
-              ),
-              const SizedBox(height: 20),
-              _TeamPicker(
-                label: 'Visita',
-                players: players,
-                selected: _teamB,
-                otherTeam: _teamA,
-                onChanged: () => setState(() {}),
-              ),
-              const SizedBox(height: 80),
             ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _creating ? null : () => _startGame(firestore),
-        icon: const Icon(Icons.play_arrow),
-        label: const Text('Iniciar'),
-      ),
+          ),
+          body: !snapshot.hasData
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      'Meta de puntos',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final preset in _targetPresets)
+                          ChoiceChip(
+                            label: Text('$preset'),
+                            selected: _selectedPreset == preset,
+                            onSelected: (_) =>
+                                setState(() => _selectedPreset = preset),
+                          ),
+                        ChoiceChip(
+                          label: const Text('Personalizado'),
+                          selected: _selectedPreset == null,
+                          onSelected: (_) =>
+                              setState(() => _selectedPreset = null),
+                        ),
+                      ],
+                    ),
+                    if (_selectedPreset == null) ...[
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _customTargetController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Meta personalizada',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    if (players.isNotEmpty)
+                      Card(
+                        child: SwitchListTile(
+                          title: const Text('Jugar rápido sin agregar nombres'),
+                          subtitle: const Text(
+                            'Equipos "Casa" y "Visita" genéricos, sin ligar la '
+                            'partida a ningún jugador.',
+                          ),
+                          value: quickMode,
+                          onChanged: (value) =>
+                              setState(() => _quickMode = value),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    if (quickMode)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            players.isEmpty
+                                ? 'Vas a jugar entre "Casa" y "Visita". Puedes '
+                                      'renombrarlos luego desde el anotador, o '
+                                      'agregar jugadores primero con el ícono de '
+                                      'arriba si quieres llevar sus nombres.'
+                                : 'Vas a jugar entre "Casa" y "Visita", sin '
+                                      'ligar la partida a ningún jugador. '
+                                      'Puedes renombrarlos luego desde el '
+                                      'anotador.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      )
+                    else ...[
+                      _TeamPicker(
+                        label: 'Casa',
+                        players: players,
+                        selected: _teamA,
+                        otherTeam: _teamB,
+                        onChanged: () => setState(() {}),
+                      ),
+                      const SizedBox(height: 20),
+                      _TeamPicker(
+                        label: 'Visita',
+                        players: players,
+                        selected: _teamB,
+                        otherTeam: _teamA,
+                        onChanged: () => setState(() {}),
+                      ),
+                    ],
+                    const SizedBox(height: 80),
+                  ],
+                ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _creating
+                ? null
+                : () => _startGame(firestore, isQuickMode: quickMode),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Iniciar'),
+          ),
+        );
+      },
     );
   }
 
-  Future<void> _startGame(FirestoreService firestore) async {
+  Future<void> _startGame(
+    FirestoreService firestore, {
+    required bool isQuickMode,
+  }) async {
     final target =
         _selectedPreset ?? int.tryParse(_customTargetController.text.trim());
     if (target == null || target <= 0) {
@@ -133,7 +176,7 @@ class _NewGameScreenState extends State<NewGameScreen> {
       );
       return;
     }
-    if (_teamA.isEmpty || _teamB.isEmpty) {
+    if (!isQuickMode && (_teamA.isEmpty || _teamB.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecciona al menos 1 jugador por equipo.'),
@@ -144,8 +187,8 @@ class _NewGameScreenState extends State<NewGameScreen> {
     setState(() => _creating = true);
     try {
       final gameId = await firestore.createGame(
-        _teamA.toList(),
-        _teamB.toList(),
+        isQuickMode ? const [] : _teamA.toList(),
+        isQuickMode ? const [] : _teamB.toList(),
         target,
       );
       if (!mounted) return;

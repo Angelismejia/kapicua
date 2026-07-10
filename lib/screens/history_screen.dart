@@ -51,12 +51,16 @@ class HistoryScreen extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final game = games[index];
-                  final teamAName = game.teamAPlayerIds
-                      .map((id) => players[id] ?? '...')
-                      .join(' y ');
-                  final teamBName = game.teamBPlayerIds
-                      .map((id) => players[id] ?? '...')
-                      .join(' y ');
+                  final teamAName = game.teamAPlayerIds.isEmpty
+                      ? (game.teamALabel ?? 'Casa')
+                      : game.teamAPlayerIds
+                            .map((id) => players[id] ?? '...')
+                            .join(' y ');
+                  final teamBName = game.teamBPlayerIds.isEmpty
+                      ? (game.teamBLabel ?? 'Visita')
+                      : game.teamBPlayerIds
+                            .map((id) => players[id] ?? '...')
+                            .join(' y ');
                   final teamAWon = game.winner == 'A';
 
                   return _GameCard(

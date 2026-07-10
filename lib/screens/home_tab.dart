@@ -217,12 +217,16 @@ class _HomeTabState extends State<HomeTab> {
                           const SizedBox(height: 20),
                           _ActiveGameCard(
                             targetScore: game.targetScore,
-                            teamAName: game.teamAPlayerIds
-                                .map((id) => playerNames[id] ?? '...')
-                                .join(' y '),
-                            teamBName: game.teamBPlayerIds
-                                .map((id) => playerNames[id] ?? '...')
-                                .join(' y '),
+                            teamAName: game.teamAPlayerIds.isEmpty
+                                ? (game.teamALabel ?? 'Casa')
+                                : game.teamAPlayerIds
+                                      .map((id) => playerNames[id] ?? '...')
+                                      .join(' y '),
+                            teamBName: game.teamBPlayerIds.isEmpty
+                                ? (game.teamBLabel ?? 'Visita')
+                                : game.teamBPlayerIds
+                                      .map((id) => playerNames[id] ?? '...')
+                                      .join(' y '),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
