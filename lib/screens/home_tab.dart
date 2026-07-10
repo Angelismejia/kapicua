@@ -136,12 +136,12 @@ class _HomeTabState extends State<HomeTab> {
               stream: _statEntriesStream,
               builder: (context, entriesSnap) {
                 final statEntries = entriesSnap.data ?? [];
-                final championMessages = _championMessages(
-                  statEntries,
-                  activePlayers,
-                  me,
-                  auth,
-                );
+                // Quien entra sin cuenta juega suelto, sin liga ni
+                // competencia real con nadie más — no tiene sentido
+                // hablarle de "quién va ganando" ni de hitos de la liga.
+                final championMessages = isGuest
+                    ? <String>[]
+                    : _championMessages(statEntries, activePlayers, me, auth);
 
                 return SafeArea(
                   child: AnimatedOpacity(
@@ -161,6 +161,7 @@ class _HomeTabState extends State<HomeTab> {
                             activePlayers,
                             statEntries,
                             auth,
+                            isGuest,
                           ),
                           onSettingsTap: () => Navigator.push(
                             context,
@@ -193,8 +194,10 @@ class _HomeTabState extends State<HomeTab> {
                           onAddPlayer: () =>
                               showAddPlayerDialog(context, firestore),
                         ),
-                        const SizedBox(height: 20),
-                        _ChampionCarousel(messages: championMessages),
+                        if (!isGuest) ...[
+                          const SizedBox(height: 20),
+                          _ChampionCarousel(messages: championMessages),
+                        ],
                         for (final game in activeGames) ...[
                           const SizedBox(height: 20),
                           _ActiveGameCard(
@@ -275,63 +278,69 @@ class _HomeTabState extends State<HomeTab> {
     List<Player> allPlayers,
     List<PlayerStatEntry> statEntries,
     AuthService auth,
+    bool isGuest,
   ) {
     final notifications = <_Notification>[];
     final now = DateTime.now();
 
-    // Campeón del mes anterior: se avisa durante los primeros días del
-    // mes nuevo, mientras sigue siendo noticia reciente.
-    if (now.day <= 5) {
-      final previousMonth = DateTime(now.year, now.month - 1);
-      final lastMonthWinner = computeMonthlyWinner(
-        statEntries,
-        allPlayers,
-        previousMonth,
-      );
-      if (lastMonthWinner != null) {
-        final label = DateFormat('MMMM', 'es').format(previousMonth);
+    // Quien entra sin cuenta juega suelto, sin liga ni competencia real
+    // con nadie más — todo lo de "quién va ganando" o campeón del mes
+    // solo tiene sentido para la familia registrada.
+    if (!isGuest) {
+      // Campeón del mes anterior: se avisa durante los primeros días del
+      // mes nuevo, mientras sigue siendo noticia reciente.
+      if (now.day <= 5) {
+        final previousMonth = DateTime(now.year, now.month - 1);
+        final lastMonthWinner = computeMonthlyWinner(
+          statEntries,
+          allPlayers,
+          previousMonth,
+        );
+        if (lastMonthWinner != null) {
+          final label = DateFormat('MMMM', 'es').format(previousMonth);
+          notifications.add(
+            _Notification(
+              icon: Icons.emoji_events_rounded,
+              message:
+                  '${lastMonthWinner.player.displayName} se llevó $label '
+                  'con ${lastMonthWinner.wins} victorias. ¡A celebrar!',
+            ),
+          );
+        }
+      }
+
+      // Competencia reñida: si los dos que más ganan este mes están a lo
+      // sumo a 1 victoria de diferencia, se avisa. Solo cuenta a
+      // jugadores activos (si alguien quedó inactivo, no debe seguir
+      // apareciendo como si todavía estuviera compitiendo).
+      final activeIds = allPlayers.map((p) => p.id).toSet();
+      final currentMonthWins = <String, int>{};
+      for (final e in statEntries) {
+        if (!e.isWin) continue;
+        if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
+          continue;
+        }
+        if (!activeIds.contains(e.playerId)) continue;
+        currentMonthWins[e.playerId] = (currentMonthWins[e.playerId] ?? 0) + 1;
+      }
+      final ranked = currentMonthWins.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      if (ranked.length >= 2 &&
+          ranked[1].value > 0 &&
+          ranked[0].value - ranked[1].value <= 1) {
+        final nameA = allPlayers
+            .firstWhere((p) => p.id == ranked[0].key)
+            .displayName;
+        final nameB = allPlayers
+            .firstWhere((p) => p.id == ranked[1].key)
+            .displayName;
         notifications.add(
           _Notification(
-            icon: Icons.emoji_events_rounded,
-            message:
-                '${lastMonthWinner.player.displayName} se llevó $label '
-                'con ${lastMonthWinner.wins} victorias. ¡A celebrar!',
+            icon: Icons.bolt_rounded,
+            message: '¡Reñida competencia este mes entre $nameA y $nameB!',
           ),
         );
       }
-    }
-
-    // Competencia reñida: si los dos que más ganan este mes están a lo
-    // sumo a 1 victoria de diferencia, se avisa. Solo cuenta a jugadores
-    // activos (si alguien quedó inactivo, no debe seguir apareciendo
-    // como si todavía estuviera compitiendo).
-    final activeIds = allPlayers.map((p) => p.id).toSet();
-    final currentMonthWins = <String, int>{};
-    for (final e in statEntries) {
-      if (!e.isWin) continue;
-      if (e.createdAt.year != now.year || e.createdAt.month != now.month) {
-        continue;
-      }
-      if (!activeIds.contains(e.playerId)) continue;
-      currentMonthWins[e.playerId] = (currentMonthWins[e.playerId] ?? 0) + 1;
-    }
-    final ranked = currentMonthWins.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    if (ranked.length >= 2 &&
-        ranked[1].value > 0 &&
-        ranked[0].value - ranked[1].value <= 1) {
-      final nameA = allPlayers
-          .firstWhere((p) => p.id == ranked[0].key)
-          .displayName;
-      final nameB = allPlayers
-          .firstWhere((p) => p.id == ranked[1].key)
-          .displayName;
-      notifications.add(
-        _Notification(
-          icon: Icons.bolt_rounded,
-          message: '¡Reñida competencia este mes entre $nameA y $nameB!',
-        ),
-      );
     }
 
     // Ánimo: si todavía no eres quien más gana este mes, un empujoncito.
@@ -415,17 +424,21 @@ class _HomeTabState extends State<HomeTab> {
     }
 
     // Chismes de la liga: le llegan a todos, no solo al jugador vinculado.
-    for (final player in allPlayers) {
-      final streak = _currentWinStreak(player.id, statEntries);
-      if (streak >= 3) {
-        notifications.add(
-          _Notification(
-            icon: Icons.local_fire_department_rounded,
-            message:
-                '¡${player.displayName} va en una lisa de $streak '
-                'partidas seguidas!',
-          ),
-        );
+    // No aplica a quien entra sin cuenta (no hay "liga" de la que
+    // chismear).
+    if (!isGuest) {
+      for (final player in allPlayers) {
+        final streak = _currentWinStreak(player.id, statEntries);
+        if (streak >= 3) {
+          notifications.add(
+            _Notification(
+              icon: Icons.local_fire_department_rounded,
+              message:
+                  '¡${player.displayName} va en una lisa de $streak '
+                  'partidas seguidas!',
+            ),
+          );
+        }
       }
     }
 
