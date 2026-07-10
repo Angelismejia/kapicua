@@ -113,6 +113,13 @@ class _HomeTabState extends State<HomeTab> {
     return StreamBuilder<List<Player>>(
       stream: _playersStream,
       builder: (context, allPlayersSnap) {
+        // Mientras no ha llegado ni un solo dato todavía (justo después
+        // de iniciar sesión), se muestra cargando en vez de dibujar la
+        // pantalla con todo en cero — si no, por un instante se ve como
+        // si se hubiera perdido todo, y da un susto sin necesidad.
+        if (!allPlayersSnap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final allPlayers = allPlayersSnap.data ?? [];
         // En vez de un segundo listener a Firestore solo para los
         // activos, se filtran los mismos jugadores ya cargados arriba
@@ -142,6 +149,13 @@ class _HomeTabState extends State<HomeTab> {
                 final championMessages = isGuest
                     ? <String>[]
                     : _championMessages(statEntries, activePlayers, me, auth);
+                final hasNotifications = _buildNotifications(
+                  me,
+                  activePlayers,
+                  statEntries,
+                  auth,
+                  isGuest,
+                ).isNotEmpty;
 
                 return SafeArea(
                   child: AnimatedOpacity(
@@ -155,6 +169,7 @@ class _HomeTabState extends State<HomeTab> {
                           greeting: _greetingPrefix,
                           name: me?.displayName,
                           photoBase64: me?.photoBase64,
+                          hasNotifications: hasNotifications,
                           onNotificationsTap: () => _showNotifications(
                             context,
                             me,
@@ -272,8 +287,7 @@ class _HomeTabState extends State<HomeTab> {
     return streak;
   }
 
-  void _showNotifications(
-    BuildContext context,
+  List<_Notification> _buildNotifications(
     Player? me,
     List<Player> allPlayers,
     List<PlayerStatEntry> statEntries,
@@ -441,6 +455,25 @@ class _HomeTabState extends State<HomeTab> {
         }
       }
     }
+
+    return notifications;
+  }
+
+  void _showNotifications(
+    BuildContext context,
+    Player? me,
+    List<Player> allPlayers,
+    List<PlayerStatEntry> statEntries,
+    AuthService auth,
+    bool isGuest,
+  ) {
+    final notifications = _buildNotifications(
+      me,
+      allPlayers,
+      statEntries,
+      auth,
+      isGuest,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -614,6 +647,7 @@ class _Header extends StatelessWidget {
   final String greeting;
   final String? name;
   final String? photoBase64;
+  final bool hasNotifications;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onProfileTap;
@@ -622,6 +656,7 @@ class _Header extends StatelessWidget {
     required this.greeting,
     required this.name,
     required this.photoBase64,
+    required this.hasNotifications,
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onProfileTap,
@@ -637,13 +672,35 @@ class _Header extends StatelessWidget {
         Row(
           children: [
             const Spacer(),
-            IconButton(
-              icon: Icon(
-                Icons.notifications_none_rounded,
-                color: context.homeTextColor,
-              ),
-              tooltip: 'Notificaciones',
-              onPressed: onNotificationsTap,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.notifications_none_rounded,
+                    color: context.homeTextColor,
+                  ),
+                  tooltip: 'Notificaciones',
+                  onPressed: onNotificationsTap,
+                ),
+                if (hasNotifications)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: context.cardColor,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             IconButton(
               icon: Icon(Icons.settings_outlined, color: context.homeTextColor),
