@@ -15,7 +15,10 @@ class PlayersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
-    final isAdmin = context.watch<AuthService>().isAdmin;
+    // Un invitado no es "administrador", pero su espacio es privado y
+    // solo suyo — nadie más lo comparte, así que puede manejarlo
+    // libremente igual que un admin maneja la liga de la familia.
+    final canManage = context.watch<AuthService>().isAdmin || firestore.isGuest;
 
     return StreamBuilder<List<Player>>(
       stream: firestore.watchAllPlayers(),
@@ -25,7 +28,7 @@ class PlayersScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Jugadores'),
             actions: [
-              if (isAdmin && players.length >= 2)
+              if (canManage && players.length >= 2)
                 IconButton(
                   icon: const Icon(Icons.merge_type_rounded),
                   tooltip: 'Unificar jugadores duplicados',
@@ -57,7 +60,7 @@ class PlayersScreen extends StatelessWidget {
                             (player) => _playerTile(
                               context,
                               firestore,
-                              isAdmin,
+                              canManage,
                               player,
                             ),
                           ),
@@ -78,7 +81,7 @@ class PlayersScreen extends StatelessWidget {
                                   (player) => _playerTile(
                                     context,
                                     firestore,
-                                    isAdmin,
+                                    canManage,
                                     player,
                                   ),
                                 )
@@ -96,7 +99,7 @@ class PlayersScreen extends StatelessWidget {
   Widget _playerTile(
     BuildContext context,
     FirestoreService firestore,
-    bool isAdmin,
+    bool canManage,
     Player player,
   ) {
     return ListTile(
@@ -105,7 +108,7 @@ class PlayersScreen extends StatelessWidget {
       subtitle: player.shortName != null && player.shortName!.isNotEmpty
           ? Text(player.fullName)
           : null,
-      trailing: !isAdmin
+      trailing: !canManage
           ? null
           : Row(
               mainAxisSize: MainAxisSize.min,

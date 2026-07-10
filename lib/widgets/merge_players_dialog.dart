@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../models/player.dart';
 import '../services/firestore_service.dart';
 
-/// Diálogo (solo para admins) para unificar dos fichas de jugador que en
-/// realidad son la misma persona — ej. alguien perdió el acceso a su
-/// cuenta vieja y se registró de nuevo, quedando dos jugadores
-/// duplicados con su historial repartido entre ambos.
+/// Diálogo (solo para admins de la familia, o para un invitado en su
+/// propio espacio) para unificar dos fichas de jugador que en realidad
+/// son la misma persona — ej. alguien perdió el acceso a su cuenta
+/// vieja y se registró de nuevo, quedando dos jugadores duplicados con
+/// su historial repartido entre ambos.
 void showMergePlayersDialog(
   BuildContext context,
   FirestoreService firestore,
