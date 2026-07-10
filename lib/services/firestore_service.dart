@@ -162,6 +162,38 @@ class FirestoreService {
     await _players.doc(playerId).update({'photoBase64': photoBase64});
   }
 
+  /// Si ya tiene alguna ganada o perdida registrada, o jugó alguna
+  /// partida, borrarlo del todo haría que desaparezca de certificados y
+  /// estadísticas viejas.
+  Future<bool> _hasHistory(String playerId) async {
+    final hasStats = await _statEntries(playerId).limit(1).get();
+    if (hasStats.docs.isNotEmpty) return true;
+    final usedInA = await _games
+        .where('teamAPlayerIds', arrayContains: playerId)
+        .limit(1)
+        .get();
+    if (usedInA.docs.isNotEmpty) return true;
+    final usedInB = await _games
+        .where('teamBPlayerIds', arrayContains: playerId)
+        .limit(1)
+        .get();
+    return usedInB.docs.isNotEmpty;
+  }
+
+  /// Elimina el jugador de forma permanente. Solo se deja si nunca tuvo
+  /// ganadas, perdidas ni partidas registradas — si no, se perdería su
+  /// historial de certificados y estadísticas para siempre.
+  Future<void> deletePlayerPermanently(String playerId) async {
+    if (await _hasHistory(playerId)) {
+      throw Exception(
+        'No se puede eliminar para siempre: tiene ganadas, perdidas o '
+        'partidas registradas y se perderían de las estadísticas y '
+        'certificados. Puedes dejarlo inactivo en su lugar.',
+      );
+    }
+    await _players.doc(playerId).delete();
+  }
+
   /// Une a dos fichas de jugador que en realidad son la misma persona
   /// (ej. perdió el acceso a su cuenta vieja y se registró de nuevo con
   /// otro correo, quedando dos jugadores separados con su mismo nombre).

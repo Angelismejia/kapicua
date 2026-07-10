@@ -124,12 +124,19 @@ class PlayersScreen extends StatelessWidget {
                     tooltip: 'Marcar como inactivo',
                     onPressed: () => _confirmRemove(context, firestore, player),
                   )
-                else
+                else ...[
                   IconButton(
                     icon: const Icon(Icons.restore),
                     tooltip: 'Reactivar',
                     onPressed: () => firestore.reactivatePlayer(player.id),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever_outlined),
+                    tooltip: 'Eliminar para siempre',
+                    onPressed: () =>
+                        _confirmPermanentDelete(context, firestore, player),
+                  ),
+                ],
               ],
             ),
     );
@@ -239,6 +246,48 @@ class PlayersScreen extends StatelessWidget {
               Navigator.pop(dialogContext);
             },
             child: const Text('Marcar inactivo'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmPermanentDelete(
+    BuildContext context,
+    FirestoreService firestore,
+    Player player,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar para siempre'),
+        content: Text(
+          '¿Borrar a ${player.displayName} para siempre? Si ya tiene '
+          'ganadas, perdidas o partidas registradas, no se va a poder '
+          'borrar (para no perder su historial de certificados y '
+          'estadísticas). Esto no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await firestore.deletePlayerPermanently(player.id);
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))),
+                );
+              }
+            },
+            child: const Text('Eliminar para siempre'),
           ),
         ],
       ),
