@@ -40,6 +40,32 @@ Widget _loadingScaffold() {
   );
 }
 
+/// Límite de tiempo para las consultas de Firestore que deciden qué
+/// pantalla mostrar justo después de iniciar sesión. Sin esto, una
+/// consulta que se traba por mala señal deja la pantalla de carga para
+/// siempre, sin ningún error ni forma de reintentar.
+const _kGateTimeout = Duration(seconds: 15);
+
+Widget _errorScaffold(String message, VoidCallback onRetry) {
+  return Scaffold(
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded, size: 40),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 /// Resuelve si el usuario entra como invitado o debe ver el PIN familiar.
 /// Guarda el Future en el estado para no repetir la consulta cada vez que
 /// la lista de jugadores se actualiza (lo que antes hacía parpadear la
@@ -59,16 +85,21 @@ class _GuestOrFamilyGateState extends State<_GuestOrFamilyGate> {
   @override
   void initState() {
     super.initState();
-    _guestFuture = context.read<FirestoreService>().hasGuestProfile(widget.uid);
+    _startLookup();
+  }
+
+  void _startLookup() {
+    _guestFuture = context
+        .read<FirestoreService>()
+        .hasGuestProfile(widget.uid)
+        .timeout(_kGateTimeout);
   }
 
   @override
   void didUpdateWidget(covariant _GuestOrFamilyGate oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.uid != widget.uid) {
-      _guestFuture = context.read<FirestoreService>().hasGuestProfile(
-        widget.uid,
-      );
+      _startLookup();
     }
   }
 
@@ -78,8 +109,14 @@ class _GuestOrFamilyGateState extends State<_GuestOrFamilyGate> {
     return FutureBuilder<bool>(
       future: _guestFuture,
       builder: (context, guestSnapshot) {
-        if (!guestSnapshot.hasData) {
+        if (guestSnapshot.connectionState == ConnectionState.waiting) {
           return _loadingScaffold();
+        }
+        if (guestSnapshot.hasError) {
+          return _errorScaffold(
+            'No se pudo conectar. Revisa tu conexión e intenta de nuevo.',
+            () => setState(_startLookup),
+          );
         }
         if (guestSnapshot.data == true) {
           firestoreService.isGuest = true;
@@ -112,18 +149,21 @@ class _PlayerLookupGateState extends State<_PlayerLookupGate> {
   @override
   void initState() {
     super.initState();
-    _playerFuture = context.read<FirestoreService>().findPlayerByAuthUid(
-      widget.uid,
-    );
+    _startLookup();
+  }
+
+  void _startLookup() {
+    _playerFuture = context
+        .read<FirestoreService>()
+        .findPlayerByAuthUid(widget.uid)
+        .timeout(_kGateTimeout);
   }
 
   @override
   void didUpdateWidget(covariant _PlayerLookupGate oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.uid != widget.uid) {
-      _playerFuture = context.read<FirestoreService>().findPlayerByAuthUid(
-        widget.uid,
-      );
+      _startLookup();
     }
   }
 
@@ -135,6 +175,12 @@ class _PlayerLookupGateState extends State<_PlayerLookupGate> {
       builder: (context, playerSnapshot) {
         if (playerSnapshot.connectionState == ConnectionState.waiting) {
           return _loadingScaffold();
+        }
+        if (playerSnapshot.hasError) {
+          return _errorScaffold(
+            'No se pudo conectar. Revisa tu conexión e intenta de nuevo.',
+            () => setState(_startLookup),
+          );
         }
         if (playerSnapshot.data != null) {
           firestoreService.isGuest = false;
