@@ -242,6 +242,14 @@ class _CertificadosTabState extends State<CertificadosTab> {
       body: StreamBuilder<List<Player>>(
         stream: _playersStream,
         builder: (context, playersSnap) {
+          // Esta pantalla vuelve a empezar de cero cada vez que se
+          // visita (para resetear al mes actual), así que mientras no ha
+          // llegado ni un solo dato todavía se muestra cargando en vez
+          // de la lista vacía — si no, se ve un parpadeo raro al
+          // cambiar de pestaña.
+          if (!playersSnap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final players = playersSnap.data ?? [];
 
           Player? me;

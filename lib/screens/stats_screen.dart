@@ -110,6 +110,13 @@ class _StatsScreenState extends State<StatsScreen> {
       body: StreamBuilder<List<Player>>(
         stream: _playersStream,
         builder: (context, playersSnapshot) {
+          // Mientras no ha llegado ni un solo dato todavía (esta pantalla
+          // vuelve a empezar de cero cada vez que se visita, para
+          // resetear el mes), se muestra cargando en vez de la lista
+          // vacía — si no, se ve un parpadeo raro al cambiar de pestaña.
+          if (!playersSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final players = playersSnapshot.data ?? [];
           return StreamBuilder<List<PlayerStatEntry>>(
             stream: _entriesStream,
@@ -268,6 +275,9 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
       body: StreamBuilder<List<Player>>(
         stream: _playersStream,
         builder: (context, playersSnapshot) {
+          if (!playersSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final players = playersSnapshot.data ?? [];
           return StreamBuilder<List<Game>>(
             stream: _gamesStream,
