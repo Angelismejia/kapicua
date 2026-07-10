@@ -30,11 +30,18 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   bool get _needsAccount => FirebaseAuth.instance.currentUser == null;
 
+  // Guardado una sola vez en vez de llamarse dentro de build(): así,
+  // escribir en los campos de texto (que reconstruye la pantalla) no
+  // desconecta y vuelve a conectar este mismo listener, lo que hacía
+  // parpadear la lista de jugadores vacía por un instante cada vez.
+  late final Stream<List<Player>> _playersStream;
+
   @override
   void initState() {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
     _fullNameController = TextEditingController(text: user?.displayName ?? '');
+    _playersStream = context.read<FirestoreService>().watchAllPlayers();
   }
 
   @override
@@ -89,9 +96,21 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               ),
               const SizedBox(height: 20),
               StreamBuilder<List<Player>>(
-                stream: firestore.watchAllPlayers(),
+                stream: _playersStream,
                 builder: (context, snapshot) {
-                  final unlinked = (snapshot.data ?? [])
+                  if (!snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    );
+                  }
+                  final unlinked = snapshot.data!
                       .where((p) => p.authUid == null)
                       .toList();
                   return DropdownButtonFormField<String>(
