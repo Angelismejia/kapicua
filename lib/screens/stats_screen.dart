@@ -121,6 +121,9 @@ class _StatsScreenState extends State<StatsScreen> {
           return StreamBuilder<List<PlayerStatEntry>>(
             stream: _entriesStream,
             builder: (context, entriesSnapshot) {
+              if (!entriesSnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
               final entries = (entriesSnapshot.data ?? []).where(
                 (e) =>
                     e.createdAt.year == _selectedMonth.year &&
@@ -282,6 +285,9 @@ class _GuestStatsBodyState extends State<_GuestStatsBody> {
           return StreamBuilder<List<Game>>(
             stream: _gamesStream,
             builder: (context, gamesSnapshot) {
+              if (!gamesSnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
               final games = gamesSnapshot.data ?? [];
 
               final stats =

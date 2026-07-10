@@ -260,6 +260,9 @@ class _CertificadosTabState extends State<CertificadosTab> {
           return StreamBuilder<List<PlayerStatEntry>>(
             stream: _entriesStream,
             builder: (context, entriesSnap) {
+              if (!entriesSnap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
               final entries = entriesSnap.data ?? [];
 
               // Si el mes no tiene ni una sola ganada o perdida registrada
