@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -7,35 +6,29 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 class PrintService {
-  // Hoja vertical (A4). El certificado es una imagen apaisada (más ancha
-  // que alta), así que la rotamos 90° para que llene la hoja vertical de
-  // borde a borde, sin recortar nada ni dejar espacio en blanco.
-  Future<Uint8List> _buildPdf(Uint8List pngBytes) async {
+  // Se arma según la hoja que pida el diálogo de impresión en ese
+  // momento (vertical u horizontal, la que haya elegido la persona), en
+  // vez de un tamaño fijo — así, cambiar de orientación en el diálogo
+  // del navegador sí ajusta el certificado, llenando la hoja completa
+  // sin recortar nada ni dejar espacio en blanco.
+  Future<Uint8List> _buildPdf(Uint8List pngBytes, PdfPageFormat format) async {
     final doc = pw.Document();
     final image = pw.MemoryImage(pngBytes);
-    const page = PdfPageFormat.a4;
     doc.addPage(
       pw.Page(
-        pageFormat: page,
+        pageFormat: format,
         margin: pw.EdgeInsets.zero,
-        build: (context) => pw.Center(
-          child: pw.Transform.rotateBox(
-            angle: math.pi / 2,
-            child: pw.SizedBox(
-              width: page.height,
-              height: page.width,
-              child: pw.Image(image, fit: pw.BoxFit.contain),
-            ),
-          ),
-        ),
+        build: (context) =>
+            pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
       ),
     );
     return doc.save();
   }
 
   Future<void> printCertificate(Uint8List pngBytes) async {
-    final bytes = await _buildPdf(pngBytes);
-    await Printing.layoutPdf(onLayout: (format) async => bytes);
+    await Printing.layoutPdf(
+      onLayout: (format) async => _buildPdf(pngBytes, format),
+    );
   }
 
   Future<void> shareCertificate(Uint8List pngBytes) async {
