@@ -4,7 +4,9 @@ class CertificatePositions {
   static const double canvasWidth = 1079;
   static const double canvasHeight = 767;
 
-  static const double capturePixelRatio = 2.0;
+  // Más bajo que 2.0 = imagen más liviana = el navegador tarda menos en
+  // "dibujar" el PDF antes de poder imprimir, sin perder nitidez notoria.
+  static const double capturePixelRatio = 1.5;
 
   static const Color textColor = Color(0xFF20443B);
 
