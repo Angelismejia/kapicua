@@ -21,7 +21,7 @@ class PrintService {
         pageFormat: format.landscape,
         margin: pw.EdgeInsets.zero,
         build: (context) =>
-            pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
+            pw.Center(child: pw.Image(image, fit: pw.BoxFit.cover)),
       ),
     );
     return doc.save();
