@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -20,8 +22,29 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  // Contador visible de segundos mientras carga: para saber con certeza
+  // si la app sigue "viva" esperando una respuesta o si el navegador se
+  // congeló por completo (si el contador también se detiene, es el
+  // segundo caso).
+  Timer? _elapsedTimer;
+  int _elapsedSeconds = 0;
+
+  void _startElapsedTimer() {
+    _elapsedSeconds = 0;
+    _elapsedTimer?.cancel();
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _elapsedSeconds++);
+    });
+  }
+
+  void _stopElapsedTimer() {
+    _elapsedTimer?.cancel();
+    _elapsedTimer = null;
+  }
+
   @override
   void dispose() {
+    _elapsedTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -108,13 +131,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 16),
                 if (_loading) ...[
                   const CircularProgressIndicator(),
-                  if (_statusMessage != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _statusMessage!,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                  const SizedBox(height: 12),
+                  Text(
+                    '${_statusMessage ?? 'Un momento...'} '
+                    '($_elapsedSeconds s)',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ] else ...[
                   SizedBox(
                     width: double.infinity,
@@ -166,6 +188,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _error = null;
       _statusMessage = 'Conectando con el servidor...';
     });
+    _startElapsedTimer();
     String? error;
     try {
       error = await auth.signIn(email, password);
@@ -186,6 +209,7 @@ class _AuthScreenState extends State<AuthScreen> {
       // vez de dejar la pantalla sin ninguna explicación.
       error = 'Error inesperado: $e';
     } finally {
+      if (error != null) _stopElapsedTimer();
       if (mounted) {
         setState(() {
           _loading = error == null;

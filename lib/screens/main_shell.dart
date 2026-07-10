@@ -14,7 +14,8 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell>
+    with SingleTickerProviderStateMixin {
   int _index = 0;
 
   // Cada vez que se sale y se vuelve a entrar a Estadísticas o
@@ -23,6 +24,21 @@ class _MainShellState extends State<MainShell> {
   // seleccionado la última vez.
   int _statsVisitKey = 0;
   int _certificadosVisitKey = 0;
+
+  // Fundido suave al cambiar de pestaña: sin esto, IndexedStack cambia
+  // de pantalla de golpe, sin ninguna transición, lo que se siente
+  // brusco/extraño en vez de una app normal.
+  late final AnimationController _fadeController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+    value: 1,
+  );
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
 
   // Tocar el ícono de Estadísticas o Certificados siempre reinicia esa
   // pantalla al mes actual, así ya estuvieras en otra pestaña o ya
@@ -38,6 +54,7 @@ class _MainShellState extends State<MainShell> {
       if (index == certificadosIndex) _certificadosVisitKey++;
       _index = index;
     });
+    _fadeController.forward(from: 0);
   }
 
   @override

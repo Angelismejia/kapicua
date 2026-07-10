@@ -59,7 +59,7 @@ class AuthService extends ChangeNotifier {
   /// Tiempo máximo de espera para cualquier llamada a Firebase Auth. Sin
   /// esto, una conexión lenta o caída deja el botón "cargando" pegado
   /// para siempre porque el Future nunca se resuelve por sí solo.
-  static const _authTimeout = Duration(seconds: 20);
+  static const _authTimeout = Duration(seconds: 10);
 
   Future<String?> signUp(String email, String password) async {
     try {

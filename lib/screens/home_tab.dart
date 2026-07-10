@@ -182,6 +182,7 @@ class _HomeTabState extends State<HomeTab> {
                           controller: _bannerController,
                           currentPage: _bannerPage,
                           onPageChanged: (i) => setState(() => _bannerPage = i),
+                          isGuest: isGuest,
                           onCertificadosTap: isGuest
                               ? null
                               : () => widget.onNavigateTab(certificadosIndex),
@@ -725,16 +726,37 @@ class _BannerCarousel extends StatelessWidget {
   final int currentPage;
   final ValueChanged<int> onPageChanged;
   final VoidCallback? onCertificadosTap;
+  final bool isGuest;
 
   const _BannerCarousel({
     required this.controller,
     required this.currentPage,
     required this.onPageChanged,
     required this.onCertificadosTap,
+    required this.isGuest,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Quien entra sin cuenta no tiene certificados (esa sección ni le
+    // aparece), así que no tiene sentido promocionarla en el banner.
+    final slides = [
+      _BannerSlide(
+        image: 'assets/logo_banner.jpg',
+        title: 'La mejor forma de jugar dominó',
+        subtitle: 'Registra, compite y gana.',
+        onTap: null,
+        alignment: Alignment.centerLeft,
+      ),
+      if (!isGuest)
+        _BannerSlide(
+          image: 'assets/certificado.png',
+          title: 'Certificado de Campeón',
+          subtitle: 'Genera y comparte el reconocimiento del mes.',
+          onTap: onCertificadosTap,
+        ),
+    ];
+
     return Column(
       children: [
         AspectRatio(
@@ -757,44 +779,31 @@ class _BannerCarousel extends StatelessWidget {
               child: PageView(
                 controller: controller,
                 onPageChanged: onPageChanged,
-                children: [
-                  _BannerSlide(
-                    image: 'assets/logo_banner.jpg',
-                    title: 'La mejor forma de jugar dominó',
-                    subtitle: 'Registra, compite y gana.',
-                    onTap: null,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  _BannerSlide(
-                    image: 'assets/certificado.png',
-                    title: 'Certificado de Campeón',
-                    subtitle: 'Genera y comparte el reconocimiento del mes.',
-                    onTap: onCertificadosTap,
-                  ),
-                ],
+                children: slides,
               ),
             ),
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(2, (i) {
-            final active = i == currentPage;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: active ? 18 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: active
-                    ? _kPrimaryGreen
-                    : _kPrimaryGreen.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
+        if (slides.length > 1)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(slides.length, (i) {
+              final active = i == currentPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: active ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: active
+                      ? _kPrimaryGreen
+                      : _kPrimaryGreen.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
       ],
     );
   }
