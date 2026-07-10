@@ -16,6 +16,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _loading = false;
   bool _obscurePassword = true;
   String? _error;
+  String? _statusMessage;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -105,9 +106,16 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (_loading)
-                  const CircularProgressIndicator()
-                else ...[
+                if (_loading) ...[
+                  const CircularProgressIndicator(),
+                  if (_statusMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _statusMessage!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ] else ...[
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
@@ -156,11 +164,15 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _statusMessage = 'Conectando con el servidor...';
     });
     String? error;
     try {
       error = await auth.signIn(email, password);
       if (error == null) {
+        if (mounted) {
+          setState(() => _statusMessage = 'Sesión iniciada, cargando...');
+        }
         try {
           TextInput.finishAutofillContext();
         } catch (_) {
@@ -168,11 +180,17 @@ class _AuthScreenState extends State<AuthScreen> {
           // dejar el botón "cargando" pegado si falla.
         }
       }
+    } catch (e) {
+      // Red de seguridad: nada debe poder fallar en silencio. Si algo
+      // no esperado se escapa de auth.signIn, se muestra tal cual en
+      // vez de dejar la pantalla sin ninguna explicación.
+      error = 'Error inesperado: $e';
     } finally {
       if (mounted) {
         setState(() {
-          _loading = false;
+          _loading = error == null;
           _error = error;
+          _statusMessage = null;
         });
       }
     }
