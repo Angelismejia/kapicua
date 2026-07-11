@@ -22,11 +22,13 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _statusMessage;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordFocus = FocusNode();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -72,10 +74,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
                         autofillHints: const [
                           AutofillHints.username,
                           AutofillHints.email,
                         ],
+                        onSubmitted: (_) => _passwordFocus.requestFocus(),
                         decoration: const InputDecoration(
                           labelText: 'Correo',
                           border: OutlineInputBorder(),
@@ -84,7 +88,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,
+                        focusNode: _passwordFocus,
                         obscureText: _obscurePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: TextInputAction.done,
                         autofillHints: const [AutofillHints.password],
                         onSubmitted: (_) => _submit(auth),
                         decoration: InputDecoration(
@@ -226,6 +234,8 @@ class _AuthScreenState extends State<AuthScreen> {
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => Navigator.pop(dialogContext, controller.text),
           decoration: const InputDecoration(labelText: 'Correo'),
         ),
         actions: [

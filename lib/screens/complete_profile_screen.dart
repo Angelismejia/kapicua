@@ -28,6 +28,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _shortNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordFocus = FocusNode();
 
   bool get _needsAccount => FirebaseAuth.instance.currentUser == null;
   bool get _isNewPlayer => widget.selectedPlayerId == null;
@@ -45,6 +46,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     _shortNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -157,7 +159,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.newUsername],
+                        onSubmitted: (_) => _passwordFocus.requestFocus(),
                         decoration: const InputDecoration(
                           labelText: 'Correo',
                           border: OutlineInputBorder(),
@@ -166,8 +170,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,
+                        focusNode: _passwordFocus,
                         obscureText: _obscurePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: TextInputAction.done,
                         autofillHints: const [AutofillHints.newPassword],
+                        onSubmitted: (_) => _submit(auth, firestore),
                         decoration: InputDecoration(
                           labelText: 'Contraseña',
                           border: const OutlineInputBorder(),

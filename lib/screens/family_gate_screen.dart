@@ -87,6 +87,8 @@ class _FamilyGateScreenState extends State<FamilyGateScreen> {
                   controller: _pinController,
                   obscureText: true,
                   keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submitPin(),
                   decoration: InputDecoration(
                     labelText: 'PIN familiar',
                     border: const OutlineInputBorder(),

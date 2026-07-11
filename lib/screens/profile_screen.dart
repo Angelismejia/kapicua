@@ -39,12 +39,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _newPasswordFocus = FocusNode();
+  final _confirmPasswordFocus = FocusNode();
 
   @override
   void dispose() {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
+    _newPasswordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -367,6 +371,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextField(
               controller: _currentPasswordController,
               obscureText: _obscureCurrentPassword,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => _newPasswordFocus.requestFocus(),
               decoration: InputDecoration(
                 labelText: 'Contraseña actual',
                 suffixIcon: IconButton(
@@ -384,7 +392,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _newPasswordController,
+              focusNode: _newPasswordFocus,
               obscureText: _obscureNewPassword,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => _confirmPasswordFocus.requestFocus(),
               decoration: InputDecoration(
                 labelText: 'Contraseña nueva',
                 helperText: 'Mínimo 6 caracteres',
@@ -403,7 +416,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _confirmPasswordController,
+              focusNode: _confirmPasswordFocus,
               obscureText: _obscureConfirmPassword,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _changePassword(),
               decoration: InputDecoration(
                 labelText: 'Repetir contraseña nueva',
                 suffixIcon: IconButton(

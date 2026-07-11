@@ -70,6 +70,8 @@ class _SignupPinScreenState extends State<SignupPinScreen> {
                   controller: _pinController,
                   obscureText: true,
                   keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submitPin(),
                   decoration: InputDecoration(
                     labelText: 'PIN familiar',
                     border: const OutlineInputBorder(),
