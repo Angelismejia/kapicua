@@ -1,6 +1,20 @@
 import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 
+/// Para ser declarado ganador de un mes ya cerrado hace falta haber
+/// jugado al menos esta cantidad de manos (ganadas + perdidas) ese mes
+/// — si nadie llega, el título se lo lleva igual quien tenga mejor
+/// porcentaje, como antes. Solo aplica a partir de que se agregó esta
+/// regla, no a certificados de meses viejos puestos a mano.
+const kMinGamesToWinMonth = 40;
+
+bool _monthHasEnded(DateTime month) {
+  final now = DateTime.now();
+  if (now.year != month.year || now.month != month.month) return true;
+  final lastDay = DateTime(now.year, now.month + 1, 0).day;
+  return now.day >= lastDay;
+}
+
 class MonthlyWinnerResult {
   final Player player;
   final DateTime month;
@@ -14,12 +28,7 @@ class MonthlyWinnerResult {
     required this.losses,
   });
 
-  bool get isMonthOver {
-    final now = DateTime.now();
-    if (now.year != month.year || now.month != month.month) return true;
-    final lastDay = DateTime(now.year, now.month + 1, 0).day;
-    return now.day >= lastDay;
-  }
+  bool get isMonthOver => _monthHasEnded(month);
 
   /// Puntaje para el certificado: el porcentaje de victorias del mes
   /// llevado a una escala de 0 a 1000 (ej. 66.7% -> 667 puntos), para que
@@ -58,11 +67,19 @@ MonthlyWinnerResult? computeMonthlyWinner(
   }
   if (winsCount.isEmpty) return null;
 
+  // Para ganar el título hay que haber jugado al menos
+  // kMinGamesToWinMonth manos (ganadas + perdidas) ese mes — si nadie
+  // llega, gana igual el de mejor porcentaje, como antes.
+  bool qualifies(String id) =>
+      (winsCount[id] ?? 0) + (lossesCount[id] ?? 0) >= kMinGamesToWinMonth;
+  final anyoneQualifies = winsCount.keys.any(qualifies);
+
   // El "ganador" es quien tiene mejor porcentaje de victorias ese mes
   // (no simplemente quien tiene más ganadas), igual que en Estadísticas.
   String bestId = winsCount.keys.first;
   double bestPct = -1;
   for (final id in winsCount.keys) {
+    if (anyoneQualifies && !qualifies(id)) continue;
     final w = winsCount[id]!;
     final l = lossesCount[id] ?? 0;
     final pct = w / (w + l);
@@ -114,6 +131,19 @@ MonthlyWinnerResult? computeMonthlyLeaderOrFallback(
     }
   }
 
+  // Mientras el mes está en curso, no se exige nada todavía (puede que
+  // alguien llegue a las manos mínimas antes de que se acabe). Una vez
+  // cerrado, para ganar el título hay que haber jugado al menos
+  // kMinGamesToWinMonth manos (ganadas + perdidas) ese mes — si nadie
+  // llega, gana igual el de mejor porcentaje, como antes.
+  final monthOver = _monthHasEnded(month);
+  final anyoneQualifies =
+      !monthOver ||
+      players.any((p) {
+        final total = (winsCount[p.id] ?? 0) + (lossesCount[p.id] ?? 0);
+        return total >= kMinGamesToWinMonth;
+      });
+
   var best = players.first;
   var bestPct = -1.0;
   var bestWins = -1;
@@ -121,6 +151,9 @@ MonthlyWinnerResult? computeMonthlyLeaderOrFallback(
     final w = winsCount[p.id] ?? 0;
     final l = lossesCount[p.id] ?? 0;
     final total = w + l;
+    if (monthOver && anyoneQualifies && total < kMinGamesToWinMonth) {
+      continue;
+    }
     final pct = total == 0 ? 0.0 : w / total;
     if (pct > bestPct || (pct == bestPct && w > bestWins)) {
       bestPct = pct;
