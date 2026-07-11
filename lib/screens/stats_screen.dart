@@ -16,6 +16,28 @@ import '../services/firestore_service.dart';
 import '../widgets/month_selector.dart';
 import '../widgets/player_stat_history_dialog.dart';
 
+void _showHowItWorksDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('¿Cómo se calcula?'),
+      content: const Text(
+        'Se calcula por porcentaje de victorias (ganadas ÷ total '
+        'jugadas), no por quién tiene más ganadas.\n\n'
+        'Para ser declarado el ganador oficial al cerrar el mes, hace '
+        'falta haber jugado al menos 40 manos ese mes — si nadie '
+        'llega, gana igual quien tenga mejor porcentaje.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Entendido'),
+        ),
+      ],
+    ),
+  );
+}
+
 Future<void> _shareStatsImage(GlobalKey repaintKey, String monthLabel) async {
   final boundary =
       repaintKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -96,6 +118,11 @@ class _StatsScreenState extends State<StatsScreen> {
       appBar: AppBar(
         title: const Text('Estadísticas'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded),
+            tooltip: '¿Cómo se calcula?',
+            onPressed: () => _showHowItWorksDialog(context),
+          ),
           IconButton(
             icon: _sharing
                 ? const SizedBox(
