@@ -254,19 +254,23 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           );
           return;
         }
-        await FirebaseFirestore.instance.collection('players').add({
-          'fullName': fullName,
-          'shortName': _shortNameController.text.trim().isEmpty
-              ? null
-              : _shortNameController.text.trim(),
-          'active': true,
-          'authUid': uid,
-        });
+        await _withRetryOnPermissionDenied(
+          () => FirebaseFirestore.instance.collection('players').add({
+            'fullName': fullName,
+            'shortName': _shortNameController.text.trim().isEmpty
+                ? null
+                : _shortNameController.text.trim(),
+            'active': true,
+            'authUid': uid,
+          }),
+        );
       } else {
-        await FirebaseFirestore.instance
-            .collection('players')
-            .doc(widget.selectedPlayerId)
-            .update({'authUid': uid});
+        await _withRetryOnPermissionDenied(
+          () => FirebaseFirestore.instance
+              .collection('players')
+              .doc(widget.selectedPlayerId)
+              .update({'authUid': uid}),
+        );
       }
 
       if (!mounted) return;
@@ -275,6 +279,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         MaterialPageRoute(builder: (_) => const MainShell()),
         (route) => false,
       );
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      final message = e.code == 'permission-denied'
+          ? 'No se pudo vincular esa ficha — puede que ya esté ligada a '
+                'otra cuenta. Vuelve a intentarlo o avísale al '
+                'administrador.'
+          : 'No se pudo completar (código: ${e.code}).';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -282,6 +296,21 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ).showSnackBar(SnackBar(content: Text('No se pudo completar: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Justo después de crear la cuenta, el permiso de esa sesión nueva a
+  /// veces no termina de activarse a tiempo para la primera escritura
+  /// en Firestore, y falla con "permission-denied" aunque la cuenta y
+  /// las reglas estén bien. Se reintenta una vez, un momento después,
+  /// antes de darlo por un error de verdad.
+  Future<T> _withRetryOnPermissionDenied<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+      await Future.delayed(const Duration(seconds: 2));
+      return action();
     }
   }
 }
