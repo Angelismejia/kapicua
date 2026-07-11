@@ -104,6 +104,25 @@ class PlayersScreen extends StatelessWidget {
   ) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.primary.withValues(alpha: 0.12),
+        backgroundImage: player.photoBase64 != null
+            ? MemoryImage(base64Decode(player.photoBase64!))
+            : null,
+        child: player.photoBase64 == null
+            ? Text(
+                player.displayName.isNotEmpty
+                    ? player.displayName[0].toUpperCase()
+                    : '?',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              )
+            : null,
+      ),
       title: Text(player.displayName),
       subtitle: player.shortName != null && player.shortName!.isNotEmpty
           ? Text(player.fullName)
