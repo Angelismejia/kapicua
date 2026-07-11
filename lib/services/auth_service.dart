@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 const Set<String> kAdminEmails = {
   'angelismejia06@gmail.com',
   'proniw83@gmail.com',
+  'angelmejia0183@gmail.com'
 };
 
 /// Maneja el inicio de sesion con correo y contrasena. Cada cuenta se
