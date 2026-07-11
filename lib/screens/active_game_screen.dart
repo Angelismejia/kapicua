@@ -402,6 +402,17 @@ class ActiveGameScreen extends StatefulWidget {
 
 class _ActiveGameScreenState extends State<ActiveGameScreen> {
   bool _navigatedToResult = false;
+  // Se crea una sola vez: si se pidiera de nuevo cada vez que cambia el
+  // marcador (dentro del StreamBuilder de la partida), se reconectaría el
+  // listener de jugadores con cada punto anotado, y los nombres de los
+  // equipos parpadearían justo mientras se está anotando en vivo.
+  late final Stream<List<Player>> _playersStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _playersStream = context.read<FirestoreService>().watchAllPlayers();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -440,7 +451,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
           }
 
           return StreamBuilder<List<Player>>(
-            stream: firestore.watchAllPlayers(),
+            stream: _playersStream,
             builder: (context, playersSnapshot) {
               final players = {
                 for (final p in playersSnapshot.data ?? <Player>[])
