@@ -184,7 +184,21 @@ class _StatsScreenState extends State<StatsScreen> {
                     StreamBuilder<List<Game>>(
                       stream: _pendingStatsGamesStream,
                       builder: (context, pendingSnap) {
-                        final pending = pendingSnap.data ?? [];
+                        // Si alguno de los dos equipos tiene un jugador
+                        // que ya quedó inactivo, no se sugiere — no debe
+                        // aparecer nada de un inactivo en Estadísticas.
+                        final activeIds = players
+                            .where((p) => p.active)
+                            .map((p) => p.id)
+                            .toSet();
+                        final pending = (pendingSnap.data ?? [])
+                            .where(
+                              (g) => [
+                                ...g.teamAPlayerIds,
+                                ...g.teamBPlayerIds,
+                              ].every(activeIds.contains),
+                            )
+                            .toList();
                         if (pending.isEmpty) return const SizedBox.shrink();
                         return Column(
                           children: [

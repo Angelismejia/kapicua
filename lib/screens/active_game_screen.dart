@@ -251,6 +251,9 @@ class _QuickAddRoundDialog extends StatefulWidget {
 class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
   String _digits = '';
   late String _teamLabel = widget.teamLabel;
+  // Sin esto, tocar "OK" o "Para ambos" dos veces muy rápido (antes de
+  // que el diálogo alcance a cerrarse) suma la misma ronda dos veces.
+  bool _submitted = false;
 
   void _tapDigit(String d) {
     if (_digits.length >= 3) return;
@@ -263,6 +266,8 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
   }
 
   void _submit(bool bothTeams) {
+    if (_submitted) return;
+    setState(() => _submitted = true);
     widget.onSubmit(int.tryParse(_digits) ?? 0, bothTeams);
     Navigator.pop(context);
   }
@@ -350,7 +355,7 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _submit(true),
+                      onPressed: _submitted ? null : () => _submit(true),
                       child: const Text(
                         'Para ambos',
                         textAlign: TextAlign.center,
@@ -364,7 +369,7 @@ class _QuickAddRoundDialogState extends State<_QuickAddRoundDialog> {
                       style: FilledButton.styleFrom(
                         backgroundColor: _kPrimaryGreen,
                       ),
-                      onPressed: () => _submit(false),
+                      onPressed: _submitted ? null : () => _submit(false),
                       child: const Text(
                         'OK',
                         style: TextStyle(

@@ -103,7 +103,9 @@ class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
         ],
       ),
       content: SizedBox(
-        width: 280,
+        // Como máximo 280, pero se achica en pantallas angostas para
+        // no desbordar el diálogo en un teléfono muy pequeño.
+        width: (MediaQuery.of(context).size.width - 80).clamp(0, 280),
         child: GridView.count(
           crossAxisCount: 3,
           shrinkWrap: true,

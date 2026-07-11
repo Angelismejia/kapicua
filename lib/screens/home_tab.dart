@@ -1023,9 +1023,12 @@ class _PlayersCard extends StatelessWidget {
           ),
           _ScaleOnTap(
             onTap: onAddPlayer,
+            // Se ajusta al contenido (en vez de un ancho fijo) para que
+            // no se coma el espacio de la columna de la izquierda en
+            // teléfonos angostos.
             child: Container(
-              width: 170,
               height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: _kPrimaryGreen,
                 borderRadius: BorderRadius.circular(16),
