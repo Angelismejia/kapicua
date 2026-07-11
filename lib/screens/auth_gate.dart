@@ -9,8 +9,12 @@ import 'main_shell.dart';
 /// Límite de tiempo para las consultas de Firestore que deciden qué
 /// pantalla mostrar justo después de iniciar sesión. Sin esto, una
 /// consulta que se traba por mala señal deja la pantalla de carga para
-/// siempre, sin ningún error ni forma de reintentar.
-const _kGateTimeout = Duration(seconds: 15);
+/// siempre, sin ningún error ni forma de reintentar. Se dejan 25 segundos
+/// (no 15) porque reconectar la red de Firestore después de que el celular
+/// estuvo bloqueado o cambiando de app puede tardar más de eso en datos
+/// móviles, y 15 alcanzaba a mostrar "no hay conexión" con la conexión ya
+/// recuperándose.
+const _kGateTimeout = Duration(seconds: 25);
 
 Widget _loadingScaffold() {
   return const Scaffold(

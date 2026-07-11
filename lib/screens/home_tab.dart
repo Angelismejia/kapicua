@@ -134,6 +134,14 @@ class _HomeTabState extends State<HomeTab> {
         return StreamBuilder<List<Game>>(
           stream: _activeGamesStream,
           builder: (context, activeGamesSnap) {
+            // Mismo motivo que arriba: sin este guardado, apenas entrando
+            // se alcanza a dibujar todo como si no hubiera partidas ni
+            // ganadas/perdidas (en 0), y un instante después se corrige
+            // solo cuando llegan los datos reales — se ve como que "se
+            // pone en 0 y luego vuelve".
+            if (!activeGamesSnap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
             final activeGames = activeGamesSnap.data ?? [];
             final playerNames = {
               for (final p in allPlayers) p.id: p.displayName,
@@ -142,6 +150,9 @@ class _HomeTabState extends State<HomeTab> {
             return StreamBuilder<List<PlayerStatEntry>>(
               stream: _statEntriesStream,
               builder: (context, entriesSnap) {
+                if (!entriesSnap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
                 final statEntries = entriesSnap.data ?? [];
                 // Quien entra sin cuenta juega suelto, sin liga ni
                 // competencia real con nadie más — no tiene sentido

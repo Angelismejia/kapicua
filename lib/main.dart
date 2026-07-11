@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,7 @@ Widget _loadingScaffold() {
   );
 }
 
-class KapicuaApp extends StatelessWidget {
+class KapicuaApp extends StatefulWidget {
   final ThemeController themeController;
   final AuthService authService;
 
@@ -50,12 +51,50 @@ class KapicuaApp extends StatelessWidget {
   });
 
   @override
+  State<KapicuaApp> createState() => _KapicuaAppState();
+}
+
+class _KapicuaAppState extends State<KapicuaApp> with WidgetsBindingObserver {
+  bool _reconnecting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando el celular se bloquea o se cambia de app y se vuelve, la
+    // conexión en tiempo real con Firebase a veces se queda "dormida" y no
+    // se reconecta sola (más en datos móviles) — se ve como que se queda
+    // pegado en "Cargando..." o dice que no hay conexión aunque sí la haya.
+    // Forzar apagar y prender la red de Firestore la hace reconectar de
+    // una vez, sin tener que salir y volver a entrar a la app.
+    if (state == AppLifecycleState.resumed && !_reconnecting) {
+      _reconnecting = true;
+      FirebaseFirestore.instance
+          .disableNetwork()
+          .then((_) => FirebaseFirestore.instance.enableNetwork())
+          .whenComplete(() => _reconnecting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         Provider<FirestoreService>(create: (_) => FirestoreService()),
-        ChangeNotifierProvider<ThemeController>.value(value: themeController),
-        ChangeNotifierProvider<AuthService>.value(value: authService),
+        ChangeNotifierProvider<ThemeController>.value(
+          value: widget.themeController,
+        ),
+        ChangeNotifierProvider<AuthService>.value(value: widget.authService),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, _) {
