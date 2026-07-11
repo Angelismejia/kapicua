@@ -53,15 +53,17 @@ service cloud.firestore {
       // Editar un jugador ya existente: un admin puede editar cualquier
       // campo; alguien de la familia solo puede (a) cambiar su propia
       // foto/nombre/apodo, o (b) vincularse a un jugador todavia sin
-      // cuenta (authUid nulo) poniendo su propio uid. Nada mas, para
-      // que nadie pueda robarse la identidad de otro jugador.
+      // cuenta (authUid nulo o ni siquiera guardado todavia, para los
+      // jugadores viejos creados antes de que ese campo existiera)
+      // poniendo su propio uid. Nada mas, para que nadie pueda robarse
+      // la identidad de otro jugador.
       allow update: if isAdmin() ||
         (isFamilyMember() &&
-         resource.data.authUid == request.auth.uid &&
+         resource.data.get('authUid', null) == request.auth.uid &&
          request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['photoBase64', 'fullName', 'shortName'])) ||
         (isFamilyMember() &&
-         resource.data.authUid == null &&
+         resource.data.get('authUid', null) == null &&
          request.resource.data.authUid == request.auth.uid &&
          request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['authUid']));
