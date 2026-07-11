@@ -620,10 +620,14 @@ class FirestoreService {
 
     var totalA = 0;
     var totalB = 0;
+    var maxRoundNumber = 0;
     for (final doc in remaining.docs) {
       final round = Round.fromMap(doc.id, doc.data());
       totalA += round.teamAPoints;
       totalB += round.teamBPoints;
+      if (round.roundNumber > maxRoundNumber) {
+        maxRoundNumber = round.roundNumber;
+      }
     }
 
     String? winner;
@@ -634,7 +638,12 @@ class FirestoreService {
     await gameRef.update({
       'teamAScore': totalA,
       'teamBScore': totalB,
-      'roundCount': remaining.docs.length,
+      // No es simplemente "cuántas rondas quedan": si se borró una de en
+      // medio (no la última), la cantidad restante es menor que el número
+      // más alto ya usado, y una ronda nueva agregada después chocaría con
+      // ese número repetido. Se guarda el número más alto en uso para que
+      // la siguiente ronda siga contando para arriba sin repetirse.
+      'roundCount': maxRoundNumber,
       'status': winner == null ? 'in_progress' : 'finished',
       'winner': winner,
       'finishedAt': winner == null ? null : Timestamp.fromDate(DateTime.now()),
