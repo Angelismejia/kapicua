@@ -276,9 +276,8 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  /// Racha de victorias seguidas de un jugador (lo que en las mesas de
-  /// dominó dominicanas se conoce como "una lisa"): cuenta las ganadas
-  /// más recientes hasta la primera perdida, empezando por el historial
+  /// Racha de victorias seguidas de un jugador: cuenta las ganadas más
+  /// recientes hasta la primera perdida, empezando por el historial
   /// ordenado de más nuevo a más viejo.
   int _currentWinStreak(String playerId, List<PlayerStatEntry> entries) {
     final sorted = entries.where((e) => e.playerId == playerId).toList()
@@ -286,6 +285,20 @@ class _HomeTabState extends State<HomeTab> {
     var streak = 0;
     for (final e in sorted) {
       if (!e.isWin) break;
+      streak++;
+    }
+    return streak;
+  }
+
+  /// Racha de perdidas seguidas de un jugador (lo que en las mesas de
+  /// dominó dominicanas se conoce como "una lisa"): igual que la racha
+  /// de ganadas, pero al revés.
+  int _currentLossStreak(String playerId, List<PlayerStatEntry> entries) {
+    final sorted = entries.where((e) => e.playerId == playerId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    var streak = 0;
+    for (final e in sorted) {
+      if (e.isWin) break;
       streak++;
     }
     return streak;
@@ -446,11 +459,11 @@ class _HomeTabState extends State<HomeTab> {
     // chismear).
     if (!isGuest) {
       for (final player in allPlayers) {
-        final streak = _currentWinStreak(player.id, statEntries);
+        final streak = _currentLossStreak(player.id, statEntries);
         if (streak >= 3) {
           notifications.add(
             _Notification(
-              icon: Icons.local_fire_department_rounded,
+              icon: Icons.trending_down_rounded,
               message:
                   '¡${player.displayName} va en una lisa de $streak '
                   'partidas seguidas!',

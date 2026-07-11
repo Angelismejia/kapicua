@@ -73,6 +73,7 @@ class KapicuaApp extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 surfaceTintColor: Colors.transparent,
+                centerTitle: true,
               ),
               cardTheme: CardThemeData(
                 elevation: 0,
@@ -102,6 +103,7 @@ class KapicuaApp extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 surfaceTintColor: Colors.transparent,
+                centerTitle: true,
               ),
               cardTheme: CardThemeData(
                 elevation: 0,
