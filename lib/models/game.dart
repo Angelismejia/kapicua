@@ -14,6 +14,11 @@ class Game {
   final DateTime? finishedAt;
   final String? teamALabel;
   final String? teamBLabel;
+  // null = todavia no se decidio si se agrega a Estadisticas o se
+  // ignora; 'added' = ya se le sumo la ganada/perdida a cada jugador;
+  // 'ignored' = se descarto a proposito (ej. una partida de prueba) y
+  // no debe volver a sugerirse.
+  final String? statsResolution;
 
   Game({
     required this.id,
@@ -29,6 +34,7 @@ class Game {
     this.finishedAt,
     this.teamALabel,
     this.teamBLabel,
+    this.statsResolution,
   });
 
   bool get isFinished => status == 'finished';
@@ -52,6 +58,7 @@ class Game {
       finishedAt: (data['finishedAt'] as Timestamp?)?.toDate(),
       teamALabel: data['teamALabel'] as String?,
       teamBLabel: data['teamBLabel'] as String?,
+      statsResolution: data['statsResolution'] as String?,
     );
   }
 
@@ -68,5 +75,6 @@ class Game {
     'finishedAt': finishedAt == null ? null : Timestamp.fromDate(finishedAt!),
     'teamALabel': teamALabel,
     'teamBLabel': teamBLabel,
+    'statsResolution': statsResolution,
   };
 }

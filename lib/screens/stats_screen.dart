@@ -56,6 +56,7 @@ class _StatsScreenState extends State<StatsScreen> {
   // desconecta y vuelve a conectar los mismos listeners de Firestore.
   late final Stream<List<Player>> _playersStream;
   late final Stream<List<PlayerStatEntry>> _entriesStream;
+  late final Stream<List<Game>> _pendingStatsGamesStream;
 
   @override
   void initState() {
@@ -63,6 +64,7 @@ class _StatsScreenState extends State<StatsScreen> {
     final firestore = context.read<FirestoreService>();
     _playersStream = firestore.watchAllPlayers();
     _entriesStream = firestore.watchAllStatEntries();
+    _pendingStatsGamesStream = firestore.watchPendingStatsGames();
   }
 
   Future<void> _share() async {
@@ -155,6 +157,10 @@ class _StatsScreenState extends State<StatsScreen> {
                     return b.gamesWon.compareTo(a.gamesWon);
                   });
 
+              final playerNames = {
+                for (final p in players) p.id: p.displayName,
+              };
+
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
@@ -173,6 +179,26 @@ class _StatsScreenState extends State<StatsScreen> {
                           ),
                         ),
                       ),
+                    ),
+                  if (isAdmin)
+                    StreamBuilder<List<Game>>(
+                      stream: _pendingStatsGamesStream,
+                      builder: (context, pendingSnap) {
+                        final pending = pendingSnap.data ?? [];
+                        if (pending.isEmpty) return const SizedBox.shrink();
+                        return Column(
+                          children: [
+                            for (final game in pending)
+                              _PendingStatsCard(
+                                game: game,
+                                playerNames: playerNames,
+                                onAdd: () => firestore.applyGameStats(game),
+                                onIgnore: () =>
+                                    firestore.ignoreGameStats(game.id),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   if (!isAdmin)
                     Card(
@@ -352,6 +378,86 @@ const _kStatsLightText = Color(0xFF2D2D2D);
 const _kStatsDarkText = Color(0xFFEDF2ED);
 const _kStatsLightMuted = Color(0xFF6B756D);
 const _kStatsDarkMuted = Color(0xFFA9B4AA);
+const _kStatsLightGreenBg = Color(0xFFEAF6EB);
+const _kStatsDarkGreenBg = Color(0xFF203A28);
+
+/// Aviso para que el admin confirme (o ignore) sumar a Estadísticas el
+/// resultado de una partida ya jugada, en vez de tener que escribirlo
+/// a mano — la app ya sabe quién ganó y quién perdió.
+class _PendingStatsCard extends StatelessWidget {
+  final Game game;
+  final Map<String, String> playerNames;
+  final VoidCallback onAdd;
+  final VoidCallback onIgnore;
+
+  const _PendingStatsCard({
+    required this.game,
+    required this.playerNames,
+    required this.onAdd,
+    required this.onIgnore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final winners = game.winner == 'A'
+        ? game.teamAPlayerIds
+        : game.teamBPlayerIds;
+    final losers = game.winner == 'A'
+        ? game.teamBPlayerIds
+        : game.teamAPlayerIds;
+    final winnerNames = winners
+        .map((id) => playerNames[id] ?? '...')
+        .join(' y ');
+    final loserNames = losers.map((id) => playerNames[id] ?? '...').join(' y ');
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? _kStatsDarkGreenBg : _kStatsLightGreenBg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$winnerNames ganaron y $loserNames perdieron. '
+            '¿Agregar a estadísticas?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 14.5,
+              color: isDark ? _kStatsDarkText : _kStatsLightText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onIgnore,
+                  child: const Text('Ignorar'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _kStatsPrimaryGreen,
+                  ),
+                  onPressed: onAdd,
+                  child: const Text('Agregar'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Reemplaza la tabla anterior (DataTable con scroll horizontal, poco
 /// amigable en móvil) por una lista de tarjetas — mismo estilo que Inicio,

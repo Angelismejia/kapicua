@@ -365,6 +365,63 @@ class FirestoreService {
         );
   }
 
+  /// Partidas ya terminadas, con ganador y jugadores de verdad (no una
+  /// "partida rápida" sin nombres), a las que todavía no se les decidió
+  /// si sumarlas a Estadísticas o ignorarlas. Sirve para sugerirle al
+  /// admin la ganada/perdida de cada quien en vez de que la escriba a
+  /// mano, sin agregarla sola (eso queda a que el admin la confirme).
+  Stream<List<Game>> watchPendingStatsGames() {
+    return _games
+        .where('status', isEqualTo: 'finished')
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => Game.fromMap(d.id, d.data()))
+              .where(
+                (g) =>
+                    g.statsResolution == null &&
+                    g.winner != null &&
+                    g.teamAPlayerIds.isNotEmpty &&
+                    g.teamBPlayerIds.isNotEmpty,
+              )
+              .toList(),
+        );
+  }
+
+  /// Le suma la ganada a cada jugador del equipo ganador y la perdida a
+  /// cada uno del equipo perdedor, y marca la partida como ya resuelta
+  /// para que no se vuelva a sugerir.
+  Future<void> applyGameStats(Game game) async {
+    final batch = _db.batch();
+    final date = Timestamp.fromDate(game.finishedAt ?? DateTime.now());
+    final winningTeam = game.winner == 'A'
+        ? game.teamAPlayerIds
+        : game.teamBPlayerIds;
+    final losingTeam = game.winner == 'A'
+        ? game.teamBPlayerIds
+        : game.teamAPlayerIds;
+    for (final playerId in winningTeam) {
+      batch.set(_statEntries(playerId).doc(), {
+        'isWin': true,
+        'createdAt': date,
+      });
+    }
+    for (final playerId in losingTeam) {
+      batch.set(_statEntries(playerId).doc(), {
+        'isWin': false,
+        'createdAt': date,
+      });
+    }
+    batch.update(_games.doc(game.id), {'statsResolution': 'added'});
+    await batch.commit();
+  }
+
+  /// Descarta la sugerencia de una partida puntual (ej. una de prueba)
+  /// para siempre, sin tocar las estadísticas.
+  Future<void> ignoreGameStats(String gameId) async {
+    await _games.doc(gameId).update({'statsResolution': 'ignored'});
+  }
+
   Stream<List<Round>> watchRounds(String gameId) {
     return _games
         .doc(gameId)
