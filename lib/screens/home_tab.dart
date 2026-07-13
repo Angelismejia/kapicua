@@ -204,27 +204,6 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 24),
                         const _KapicuaLogo(),
-                        const SizedBox(height: 24),
-                        // Arriba de todo, sin ningún letrero encima: para
-                        // que apenas se abra la app se note que aquí se
-                        // puede anotar una partida, no hay que buscarlo.
-                        _QuickActionsGrid(
-                          onAddPlayer: () =>
-                              showAddPlayerDialog(context, firestore),
-                          onNewGame: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const NewGameScreen(),
-                            ),
-                          ),
-                          onHistory: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const HistoryScreen(),
-                            ),
-                          ),
-                          onPlayers: () => widget.onNavigateTab(ligaIndex),
-                        ),
                         const SizedBox(height: 28),
                         _BannerCarousel(
                           controller: _bannerController,
@@ -268,6 +247,34 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 30),
+                        Text(
+                          'Acciones rápidas',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: context.homeTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _QuickActionsGrid(
+                          onAddPlayer: () =>
+                              showAddPlayerDialog(context, firestore),
+                          onNewGame: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NewGameScreen(),
+                            ),
+                          ),
+                          onHistory: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HistoryScreen(),
+                            ),
+                          ),
+                          onPlayers: () => widget.onNavigateTab(ligaIndex),
+                        ),
                       ],
                     ),
                   ),
