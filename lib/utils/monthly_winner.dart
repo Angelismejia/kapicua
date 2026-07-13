@@ -15,6 +15,39 @@ bool _monthHasEnded(DateTime month) {
   return now.day >= lastDay;
 }
 
+/// A partir de qué día del mes empieza a exigirse lo de las 40 manos para
+/// poder estar arriba en el orden (no solo al cerrar el mes) — así alguien
+/// con muy pocas manos jugadas y una racha alta no aparenta ir ganando toda
+/// la primera quincena sin haber jugado casi nada.
+const kQualifyingCheckpointDay = 15;
+
+bool _qualifyingCheckpointReached(DateTime month) {
+  final now = DateTime.now();
+  if (now.year != month.year || now.month != month.month) return true;
+  return now.day >= kQualifyingCheckpointDay;
+}
+
+/// Quiénes sí pueden estar arriba en el orden dado lo que llevan jugado
+/// este mes: a partir del día [kQualifyingCheckpointDay] (o si el mes ya
+/// terminó), si alguien ya llegó a [kMinGamesToWinMonth] manos, los que no
+/// llegaron quedan fuera de la posición de arriba aunque su porcentaje sea
+/// mejor. Devuelve null si no hay que filtrar a nadie todavía (no ha
+/// llegado el día 15, o nadie ha llegado a 40 manos todavía).
+Set<String>? qualifiedIdsForRanking(
+  Map<String, int> winsCount,
+  Map<String, int> lossesCount,
+  DateTime month,
+) {
+  if (!_qualifyingCheckpointReached(month)) return null;
+  final ids = {...winsCount.keys, ...lossesCount.keys};
+  final qualified = <String>{
+    for (final id in ids)
+      if ((winsCount[id] ?? 0) + (lossesCount[id] ?? 0) >= kMinGamesToWinMonth)
+        id,
+  };
+  return qualified.isEmpty ? null : qualified;
+}
+
 class MonthlyWinnerResult {
   final Player player;
   final DateTime month;
@@ -131,29 +164,19 @@ MonthlyWinnerResult? computeMonthlyLeaderOrFallback(
     }
   }
 
-  // Mientras el mes está en curso, no se exige nada todavía (puede que
-  // alguien llegue a las manos mínimas antes de que se acabe). Una vez
-  // cerrado, para ganar el título hay que haber jugado al menos
-  // kMinGamesToWinMonth manos (ganadas + perdidas) ese mes — si nadie
-  // llega, gana igual el de mejor porcentaje, como antes.
-  final monthOver = _monthHasEnded(month);
-  final anyoneQualifies =
-      !monthOver ||
-      players.any((p) {
-        final total = (winsCount[p.id] ?? 0) + (lossesCount[p.id] ?? 0);
-        return total >= kMinGamesToWinMonth;
-      });
+  // A partir del día 15 (o si el mes ya terminó), si alguien ya llegó a
+  // las kMinGamesToWinMonth manos, los que no llegaron quedan fuera de la
+  // posición de arriba aunque su porcentaje sea mejor.
+  final qualifiedIds = qualifiedIdsForRanking(winsCount, lossesCount, month);
 
   var best = players.first;
   var bestPct = -1.0;
   var bestWins = -1;
   for (final p in players) {
+    if (qualifiedIds != null && !qualifiedIds.contains(p.id)) continue;
     final w = winsCount[p.id] ?? 0;
     final l = lossesCount[p.id] ?? 0;
     final total = w + l;
-    if (monthOver && anyoneQualifies && total < kMinGamesToWinMonth) {
-      continue;
-    }
     final pct = total == 0 ? 0.0 : w / total;
     if (pct > bestPct || (pct == bestPct && w > bestWins)) {
       bestPct = pct;
@@ -209,9 +232,16 @@ MonthlyPercentageLeader? computeMonthlyPercentageLeader(
     }
   }
 
+  // Mismo criterio que en computeMonthlyLeaderOrFallback: a partir del día
+  // 15 (o si el mes ya terminó), quien no llegue a las 40 manos no puede
+  // aparecer aquí como el que "va de primero" aunque su porcentaje sea
+  // mejor que el de alguien que sí llegó.
+  final qualifiedIds = qualifiedIdsForRanking(wins, losses, month);
+
   var best = players.first;
   var bestPct = -1.0;
   for (final p in players) {
+    if (qualifiedIds != null && !qualifiedIds.contains(p.id)) continue;
     final w = wins[p.id] ?? 0;
     final l = losses[p.id] ?? 0;
     final total = w + l;

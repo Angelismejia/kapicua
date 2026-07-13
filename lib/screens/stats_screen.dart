@@ -13,6 +13,7 @@ import '../models/player_stat_entry.dart';
 import '../models/player_stats.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../utils/monthly_winner.dart';
 import '../widgets/month_selector.dart';
 import '../widgets/player_stat_history_dialog.dart';
 
@@ -24,9 +25,10 @@ void _showHowItWorksDialog(BuildContext context) {
       content: const Text(
         'Se calcula por porcentaje de victorias (ganadas ÷ total '
         'jugadas), no por quién tiene más ganadas.\n\n'
-        'Para ser declarado el ganador oficial al cerrar el mes, hace '
-        'falta haber jugado al menos 40 manos ese mes — si nadie '
-        'llega, gana igual quien tenga mejor porcentaje.',
+        'A partir del día 15 del mes, para poder ir de primero hace '
+        'falta haber jugado al menos 40 manos ese mes — si todavía '
+        'nadie llega, gana igual quien tenga mejor porcentaje. La misma '
+        'regla decide al ganador oficial cuando cierra el mes.',
       ),
       actions: [
         TextButton(
@@ -159,30 +161,51 @@ class _StatsScreenState extends State<StatsScreen> {
                     e.createdAt.month == _selectedMonth.month,
               );
 
-              final stats =
-                  players.where((p) => p.active).map((player) {
-                    var won = 0;
-                    var lost = 0;
-                    for (final e in entries) {
-                      if (e.playerId != player.id) continue;
-                      if (e.isWin) {
-                        won++;
-                      } else {
-                        lost++;
-                      }
-                    }
-                    return PlayerStats(
-                      player: player,
-                      gamesWon: won,
-                      gamesLost: lost,
-                    );
-                  }).toList()..sort((a, b) {
-                    final pctCompare = b.winPercentage.compareTo(
-                      a.winPercentage,
-                    );
-                    if (pctCompare != 0) return pctCompare;
-                    return b.gamesWon.compareTo(a.gamesWon);
-                  });
+              final statsList = players.where((p) => p.active).map((player) {
+                var won = 0;
+                var lost = 0;
+                for (final e in entries) {
+                  if (e.playerId != player.id) continue;
+                  if (e.isWin) {
+                    won++;
+                  } else {
+                    lost++;
+                  }
+                }
+                return PlayerStats(
+                  player: player,
+                  gamesWon: won,
+                  gamesLost: lost,
+                );
+              }).toList();
+
+              // A partir del día 15 (o si el mes ya terminó), quien no
+              // llegue a las 40 manos no puede aparecer arriba en el
+              // orden aunque su porcentaje sea mejor que el de alguien
+              // que sí llegó.
+              final winsMap = {
+                for (final s in statsList) s.player.id: s.gamesWon,
+              };
+              final lossesMap = {
+                for (final s in statsList) s.player.id: s.gamesLost,
+              };
+              final qualifiedIds = qualifiedIdsForRanking(
+                winsMap,
+                lossesMap,
+                _selectedMonth,
+              );
+
+              final stats = statsList
+                ..sort((a, b) {
+                  if (qualifiedIds != null) {
+                    final aQualifies = qualifiedIds.contains(a.player.id);
+                    final bQualifies = qualifiedIds.contains(b.player.id);
+                    if (aQualifies != bQualifies) return aQualifies ? -1 : 1;
+                  }
+                  final pctCompare = b.winPercentage.compareTo(a.winPercentage);
+                  if (pctCompare != 0) return pctCompare;
+                  return b.gamesWon.compareTo(a.gamesWon);
+                });
 
               final playerNames = {
                 for (final p in players) p.id: p.displayName,
