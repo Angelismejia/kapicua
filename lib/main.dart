@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,7 @@ import 'screens/auth_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
+import 'services/page_reload/reload.dart';
 import 'services/theme_controller.dart';
 
 Future<void> main() async {
@@ -61,6 +63,29 @@ class _KapicuaAppState extends State<KapicuaApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _armStuckAuthWatchdog();
+  }
+
+  // En iOS Safari (sobre todo abriendo la app desde el ícono en la
+  // pantalla de inicio después de tenerla cerrada un rato) a veces la
+  // conexión de IndexedDB que usa Firebase Auth para revisar la sesión
+  // guardada se queda trabada y "authStateChanges" nunca llega a avisar
+  // nada, dejando la pantalla pegada en "Cargando..." para siempre. Cerrar
+  // y volver a abrir la solucionaba porque eso crea una conexión nueva;
+  // esto hace lo mismo automáticamente si tarda demasiado.
+  void _armStuckAuthWatchdog() {
+    if (!kIsWeb) return;
+    FirebaseAuth.instance
+        .authStateChanges()
+        .first
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () {
+            reloadPage();
+            return null;
+          },
+        )
+        .catchError((_) => null);
   }
 
   @override
