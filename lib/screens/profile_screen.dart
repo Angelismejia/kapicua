@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/player.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../widgets/photo_viewer.dart';
 import 'admin_management_screen.dart';
 import 'auth_screen.dart';
 
@@ -257,25 +258,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: Stack(
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: _kPrimaryGreen.withValues(alpha: 0.12),
-                  backgroundImage: player?.photoBase64 != null
-                      ? MemoryImage(base64Decode(player!.photoBase64!))
+                GestureDetector(
+                  onTap: player?.photoBase64 != null
+                      ? () => showFullPhoto(context, player!.photoBase64!)
                       : null,
-                  child: player?.photoBase64 == null
-                      ? Text(
-                          displayName.isNotEmpty
-                              ? displayName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 32,
-                            color: _kPrimaryGreen,
-                          ),
-                        )
-                      : null,
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: _kPrimaryGreen.withValues(alpha: 0.12),
+                    backgroundImage: player?.photoBase64 != null
+                        ? MemoryImage(base64Decode(player!.photoBase64!))
+                        : null,
+                    child: player?.photoBase64 == null
+                        ? Text(
+                            displayName.isNotEmpty
+                                ? displayName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 32,
+                              color: _kPrimaryGreen,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 if (player != null)
                   Positioned(

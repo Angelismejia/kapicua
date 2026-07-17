@@ -7,6 +7,7 @@ import '../models/player.dart';
 import '../models/player_stat_entry.dart';
 import '../services/firestore_service.dart';
 import 'number_keypad.dart';
+import 'photo_viewer.dart';
 
 /// Mensaje de confirmación arriba de la pantalla (no abajo como el
 /// SnackBar normal), para que se note justo después de borrar/editar.
@@ -293,8 +294,10 @@ void showPlayerStatHistoryDialog(
   FirestoreService firestore,
   Player player,
   bool isAdmin,
-  DateTime forMonth,
-) {
+  DateTime forMonth, {
+  int gamesWon = 0,
+  int gamesLost = 0,
+}) {
   var selecting = false;
   final selectedIds = <String>{};
 
@@ -352,29 +355,37 @@ void showPlayerStatHistoryDialog(
           }
         }
 
+        final gamesPlayed = gamesWon + gamesLost;
+        final winPct = gamesPlayed == 0 ? 0.0 : (gamesWon / gamesPlayed) * 100;
+
         return AlertDialog(
           title: Row(
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.12),
-                backgroundImage: player.photoBase64 != null
-                    ? MemoryImage(base64Decode(player.photoBase64!))
+              GestureDetector(
+                onTap: player.photoBase64 != null
+                    ? () => showFullPhoto(context, player.photoBase64!)
                     : null,
-                child: player.photoBase64 == null
-                    ? Text(
-                        player.displayName.isNotEmpty
-                            ? player.displayName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
-                    : null,
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  backgroundImage: player.photoBase64 != null
+                      ? MemoryImage(base64Decode(player.photoBase64!))
+                      : null,
+                  child: player.photoBase64 == null
+                      ? Text(
+                          player.displayName.isNotEmpty
+                              ? player.displayName[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 22,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        )
+                      : null,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -386,6 +397,14 @@ void showPlayerStatHistoryDialog(
                     Text(
                       DateFormat('MMMM yyyy', 'es').format(forMonth),
                       style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$gamesWon ganadas · $gamesLost perdidas'
+                      '${gamesPlayed > 0 ? ' · ${winPct.round()}%' : ''}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),

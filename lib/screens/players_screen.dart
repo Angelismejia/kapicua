@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/add_player_dialog.dart';
 import '../widgets/merge_players_dialog.dart';
+import '../widgets/photo_viewer.dart';
 
 class PlayersScreen extends StatelessWidget {
   const PlayersScreen({super.key});
@@ -104,24 +105,29 @@ class PlayersScreen extends StatelessWidget {
   ) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: Theme.of(
-          context,
-        ).colorScheme.primary.withValues(alpha: 0.12),
-        backgroundImage: player.photoBase64 != null
-            ? MemoryImage(base64Decode(player.photoBase64!))
+      leading: GestureDetector(
+        onTap: player.photoBase64 != null
+            ? () => showFullPhoto(context, player.photoBase64!)
             : null,
-        child: player.photoBase64 == null
-            ? Text(
-                player.displayName.isNotEmpty
-                    ? player.displayName[0].toUpperCase()
-                    : '?',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              )
-            : null,
+        child: CircleAvatar(
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.primary.withValues(alpha: 0.12),
+          backgroundImage: player.photoBase64 != null
+              ? MemoryImage(base64Decode(player.photoBase64!))
+              : null,
+          child: player.photoBase64 == null
+              ? Text(
+                  player.displayName.isNotEmpty
+                      ? player.displayName[0].toUpperCase()
+                      : '?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                )
+              : null,
+        ),
       ),
       title: Text(player.displayName),
       subtitle: player.shortName != null && player.shortName!.isNotEmpty
@@ -178,26 +184,31 @@ class PlayersScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Center(
-              child: CircleAvatar(
-                radius: 36,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.12),
-                backgroundImage: player.photoBase64 != null
-                    ? MemoryImage(base64Decode(player.photoBase64!))
+              child: GestureDetector(
+                onTap: player.photoBase64 != null
+                    ? () => showFullPhoto(context, player.photoBase64!)
                     : null,
-                child: player.photoBase64 == null
-                    ? Text(
-                        player.displayName.isNotEmpty
-                            ? player.displayName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 26,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
-                    : null,
+                child: CircleAvatar(
+                  radius: 36,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  backgroundImage: player.photoBase64 != null
+                      ? MemoryImage(base64Decode(player.photoBase64!))
+                      : null,
+                  child: player.photoBase64 == null
+                      ? Text(
+                          player.displayName.isNotEmpty
+                              ? player.displayName[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 26,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        )
+                      : null,
+                ),
               ),
             ),
             const SizedBox(height: 16),

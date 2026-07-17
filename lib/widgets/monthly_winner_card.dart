@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../screens/certificate_screen.dart';
 import '../utils/monthly_winner.dart';
+import 'photo_viewer.dart';
 
 class MonthlyWinnerCard extends StatelessWidget {
   final MonthlyWinnerResult result;
@@ -44,25 +45,30 @@ class MonthlyWinnerCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.15),
-                  backgroundImage: result.player.photoBase64 != null
-                      ? MemoryImage(base64Decode(result.player.photoBase64!))
+                GestureDetector(
+                  onTap: result.player.photoBase64 != null
+                      ? () => showFullPhoto(context, result.player.photoBase64!)
                       : null,
-                  child: result.player.photoBase64 == null
-                      ? Text(
-                          result.player.displayName.isNotEmpty
-                              ? result.player.displayName[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        )
-                      : null,
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.15),
+                    backgroundImage: result.player.photoBase64 != null
+                        ? MemoryImage(base64Decode(result.player.photoBase64!))
+                        : null,
+                    child: result.player.photoBase64 == null
+                        ? Text(
+                            result.player.displayName.isNotEmpty
+                                ? result.player.displayName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Flexible(

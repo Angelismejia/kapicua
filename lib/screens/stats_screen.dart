@@ -15,6 +15,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/monthly_winner.dart';
 import '../widgets/month_selector.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/player_stat_history_dialog.dart';
 
 void _showHowItWorksDialog(BuildContext context) {
@@ -596,6 +597,8 @@ class _StatsList extends StatelessWidget {
                 stats[i].player,
                 isAdmin,
                 forMonth,
+                gamesWon: stats[i].gamesWon,
+                gamesLost: stats[i].gamesLost,
               ),
             ),
           ],
@@ -660,24 +663,29 @@ class _StatsRow extends StatelessWidget {
                     ),
             ),
             const SizedBox(width: 10),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: _kStatsPrimaryGreen.withValues(alpha: 0.12),
-              backgroundImage: stats.player.photoBase64 != null
-                  ? MemoryImage(base64Decode(stats.player.photoBase64!))
+            GestureDetector(
+              onTap: stats.player.photoBase64 != null
+                  ? () => showFullPhoto(context, stats.player.photoBase64!)
                   : null,
-              child: stats.player.photoBase64 == null
-                  ? Text(
-                      displayName.isNotEmpty
-                          ? displayName[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w700,
-                        color: _kStatsPrimaryGreen,
-                      ),
-                    )
-                  : null,
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: _kStatsPrimaryGreen.withValues(alpha: 0.12),
+                backgroundImage: stats.player.photoBase64 != null
+                    ? MemoryImage(base64Decode(stats.player.photoBase64!))
+                    : null,
+                child: stats.player.photoBase64 == null
+                    ? Text(
+                        displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w700,
+                          color: _kStatsPrimaryGreen,
+                        ),
+                      )
+                    : null,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
