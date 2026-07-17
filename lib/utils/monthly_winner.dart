@@ -19,7 +19,7 @@ bool _monthHasEnded(DateTime month) {
 /// poder estar arriba en el orden (no solo al cerrar el mes) — así alguien
 /// con muy pocas manos jugadas y una racha alta no aparenta ir ganando toda
 /// la primera quincena sin haber jugado casi nada.
-const kQualifyingCheckpointDay = 15;
+const kQualifyingCheckpointDay = 25;
 
 bool _qualifyingCheckpointReached(DateTime month) {
   final now = DateTime.now();
@@ -32,7 +32,7 @@ bool _qualifyingCheckpointReached(DateTime month) {
 /// terminó), si alguien ya llegó a [kMinGamesToWinMonth] manos, los que no
 /// llegaron quedan fuera de la posición de arriba aunque su porcentaje sea
 /// mejor. Devuelve null si no hay que filtrar a nadie todavía (no ha
-/// llegado el día 15, o nadie ha llegado a 40 manos todavía).
+/// llegado el día 25, o nadie ha llegado a 40 manos todavía).
 Set<String>? qualifiedIdsForRanking(
   Map<String, int> winsCount,
   Map<String, int> lossesCount,
@@ -164,7 +164,7 @@ MonthlyWinnerResult? computeMonthlyLeaderOrFallback(
     }
   }
 
-  // A partir del día 15 (o si el mes ya terminó), si alguien ya llegó a
+  // A partir del día 25 (o si el mes ya terminó), si alguien ya llegó a
   // las kMinGamesToWinMonth manos, los que no llegaron quedan fuera de la
   // posición de arriba aunque su porcentaje sea mejor.
   final qualifiedIds = qualifiedIdsForRanking(winsCount, lossesCount, month);
@@ -233,7 +233,7 @@ MonthlyPercentageLeader? computeMonthlyPercentageLeader(
   }
 
   // Mismo criterio que en computeMonthlyLeaderOrFallback: a partir del día
-  // 15 (o si el mes ya terminó), quien no llegue a las 40 manos no puede
+  // 25 (o si el mes ya terminó), quien no llegue a las 40 manos no puede
   // aparecer aquí como el que "va de primero" aunque su porcentaje sea
   // mejor que el de alguien que sí llegó.
   final qualifiedIds = qualifiedIdsForRanking(wins, losses, month);

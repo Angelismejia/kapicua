@@ -22,13 +22,14 @@ void _showHowItWorksDialog(BuildContext context) {
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Text('¿Cómo se calcula?'),
-      content: const Text(
+      content: Text(
         'Se calcula por porcentaje de victorias (ganadas ÷ total '
         'jugadas), no por quién tiene más ganadas.\n\n'
-        'A partir del día 15 del mes, para poder ir de primero hace '
-        'falta haber jugado al menos 40 manos ese mes — si todavía '
-        'nadie llega, gana igual quien tenga mejor porcentaje. La misma '
-        'regla decide al ganador oficial cuando cierra el mes.',
+        'A partir del día $kQualifyingCheckpointDay del mes, para poder ir '
+        'de primero hace falta haber jugado al menos $kMinGamesToWinMonth '
+        'manos ese mes — si todavía nadie llega, gana igual quien tenga '
+        'mejor porcentaje. La misma regla decide al ganador oficial cuando '
+        'cierra el mes.',
       ),
       actions: [
         TextButton(
@@ -179,7 +180,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 );
               }).toList();
 
-              // A partir del día 15 (o si el mes ya terminó), quien no
+              // A partir del día 25 (o si el mes ya terminó), quien no
               // llegue a las 40 manos no puede aparecer arriba en el
               // orden aunque su porcentaje sea mejor que el de alguien
               // que sí llegó.
