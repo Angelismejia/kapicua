@@ -79,9 +79,9 @@ class _KapicuaAppState extends State<KapicuaApp> with WidgetsBindingObserver {
         .authStateChanges()
         .first
         .timeout(
-          const Duration(seconds: 8),
+          const Duration(seconds: 3),
           onTimeout: () {
-            reloadPage();
+            if (shouldAutoReloadOnce()) reloadPage();
             return null;
           },
         )
