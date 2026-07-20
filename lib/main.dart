@@ -1,29 +1,97 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
+import 'core/theme/app_theme.dart';
+import 'data/repositories/firebase_auth_repository.dart';
+import 'data/repositories/firestore_admin_repository.dart';
+import 'data/repositories/firestore_game_repository.dart';
+import 'data/repositories/firestore_guest_repository.dart';
+import 'data/repositories/firestore_monthly_override_repository.dart';
+import 'data/repositories/firestore_player_repository.dart';
+import 'data/repositories/firestore_stats_repository.dart';
+import 'domain/entities/app_user.dart';
+import 'domain/entities/guest_session.dart';
+import 'domain/repositories/admin_repository.dart';
+import 'domain/repositories/auth_repository.dart';
+import 'domain/repositories/game_repository.dart';
+import 'domain/repositories/guest_repository.dart';
+import 'domain/repositories/monthly_override_repository.dart';
+import 'domain/repositories/player_repository.dart';
+import 'domain/repositories/stats_repository.dart';
+import 'domain/usecases/delete_player_permanently_usecase.dart';
+import 'domain/usecases/game_usecases.dart';
+import 'domain/usecases/merge_players_usecase.dart';
 import 'firebase_options.dart';
-import 'screens/auth_gate.dart';
-import 'screens/auth_screen.dart';
-import 'screens/main_shell.dart';
-import 'services/auth_service.dart';
-import 'services/firestore_service.dart';
-import 'services/page_reload/reload.dart';
-import 'services/theme_controller.dart';
+import 'presentation/controllers/auth_controller.dart';
+import 'presentation/controllers/theme_controller.dart';
+import 'presentation/screens/auth_gate.dart';
+import 'presentation/screens/auth_screen.dart';
+import 'presentation/screens/main_shell.dart';
+import 'presentation/services/page_reload/reload.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('es');
+
   final themeController = ThemeController();
   await themeController.load();
-  final authService = AuthService();
+
+  // Se arman aquí (una sola vez, antes de runApp) todos los
+  // repositorios y casos de uso, en vez de dentro del árbol de
+  // widgets, para que sea explícito qué implementación concreta usa
+  // cada interfaz — este es el único archivo que conoce Firebase.
+  final db = FirebaseFirestore.instance;
+  final guestSession = GuestSession();
+  final authRepository = FirebaseAuthRepository();
+  final playerRepository = FirestorePlayerRepository(db, guestSession);
+  final statsRepository = FirestoreStatsRepository(db, guestSession);
+  final gameRepository = FirestoreGameRepository(db, guestSession);
+  final adminRepository = FirestoreAdminRepository(db);
+  final monthlyOverrideRepository = FirestoreMonthlyOverrideRepository(db);
+  final guestRepository = FirestoreGuestRepository(db);
+  final authController = AuthController(authRepository, adminRepository);
+
   runApp(
-    KapicuaApp(themeController: themeController, authService: authService),
+    MultiProvider(
+      providers: [
+        Provider<GuestSession>.value(value: guestSession),
+        Provider<AuthRepository>.value(value: authRepository),
+        Provider<PlayerRepository>.value(value: playerRepository),
+        Provider<StatsRepository>.value(value: statsRepository),
+        Provider<GameRepository>.value(value: gameRepository),
+        Provider<AdminRepository>.value(value: adminRepository),
+        Provider<MonthlyOverrideRepository>.value(
+          value: monthlyOverrideRepository,
+        ),
+        Provider<GuestRepository>.value(value: guestRepository),
+        ChangeNotifierProvider<AuthController>.value(value: authController),
+        ChangeNotifierProvider<ThemeController>.value(value: themeController),
+        Provider<MergePlayersUseCase>(
+          create: (_) => MergePlayersUseCase(playerRepository),
+        ),
+        Provider<DeletePlayerPermanentlyUseCase>(
+          create: (_) => DeletePlayerPermanentlyUseCase(playerRepository),
+        ),
+        Provider<ApplyGameStatsUseCase>(
+          create: (_) => ApplyGameStatsUseCase(gameRepository),
+        ),
+        Provider<AddRoundUseCase>(
+          create: (_) => AddRoundUseCase(gameRepository),
+        ),
+        Provider<UpdateRoundUseCase>(
+          create: (_) => UpdateRoundUseCase(gameRepository),
+        ),
+        Provider<DeleteRoundUseCase>(
+          create: (_) => DeleteRoundUseCase(gameRepository),
+        ),
+      ],
+      child: const KapicuaApp(),
+    ),
   );
 }
 
@@ -43,14 +111,7 @@ Widget _loadingScaffold() {
 }
 
 class KapicuaApp extends StatefulWidget {
-  final ThemeController themeController;
-  final AuthService authService;
-
-  const KapicuaApp({
-    super.key,
-    required this.themeController,
-    required this.authService,
-  });
+  const KapicuaApp({super.key});
 
   @override
   State<KapicuaApp> createState() => _KapicuaAppState();
@@ -59,10 +120,15 @@ class KapicuaApp extends StatefulWidget {
 class _KapicuaAppState extends State<KapicuaApp> with WidgetsBindingObserver {
   bool _reconnecting = false;
 
+  // Se guarda una sola vez (no en cada build) para no resuscribirse al
+  // stream cada vez que cambia el tema u otro Provider de arriba avisa.
+  late final Stream<AppUser?> _authStateChanges;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _authStateChanges = context.read<AuthRepository>().authStateChanges();
     _armStuckAuthWatchdog();
   }
 
@@ -75,9 +141,7 @@ class _KapicuaAppState extends State<KapicuaApp> with WidgetsBindingObserver {
   // esto hace lo mismo automáticamente si tarda demasiado.
   void _armStuckAuthWatchdog() {
     if (!kIsWeb) return;
-    FirebaseAuth.instance
-        .authStateChanges()
-        .first
+    _authStateChanges.first
         .timeout(
           const Duration(seconds: 3),
           onTimeout: () {
@@ -113,128 +177,62 @@ class _KapicuaAppState extends State<KapicuaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<FirestoreService>(create: (_) => FirestoreService()),
-        ChangeNotifierProvider<ThemeController>.value(
-          value: widget.themeController,
-        ),
-        ChangeNotifierProvider<AuthService>.value(value: widget.authService),
-      ],
-      child: Consumer<ThemeController>(
-        builder: (context, controller, _) {
-          return MaterialApp(
-            title: 'Kapicua',
-            themeMode: controller.themeMode,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2E6B3F),
-              ),
-              useMaterial3: true,
-              fontFamily: 'Poppins',
-              scaffoldBackgroundColor: const Color(0xFFF6F8F5),
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                surfaceTintColor: Colors.transparent,
-                centerTitle: true,
-              ),
-              cardTheme: CardThemeData(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+    return Consumer<ThemeController>(
+      builder: (context, controller, _) {
+        return MaterialApp(
+          title: 'Kapicua',
+          themeMode: controller.themeMode,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          builder: (context, child) {
+            return Container(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: ClipRect(child: child),
                 ),
               ),
-              navigationBarTheme: NavigationBarThemeData(
-                indicatorColor: const Color(0xFFEAF6EB),
-                labelTextStyle: WidgetStateProperty.all(
-                  const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2E6B3F),
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-              fontFamily: 'Poppins',
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                surfaceTintColor: Colors.transparent,
-                centerTitle: true,
-              ),
-              cardTheme: CardThemeData(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              navigationBarTheme: NavigationBarThemeData(
-                labelTextStyle: WidgetStateProperty.all(
-                  const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-            builder: (context, child) {
-              return Container(
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
-                    child: ClipRect(child: child),
-                  ),
-                ),
-              );
+            );
+          },
+          home: StreamBuilder<AppUser?>(
+            stream: _authStateChanges,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _loadingScaffold();
+              }
+              final user = snapshot.data;
+              final guestSession = context.read<GuestSession>();
+
+              if (user == null) {
+                // Sin sesión: nunca debe quedar leyendo un espacio de
+                // invitado viejo (ej. si cerró sesión después de "Jugar
+                // sin cuenta"), o la pantalla de registro real vería la
+                // lista de jugadores vacía en vez de la de la familia.
+                guestSession.isGuest = false;
+                guestSession.guestUid = null;
+                return const AuthScreen();
+              }
+
+              // "Jugar sin cuenta": anónimo, va directo a su propio
+              // espacio de invitado, sin PIN ni preguntas.
+              if (user.isAnonymous) {
+                guestSession.isGuest = true;
+                guestSession.guestUid = user.uid;
+                return const MainShell();
+              }
+
+              // Cuenta real (correo y contraseña): asegura que no quede
+              // pegado en un espacio de invitado viejo de una sesión
+              // anónima anterior.
+              guestSession.isGuest = false;
+              guestSession.guestUid = null;
+
+              return PlayerLookupGate(uid: user.uid);
             },
-            home: StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _loadingScaffold();
-                }
-                final user = snapshot.data;
-                final firestoreService = context.read<FirestoreService>();
-
-                if (user == null) {
-                  // Sin sesión: nunca debe quedar leyendo un espacio de
-                  // invitado viejo (ej. si cerró sesión después de "Jugar
-                  // sin cuenta"), o la pantalla de registro real vería la
-                  // lista de jugadores vacía en vez de la de la familia.
-                  firestoreService.isGuest = false;
-                  firestoreService.guestUid = null;
-                  return const AuthScreen();
-                }
-
-                // "Jugar sin cuenta": anónimo, va directo a su propio
-                // espacio de invitado, sin PIN ni preguntas.
-                if (user.isAnonymous) {
-                  firestoreService.isGuest = true;
-                  firestoreService.guestUid = user.uid;
-                  return const MainShell();
-                }
-
-                // Cuenta real (correo y contraseña): asegura que no quede
-                // pegado en un espacio de invitado viejo de una sesión
-                // anónima anterior.
-                firestoreService.isGuest = false;
-                firestoreService.guestUid = null;
-
-                return PlayerLookupGate(uid: user.uid);
-              },
-            ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
