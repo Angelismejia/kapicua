@@ -84,6 +84,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Reglas de la liga: las ve cualquier cuenta real de la familia (no
+    // los invitados, que tienen su propia liga aparte), pero solo un
+    // admin las agrega, edita o borra.
+    match /rules/{ruleId} {
+      allow read: if isFamilyMember();
+      allow write: if isAdmin();
+    }
+
     match /games/{gameId} {
       allow read, write: if isFamilyMember();
 
