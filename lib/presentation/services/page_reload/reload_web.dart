@@ -1,3 +1,6 @@
+// Este archivo solo se compila en la build web (conditional import), así
+// que el aviso de "librería solo-web" no aplica.
+// ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
 void reloadPage() {
