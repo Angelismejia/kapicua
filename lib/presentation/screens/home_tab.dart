@@ -641,9 +641,16 @@ class _HomeTabState extends State<HomeTab> {
       }
     }
 
-    // Hito de la liga: total de ganadas/perdidas registradas alguna vez.
-    if (entries.length >= 10) {
-      messages.add('Ya van ${entries.length} partidas jugadas en total.');
+    // Hito de la liga: ganadas/perdidas registradas este mes (se reinicia
+    // al empezar un mes nuevo).
+    final entriesThisMonth = entries
+        .where(
+          (e) =>
+              e.createdAt.year == now.year && e.createdAt.month == now.month,
+        )
+        .length;
+    if (entriesThisMonth >= 10) {
+      messages.add('Ya van $entriesThisMonth partidas jugadas este mes.');
     }
 
     // Aniversario de la cuenta (cada mes cumplido, en el mismo día).
