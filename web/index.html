@@ -92,19 +92,6 @@
     <p>Cargando Kapicua, un momento por favor&hellip;</p>
   </div>
   <script>
-    // Kapicua no usa "service worker" (esta app no necesita funcionar sin
-    // conexión). Si el teléfono guardó uno de una versión vieja, se queda
-    // sirviendo esa copia vieja para siempre y ningún arreglo nuevo llega
-    // a aparecer, sin importar cuántas veces se publique — por eso se
-    // borra cualquiera que encuentre, apenas carga la página.
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-      });
-    }
-
     window.addEventListener('flutter-first-frame', function () {
       var loading = document.getElementById('app-loading');
       if (!loading) return;
