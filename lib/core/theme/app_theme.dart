@@ -21,15 +21,15 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: const Color(0xFFEAF6EB),
-        // Con 5 pestañas ya no entran las 5 etiquetas de texto a la vez
-        // sin verse apretadas — se muestra el texto solo de la que está
-        // seleccionada, y el resto queda solo con su ícono.
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        // Las 5 etiquetas se ven siempre (no solo la de la pestaña
+        // seleccionada) — se achica un poco la letra para que "Estadísticas"
+        // y "Certificados" no queden pegadas entre sí con 5 pestañas.
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            fontSize: 10.5,
           ),
         ),
       ),
