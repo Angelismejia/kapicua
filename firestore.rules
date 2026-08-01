@@ -2,13 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Admin = correo en la lista fija (respaldo) o con documento propio
-    // en la coleccion "admins" (otorgado desde la app por otro admin).
+    // Admin = tiene documento propio en la coleccion "admins" (otorgado
+    // desde la app por otro admin).
     function isAdmin() {
       return request.auth != null &&
-        (request.auth.token.email.lower() in
-          ['angelismejia06@gmail.com', 'proniw83@gmail.com'] ||
-         exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Cuenta real de la familia (correo y contrasena), no un invitado
