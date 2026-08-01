@@ -21,6 +21,10 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: const Color(0xFFEAF6EB),
+        // Con 5 pestañas ya no entran las 5 etiquetas de texto a la vez
+        // sin verse apretadas — se muestra el texto solo de la que está
+        // seleccionada, y el resto queda solo con su ícono.
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(
             fontFamily: 'Poppins',
@@ -51,6 +55,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       navigationBarTheme: NavigationBarThemeData(
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(
             fontFamily: 'Poppins',

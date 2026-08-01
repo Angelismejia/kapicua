@@ -106,7 +106,7 @@ class _MainShellState extends State<MainShell>
           if (!isGuest)
             const NavigationDestination(
               icon: Icon(Icons.rule_outlined),
-              selectedIcon: Icon(Icons.rule_rounded),
+              selectedIcon: Icon(Icons.rule),
               label: 'Reglas',
             ),
           const NavigationDestination(
