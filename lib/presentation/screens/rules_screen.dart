@@ -49,6 +49,8 @@ class RulesScreen extends StatelessWidget {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                   children: [
+                    const _BibleVerseCard(),
+                    const SizedBox(height: 12),
                     if (isAdmin) ...[
                       _AddRuleCard(
                         onAdd: () => _showRuleDialog(context, rules),
@@ -187,6 +189,55 @@ class RulesScreen extends StatelessWidget {
               Navigator.pop(dialogContext);
             },
             child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BibleVerseCard extends StatelessWidget {
+  const _BibleVerseCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border(
+          left: BorderSide(color: colorScheme.primary, width: 4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '"Por eso, ya sea que estén comiendo, bebiendo o haciendo '
+            'cualquier otra cosa, háganlo todo para la gloria de Dios."',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontStyle: FontStyle.italic,
+              fontSize: 14,
+              height: 1.45,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '— 1 Corintios 10:31',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+                color: colorScheme.primary,
+              ),
+            ),
           ),
         ],
       ),
@@ -407,6 +458,44 @@ class _ShareableRulesCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: green,
               borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: lightGreen,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '"Por eso, ya sea que estén comiendo, bebiendo o haciendo '
+                  'cualquier otra cosa, háganlo todo para la gloria de Dios."',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontStyle: FontStyle.italic,
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '— 1 Corintios 10:31',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      color: green,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
