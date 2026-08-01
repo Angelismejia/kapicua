@@ -12,6 +12,7 @@ import 'data/repositories/firestore_game_repository.dart';
 import 'data/repositories/firestore_guest_repository.dart';
 import 'data/repositories/firestore_monthly_override_repository.dart';
 import 'data/repositories/firestore_player_repository.dart';
+import 'data/repositories/firestore_rules_repository.dart';
 import 'data/repositories/firestore_stats_repository.dart';
 import 'domain/entities/app_user.dart';
 import 'domain/entities/guest_session.dart';
@@ -21,6 +22,7 @@ import 'domain/repositories/game_repository.dart';
 import 'domain/repositories/guest_repository.dart';
 import 'domain/repositories/monthly_override_repository.dart';
 import 'domain/repositories/player_repository.dart';
+import 'domain/repositories/rules_repository.dart';
 import 'domain/repositories/stats_repository.dart';
 import 'domain/usecases/delete_player_permanently_usecase.dart';
 import 'domain/usecases/game_usecases.dart';
@@ -54,6 +56,7 @@ Future<void> main() async {
   final adminRepository = FirestoreAdminRepository(db);
   final monthlyOverrideRepository = FirestoreMonthlyOverrideRepository(db);
   final guestRepository = FirestoreGuestRepository(db);
+  final rulesRepository = FirestoreRulesRepository(db);
   final authController = AuthController(authRepository, adminRepository);
 
   runApp(
@@ -69,6 +72,7 @@ Future<void> main() async {
           value: monthlyOverrideRepository,
         ),
         Provider<GuestRepository>.value(value: guestRepository),
+        Provider<RulesRepository>.value(value: rulesRepository),
         ChangeNotifierProvider<AuthController>.value(value: authController),
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
         Provider<MergePlayersUseCase>(

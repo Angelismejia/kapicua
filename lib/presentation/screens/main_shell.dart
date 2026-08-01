@@ -5,6 +5,7 @@ import '../../domain/entities/guest_session.dart';
 import 'certificados_tab.dart';
 import 'home_tab.dart';
 import 'players_screen.dart';
+import 'rules_screen.dart';
 import 'stats_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -75,6 +76,7 @@ class _MainShellState extends State<MainShell>
       StatsScreen(key: ValueKey('stats-$_statsVisitKey')),
       if (!isGuest)
         CertificadosTab(key: ValueKey('certificados-$_certificadosVisitKey')),
+      if (!isGuest) const RulesScreen(),
       const PlayersScreen(),
     ];
     if (_index >= tabs.length) _index = tabs.length - 1;
@@ -100,6 +102,12 @@ class _MainShellState extends State<MainShell>
               icon: Icon(Icons.workspace_premium_outlined),
               selectedIcon: Icon(Icons.workspace_premium_rounded),
               label: 'Certificados',
+            ),
+          if (!isGuest)
+            const NavigationDestination(
+              icon: Icon(Icons.rule_outlined),
+              selectedIcon: Icon(Icons.rule_rounded),
+              label: 'Reglas',
             ),
           const NavigationDestination(
             icon: Icon(Icons.groups_outlined),
