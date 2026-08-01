@@ -19,7 +19,18 @@ class RulesScreen extends StatelessWidget {
         final ruleList = snapshot.data ?? [];
         return Scaffold(
           appBar: AppBar(title: const Text('Reglas')),
-          body: !snapshot.hasData
+          body: snapshot.hasError
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'No se pudieron cargar las reglas. Revisa tu '
+                      'conexión e intenta de nuevo.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : !snapshot.hasData
               ? const Center(child: CircularProgressIndicator())
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
