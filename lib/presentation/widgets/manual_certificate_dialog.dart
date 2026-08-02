@@ -13,6 +13,7 @@ void showManualCertificateDialog(BuildContext context, List<Player> players) {
   );
   final scoreController = TextEditingController();
   var useCustomName = players.isEmpty;
+  var type = CertificateType.champion;
 
   showDialog(
     context: context,
@@ -24,6 +25,21 @@ void showManualCertificateDialog(BuildContext context, List<Player> players) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SegmentedButton<CertificateType>(
+                segments: const [
+                  ButtonSegment(
+                    value: CertificateType.champion,
+                    label: Text('Primer lugar'),
+                  ),
+                  ButtonSegment(
+                    value: CertificateType.runnerUp,
+                    label: Text('Segundo lugar'),
+                  ),
+                ],
+                selected: {type},
+                onSelectionChanged: (s) => setState(() => type = s.first),
+              ),
+              const SizedBox(height: 12),
               if (players.isNotEmpty) ...[
                 DropdownButtonFormField<Player>(
                   initialValue: useCustomName ? null : selectedPlayer,
@@ -90,6 +106,7 @@ void showManualCertificateDialog(BuildContext context, List<Player> players) {
                 context,
                 MaterialPageRoute(
                   builder: (_) => CertificateScreen(
+                    type: type,
                     winnerName: name,
                     monthLabel: month,
                     totalScore: score,

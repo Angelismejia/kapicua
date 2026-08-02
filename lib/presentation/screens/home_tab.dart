@@ -596,7 +596,16 @@ class _HomeTabState extends State<HomeTab> {
       }
     }
 
-    final leader = computeMonthlyPercentageLeader(entries, players, thisMonth);
+    // computeMonthlyPercentageLeader siempre devuelve "alguien" arriba
+    // aunque nadie haya jugado todavía este mes (cae en el primero de la
+    // lista con 0-0) — sin este chequeo, apenas empieza el mes ya
+    // aparecía un "líder" y mensajes de empate/diferencia inventados.
+    final hasActivityThisMonth = entries.any(
+      (e) => e.createdAt.year == now.year && e.createdAt.month == now.month,
+    );
+    final leader = hasActivityThisMonth
+        ? computeMonthlyPercentageLeader(entries, players, thisMonth)
+        : null;
     if (leader != null) {
       final isMeLeading = me != null && leader.player.id == me.id;
       messages.add(
