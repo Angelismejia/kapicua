@@ -67,25 +67,48 @@ List<MonthlyWinnerResult> _myWonMonths(
 }
 
 /// Igual que [_myWonMonths] pero para los meses en que este jugador quedó
-/// de segundo lugar (subcampeón) — solo cuenta meses con datos reales,
-/// no aplica a ganadores puestos a mano (esos no traen un "segundo lugar"
-/// calculable).
+/// de segundo lugar (subcampeón), incluyendo tanto meses con datos reales
+/// como subcampeones viejos puestos a mano por un admin.
 List<MonthlyWinnerResult> _mySecondPlaceMonths(
   List<PlayerStatEntry> entries,
   List<Player> players,
   Player me,
+  Map<String, Map<String, dynamic>> overrides,
 ) {
   final months = <DateTime>{};
   for (final e in entries) {
     months.add(DateTime(e.createdAt.year, e.createdAt.month));
   }
   final result = <MonthlyWinnerResult>[];
+  final resultMonthKeys = <String>{};
   for (final month in months) {
     final second = computeMonthlySecondPlace(entries, players, month);
     if (second != null && second.isMonthOver && second.player.id == me.id) {
       result.add(second);
+      resultMonthKeys.add(
+        '${month.year}-${month.month.toString().padLeft(2, '0')}',
+      );
     }
   }
+
+  overrides.forEach((monthKey, data) {
+    if (resultMonthKeys.contains(monthKey)) return;
+    if (data['secondPlacePlayerId'] != me.id) return;
+    final parts = monthKey.split('-');
+    if (parts.length != 2) return;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    if (year == null || month == null) return;
+    result.add(
+      MonthlyWinnerResult(
+        player: me,
+        month: DateTime(year, month),
+        wins: (data['secondPlaceWins'] as num?)?.toInt() ?? 0,
+        losses: (data['secondPlaceLosses'] as num?)?.toInt() ?? 0,
+      ),
+    );
+  });
+
   result.sort((a, b) => b.month.compareTo(a.month));
   return result;
 }
@@ -98,11 +121,23 @@ void _showSetOverrideDialog(
   Player? currentPlayer,
   int currentWins = 1,
   int currentLosses = 0,
+  Player? currentSecondPlace,
+  int currentSecondPlaceWins = 1,
+  int currentSecondPlaceLosses = 0,
 }) {
   Player? selected =
       currentPlayer ?? (players.isNotEmpty ? players.first : null);
   final winsController = TextEditingController(text: '$currentWins');
   final lossesController = TextEditingController(text: '$currentLosses');
+
+  var setSecondPlace = currentSecondPlace != null;
+  Player? selectedSecondPlace = currentSecondPlace;
+  final secondWinsController = TextEditingController(
+    text: '$currentSecondPlaceWins',
+  );
+  final secondLossesController = TextEditingController(
+    text: '$currentSecondPlaceLosses',
+  );
 
   showDialog(
     context: context,
@@ -113,40 +148,82 @@ void _showSetOverrideDialog(
               ? 'Establecer ganador de este mes'
               : 'Corregir ganador de este mes',
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Para meses sin ninguna ganada o perdida registrada (ej. '
-              'antes de usar la app). Elige quién ganó y sus estadísticas.',
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<Player>(
-              initialValue: selected,
-              decoration: const InputDecoration(labelText: 'Jugador'),
-              items: players
-                  .map(
-                    (p) => DropdownMenuItem(value: p, child: Text(p.fullName)),
-                  )
-                  .toList(),
-              onChanged: (p) => setState(() => selected = p),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: winsController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(labelText: 'Ganadas'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: lossesController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(labelText: 'Perdidas'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Para meses sin ninguna ganada o perdida registrada (ej. '
+                'antes de usar la app). Elige quién ganó y sus estadísticas.',
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<Player>(
+                initialValue: selected,
+                decoration: const InputDecoration(labelText: 'Campeón'),
+                items: players
+                    .map(
+                      (p) =>
+                          DropdownMenuItem(value: p, child: Text(p.fullName)),
+                    )
+                    .toList(),
+                onChanged: (p) => setState(() => selected = p),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: winsController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(labelText: 'Ganadas'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: lossesController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(labelText: 'Perdidas'),
+              ),
+              const Divider(height: 32),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('También establecer subcampeón'),
+                value: setSecondPlace,
+                onChanged: (v) => setState(() => setSecondPlace = v ?? false),
+              ),
+              if (setSecondPlace) ...[
+                const SizedBox(height: 8),
+                DropdownButtonFormField<Player>(
+                  initialValue: selectedSecondPlace,
+                  decoration: const InputDecoration(labelText: 'Subcampeón'),
+                  items: players
+                      .map(
+                        (p) => DropdownMenuItem(
+                          value: p,
+                          child: Text(p.fullName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (p) =>
+                      setState(() => selectedSecondPlace = p),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: secondWinsController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'Ganadas'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: secondLossesController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'Perdidas'),
+                ),
+              ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -160,6 +237,14 @@ void _showSetOverrideDialog(
                     final wins = int.tryParse(winsController.text.trim()) ?? 0;
                     final losses =
                         int.tryParse(lossesController.text.trim()) ?? 0;
+                    final wantsSecondPlace =
+                        setSecondPlace && selectedSecondPlace != null;
+                    final secondWins = int.tryParse(
+                      secondWinsController.text.trim(),
+                    );
+                    final secondLosses = int.tryParse(
+                      secondLossesController.text.trim(),
+                    );
                     Navigator.pop(dialogContext);
                     try {
                       await overrides.setMonthlyOverride(
@@ -167,6 +252,11 @@ void _showSetOverrideDialog(
                         selected!.id,
                         wins,
                         losses,
+                        secondPlacePlayerId: wantsSecondPlace
+                            ? selectedSecondPlace!.id
+                            : null,
+                        secondPlaceWins: secondWins,
+                        secondPlaceLosses: secondLosses,
                       );
                     } catch (e) {
                       if (!context.mounted) return;
@@ -332,16 +422,34 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   final isMeTheLeader =
                       leader != null && me != null && leader.player.id == me.id;
 
-                  // El certificado de subcampeón solo tiene sentido cuando
-                  // hay datos reales del mes (no aplica a un ganador puesto
-                  // a mano, que no trae un "segundo lugar" calculable).
-                  final secondPlace = hasActivityThisMonth
-                      ? computeMonthlySecondPlace(
-                          entries,
-                          players,
-                          _selectedMonth,
-                        )
-                      : null;
+                  // El subcampeón puesto a mano por un admin para un mes sin
+                  // datos reales (mismo patrón que el campeón manual).
+                  final overrideSecondPlaceId =
+                      override?['secondPlacePlayerId'] as String?;
+                  final overrideSecondPlacePlayer = overrideSecondPlaceId == null
+                      ? null
+                      : players
+                            .where((p) => p.id == overrideSecondPlaceId)
+                            .cast<Player?>()
+                            .firstWhere((_) => true, orElse: () => null);
+
+                  MonthlyWinnerResult? secondPlace;
+                  if (hasActivityThisMonth) {
+                    secondPlace = computeMonthlySecondPlace(
+                      entries,
+                      players,
+                      _selectedMonth,
+                    );
+                  } else if (overrideSecondPlacePlayer != null) {
+                    secondPlace = MonthlyWinnerResult(
+                      player: overrideSecondPlacePlayer,
+                      month: _selectedMonth,
+                      wins: (override?['secondPlaceWins'] as num?)?.toInt() ?? 0,
+                      losses:
+                          (override?['secondPlaceLosses'] as num?)?.toInt() ??
+                          0,
+                    );
+                  }
 
                   // Cuántas ganadas me faltan para alcanzar al líder este
                   // mes (solo tiene sentido si todavía no soy yo quien va
@@ -397,6 +505,15 @@ class _CertificadosTabState extends State<CertificadosTab> {
                               currentPlayer: leader?.player,
                               currentWins: leader?.wins ?? 1,
                               currentLosses: leader?.losses ?? 0,
+                              currentSecondPlace: overrideSecondPlacePlayer,
+                              currentSecondPlaceWins:
+                                  (override?['secondPlaceWins'] as num?)
+                                      ?.toInt() ??
+                                  1,
+                              currentSecondPlaceLosses:
+                                  (override?['secondPlaceLosses'] as num?)
+                                      ?.toInt() ??
+                                  0,
                             ),
                             () => overridesRepo.clearMonthlyOverride(
                               _selectedMonth,
@@ -436,7 +553,12 @@ class _CertificadosTabState extends State<CertificadosTab> {
                               _myWonMonths(entries, players, me, allOverrides),
                             ),
                             ..._buildMySecondPlaceHistory(
-                              _mySecondPlaceMonths(entries, players, me),
+                              _mySecondPlaceMonths(
+                                entries,
+                                players,
+                                me,
+                                allOverrides,
+                              ),
                             ),
                           ],
                         ],

@@ -32,12 +32,20 @@ class FirestoreMonthlyOverrideRepository implements MonthlyOverrideRepository {
     DateTime month,
     String playerId,
     int wins,
-    int losses,
-  ) async {
+    int losses, {
+    String? secondPlacePlayerId,
+    int? secondPlaceWins,
+    int? secondPlaceLosses,
+  }) async {
     await _db.collection('monthlyOverrides').doc(_monthKey(month)).set({
       'playerId': playerId,
       'wins': wins,
       'losses': losses,
+      if (secondPlacePlayerId != null) ...{
+        'secondPlacePlayerId': secondPlacePlayerId,
+        'secondPlaceWins': secondPlaceWins ?? 0,
+        'secondPlaceLosses': secondPlaceLosses ?? 0,
+      },
     });
   }
 
