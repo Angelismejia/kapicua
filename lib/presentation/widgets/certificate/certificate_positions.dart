@@ -13,18 +13,18 @@ class CertificatePositions {
   static const Color accentColor = Color(0xFF16302A);
   static const Color bodyTextColor = Color(0xFF1A1A22);
 
-  static const double nameBoxTop = 375;
-  static const double nameBoxLeft = 280;
-  static const double nameBoxWidth = 940;
-  static const double nameBoxHeight = 180;
+  static const double nameBoxTop = 388;
+  static const double nameBoxLeft = 260;
+  static const double nameBoxWidth = 970;
+  static const double nameBoxHeight = 190;
   static const String nameFontFamily = 'AlexBrush';
-  static const double nameFontSize = 62;
+  static const double nameFontSize = 58;
 
   // Cubre el párrafo y la línea "¡Felicidades, campeón!" juntos.
-  static const double paragraphBoxTop = 580;
+  static const double paragraphBoxTop = 583;
   static const double paragraphBoxLeft = 260;
   static const double paragraphBoxWidth = 970;
-  static const double paragraphBoxHeight = 235;
+  static const double paragraphBoxHeight = 228;
   static const String paragraphFontFamily = 'AlegreyaSans';
   static const double paragraphFontSize = 20;
 }
