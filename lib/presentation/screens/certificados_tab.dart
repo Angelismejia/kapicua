@@ -486,6 +486,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
                           ..._buildChampionSection(
                             isAdmin,
                             leader,
+                            secondPlace,
                             isMeTheLeader,
                             gapToLeader,
                             players.isEmpty,
@@ -577,6 +578,7 @@ class _CertificadosTabState extends State<CertificadosTab> {
   List<Widget> _buildChampionSection(
     bool isAdmin,
     MonthlyWinnerResult? leader,
+    MonthlyWinnerResult? secondPlace,
     bool isMeTheLeader,
     int? gapToLeader,
     bool noPlayers,
@@ -613,16 +615,19 @@ class _CertificadosTabState extends State<CertificadosTab> {
 
     final label = DateFormat('MMMM yyyy', 'es').format(_selectedMonth);
 
-    // Mensaje personal: general de quién va/fue ganando, y uno según si
-    // el que ve la pantalla es quien lidera, está cerca, o va atrás.
-    // Se ve igual para admins y no admins — lo único que cambia es
-    // quién puede generar el certificado desde la tarjeta de arriba.
+    // Mensaje personal ("vas ganando", "te falta poco", "todavía hay
+    // tiempo"...) solo tiene sentido mientras el mes sigue en juego. Ya
+    // cerrado el mes, no hay nada que "voltear" — solo se informa quién
+    // ganó (y el subcampeón, si hay), sin animar a remontar algo que ya
+    // pasó.
     final statusText = leader.isMonthOver
         ? 'El ganador de $label fue ${leader.player.displayName}.'
         : '${leader.player.displayName} va ganando este mes, pero el '
               'resultado todavía no está definido.';
-    final String personalText;
-    if (isMeTheLeader) {
+    final String? personalText;
+    if (leader.isMonthOver) {
+      personalText = null;
+    } else if (isMeTheLeader) {
       personalText = _pickMessage(_kLeaderMessages);
     } else if (gapToLeader != null && gapToLeader >= 1 && gapToLeader <= 3) {
       personalText = _pickMessage(_kCloseMessages);
@@ -678,13 +683,19 @@ class _CertificadosTabState extends State<CertificadosTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(statusText),
-              const SizedBox(height: 8),
-              Text(
-                personalText,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
+              if (leader.isMonthOver && secondPlace != null) ...[
+                const SizedBox(height: 4),
+                Text('El subcampeón fue ${secondPlace.player.displayName}.'),
+              ],
+              if (personalText != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  personalText,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

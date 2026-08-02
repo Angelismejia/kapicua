@@ -18,7 +18,7 @@ class CertificatePositions {
   static const double nameBoxWidth = 970;
   static const double nameBoxHeight = 190;
   static const String nameFontFamily = 'AlexBrush';
-  static const double nameFontSize = 58;
+  static const double nameFontSize = 68;
 
   // Cubre el párrafo y la línea "¡Felicidades, campeón!" juntos.
   static const double paragraphBoxTop = 583;
