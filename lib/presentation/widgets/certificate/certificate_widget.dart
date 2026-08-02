@@ -40,7 +40,7 @@ class CertificateWidget extends StatelessWidget {
             left: CertificatePositions.nameBoxLeft,
             width: CertificatePositions.nameBoxWidth,
             height: CertificatePositions.nameBoxHeight,
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFFFDFCF8)),
           ),
           // Tapa el párrafo de ejemplo del diseño original
           Positioned(
@@ -48,7 +48,7 @@ class CertificateWidget extends StatelessWidget {
             left: CertificatePositions.paragraphBoxLeft,
             width: CertificatePositions.paragraphBoxWidth,
             height: CertificatePositions.paragraphBoxHeight,
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFFFDFCF8)),
           ),
           Positioned(
             top: CertificatePositions.nameBoxTop,
@@ -62,7 +62,7 @@ class CertificateWidget extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: CertificatePositions.nameFontFamily,
                   fontSize: CertificatePositions.nameFontSize,
-                  color: CertificatePositions.textColor,
+                  color: CertificatePositions.accentColor,
                 ),
               ),
             ),
@@ -79,7 +79,7 @@ class CertificateWidget extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: CertificatePositions.paragraphFontFamily,
                       fontSize: CertificatePositions.paragraphFontSize,
-                      color: CertificatePositions.textColor,
+                      color: CertificatePositions.bodyTextColor,
                     ),
                     children: [
                       const TextSpan(
@@ -115,7 +115,7 @@ class CertificateWidget extends StatelessWidget {
                     fontFamily: CertificatePositions.paragraphFontFamily,
                     fontSize: CertificatePositions.paragraphFontSize,
                     fontWeight: FontWeight.bold,
-                    color: CertificatePositions.textColor,
+                    color: CertificatePositions.accentColor,
                   ),
                 ),
               ],
