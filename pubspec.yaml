@@ -83,6 +83,7 @@ flutter:
   assets:
     - assets/logo_banner.jpg
     - assets/certificado.png
+    - assets/subcampeon.png
 
   fonts:
     - family: AlexBrush

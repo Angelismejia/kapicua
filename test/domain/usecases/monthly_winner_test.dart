@@ -95,6 +95,60 @@ void main() {
     });
   });
 
+  group('computeMonthlySecondPlace', () {
+    final playerC = Player(id: 'c', fullName: 'Carla');
+
+    test('con menos de dos jugadores con alguna ganada, no hay segundo', () {
+      final entries = [entry('a', true, 1)];
+      expect(
+        computeMonthlySecondPlace(entries, [playerA, playerB], month),
+        isNull,
+      );
+    });
+
+    test('elige al segundo mejor porcentaje, no al primero', () {
+      final entries = [
+        entry('a', true, 1),
+        entry('b', true, 2),
+        entry('b', false, 2),
+        entry('c', true, 3),
+        entry('c', true, 3),
+        entry('c', false, 3),
+      ];
+      // A: 1-0 (100%), C: 2-1 (66.7%), B: 1-1 (50%).
+      final second = computeMonthlySecondPlace(
+        entries,
+        [playerA, playerB, playerC],
+        month,
+      );
+      expect(second!.player.id, 'c');
+    });
+
+    test(
+      'respeta la misma calificación de 40 manos que el primer lugar',
+      () {
+        final entries = <PlayerStatEntry>[
+          for (var i = 0; i < 25; i++) entry('a', true, 1),
+          for (var i = 0; i < 15; i++) entry('a', false, 1),
+          for (var i = 0; i < 20; i++) entry('b', true, 2),
+          for (var i = 0; i < 20; i++) entry('b', false, 2),
+          entry('c', true, 3),
+          entry('c', true, 3),
+        ];
+        // A: 25-15 (40 manos, 62.5%) califica.
+        // B: 20-20 (40 manos, 50%) califica.
+        // C: 2-0 (100%) pero no llega a 40 manos, queda fuera aunque su
+        // porcentaje sea el mejor de todos.
+        final second = computeMonthlySecondPlace(
+          entries,
+          [playerA, playerB, playerC],
+          month,
+        );
+        expect(second!.player.id, 'b');
+      },
+    );
+  });
+
   group('qualifiedIdsForRanking', () {
     test('sin nadie llegando a las 40 manos, no filtra a nadie (null)', () {
       final result = qualifiedIdsForRanking({'a': 5}, {'a': 2}, month);

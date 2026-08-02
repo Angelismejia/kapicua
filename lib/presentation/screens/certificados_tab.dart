@@ -308,6 +308,17 @@ class _CertificadosTabState extends State<CertificadosTab> {
                   final isMeTheLeader =
                       leader != null && me != null && leader.player.id == me.id;
 
+                  // El certificado de subcampeón solo tiene sentido cuando
+                  // hay datos reales del mes (no aplica a un ganador puesto
+                  // a mano, que no trae un "segundo lugar" calculable).
+                  final secondPlace = hasActivityThisMonth
+                      ? computeMonthlySecondPlace(
+                          entries,
+                          players,
+                          _selectedMonth,
+                        )
+                      : null;
+
                   // Cuántas ganadas me faltan para alcanzar al líder este
                   // mes (solo tiene sentido si todavía no soy yo quien va
                   // arriba), para elegir un mensaje motivador acorde.
@@ -367,6 +378,16 @@ class _CertificadosTabState extends State<CertificadosTab> {
                               _selectedMonth,
                             ),
                           ),
+                          if (isAdmin && secondPlace != null) ...[
+                            const SizedBox(height: 12),
+                            _SecondPlaceCard(
+                              result: secondPlace,
+                              monthLabel: DateFormat(
+                                'MMMM yyyy',
+                                'es',
+                              ).format(_selectedMonth),
+                            ),
+                          ],
                           if (isAdmin) ...[
                             const SizedBox(height: 24),
                             Text(
@@ -598,5 +619,60 @@ class _CertificadosTabState extends State<CertificadosTab> {
         ),
       ),
     ];
+  }
+}
+
+/// Tarjeta para generar el certificado de subcampeón, aparte de la del
+/// campeón — mismo estilo simple, sin los mensajes de racha/ánimo que sí
+/// tiene el primer lugar.
+class _SecondPlaceCard extends StatelessWidget {
+  final MonthlyWinnerResult result;
+  final String monthLabel;
+
+  const _SecondPlaceCard({required this.result, required this.monthLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Subcampeón de $monthLabel',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              result.player.displayName,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${result.wins} ganadas · ${result.losses} perdidas · '
+              '${result.winPercentage.toStringAsFixed(0)}%',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              icon: const Icon(Icons.military_tech_outlined),
+              label: const Text('Generar certificado de subcampeón'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CertificateScreen(
+                    type: CertificateType.runnerUp,
+                    winnerName: result.player.fullName,
+                    monthLabel: monthLabel,
+                    totalScore: result.certificateScore,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -136,6 +136,58 @@ MonthlyWinnerResult? computeMonthlyWinner(
   );
 }
 
+/// Segundo lugar del mes, para el certificado de subcampeón: mismas reglas
+/// de calificación que [computeMonthlyWinner] (las 40 manos, y si nadie
+/// llega, se ordena solo por porcentaje), pero devolviendo a quien queda
+/// en la posición #2 en vez de la #1. Devuelve null si no hay al menos dos
+/// jugadores con alguna ganada registrada ese mes.
+MonthlyWinnerResult? computeMonthlySecondPlace(
+  List<PlayerStatEntry> entries,
+  List<Player> players,
+  DateTime month,
+) {
+  final winsCount = <String, int>{};
+  final lossesCount = <String, int>{};
+  for (final e in entries) {
+    if (e.createdAt.year != month.year || e.createdAt.month != month.month) {
+      continue;
+    }
+    if (e.isWin) {
+      winsCount[e.playerId] = (winsCount[e.playerId] ?? 0) + 1;
+    } else {
+      lossesCount[e.playerId] = (lossesCount[e.playerId] ?? 0) + 1;
+    }
+  }
+  if (winsCount.length < 2) return null;
+
+  bool qualifies(String id) =>
+      (winsCount[id] ?? 0) + (lossesCount[id] ?? 0) >= kMinGamesToWinMonth;
+  final anyoneQualifies = winsCount.keys.any(qualifies);
+
+  final ranked =
+      winsCount.keys.where((id) => !anyoneQualifies || qualifies(id)).toList()
+        ..sort((a, b) {
+          final pctA = winsCount[a]! / (winsCount[a]! + (lossesCount[a] ?? 0));
+          final pctB = winsCount[b]! / (winsCount[b]! + (lossesCount[b] ?? 0));
+          return pctB.compareTo(pctA);
+        });
+  if (ranked.length < 2) return null;
+
+  final secondId = ranked[1];
+  final player = players
+      .where((p) => p.id == secondId)
+      .cast<Player?>()
+      .firstWhere((_) => true, orElse: () => null);
+  if (player == null) return null;
+
+  return MonthlyWinnerResult(
+    player: player,
+    month: month,
+    wins: winsCount[secondId]!,
+    losses: lossesCount[secondId] ?? 0,
+  );
+}
+
 /// Como siempre hay alguien "arriba" en cualquier tabla, esta variante
 /// nunca devuelve null (mientras haya al menos un jugador), incluso si
 /// todavía nadie tiene una ganada registrada ese mes. A diferencia de

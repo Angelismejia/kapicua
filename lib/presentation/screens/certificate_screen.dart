@@ -4,14 +4,19 @@ import 'package:flutter/material.dart';
 import '../services/certificate_service.dart';
 import '../services/print_service.dart';
 import '../widgets/certificate/certificate_widget.dart';
+import '../widgets/certificate/runner_up_certificate_widget.dart';
+
+enum CertificateType { champion, runnerUp }
 
 class CertificateScreen extends StatefulWidget {
+  final CertificateType type;
   final String winnerName;
   final String monthLabel;
   final int totalScore;
 
   const CertificateScreen({
     super.key,
+    this.type = CertificateType.champion,
     required this.winnerName,
     required this.monthLabel,
     required this.totalScore,
@@ -31,7 +36,11 @@ class _CertificateScreenState extends State<CertificateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Certificado de campeón'),
+        title: Text(
+          widget.type == CertificateType.champion
+              ? 'Certificado de campeón'
+              : 'Certificado de subcampeón',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.download_outlined),
@@ -48,11 +57,17 @@ class _CertificateScreenState extends State<CertificateScreen> {
                 child: FittedBox(
                   child: RepaintBoundary(
                     key: _repaintKey,
-                    child: CertificateWidget(
-                      winnerName: widget.winnerName,
-                      monthLabel: widget.monthLabel,
-                      totalScore: widget.totalScore,
-                    ),
+                    child: widget.type == CertificateType.champion
+                        ? CertificateWidget(
+                            winnerName: widget.winnerName,
+                            monthLabel: widget.monthLabel,
+                            totalScore: widget.totalScore,
+                          )
+                        : RunnerUpCertificateWidget(
+                            playerName: widget.winnerName,
+                            monthLabel: widget.monthLabel,
+                            totalScore: widget.totalScore,
+                          ),
                   ),
                 ),
               ),
