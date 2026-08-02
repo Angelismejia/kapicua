@@ -594,6 +594,17 @@ class _HomeTabState extends State<HomeTab> {
           'El mes pasado se lo llevó ${lastWinner.player.displayName}',
         );
       }
+      final lastSecondPlace = computeMonthlySecondPlace(
+        entries,
+        players,
+        lastMonth,
+      );
+      if (lastSecondPlace != null) {
+        messages.add(
+          'El subcampeón del mes pasado fue '
+          '${lastSecondPlace.player.displayName} 🥈',
+        );
+      }
     }
 
     // computeMonthlyPercentageLeader siempre devuelve "alguien" arriba

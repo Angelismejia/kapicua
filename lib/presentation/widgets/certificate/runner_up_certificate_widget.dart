@@ -116,7 +116,7 @@ class RunnerUpCertificateWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  '¡Felicidades, segundo lugar!',
+                  '¡Felicidades, subcampeón!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: RunnerUpCertificatePositions.paragraphFontFamily,

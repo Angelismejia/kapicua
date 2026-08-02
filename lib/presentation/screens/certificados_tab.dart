@@ -66,6 +66,30 @@ List<MonthlyWinnerResult> _myWonMonths(
   return won;
 }
 
+/// Igual que [_myWonMonths] pero para los meses en que este jugador quedó
+/// de segundo lugar (subcampeón) — solo cuenta meses con datos reales,
+/// no aplica a ganadores puestos a mano (esos no traen un "segundo lugar"
+/// calculable).
+List<MonthlyWinnerResult> _mySecondPlaceMonths(
+  List<PlayerStatEntry> entries,
+  List<Player> players,
+  Player me,
+) {
+  final months = <DateTime>{};
+  for (final e in entries) {
+    months.add(DateTime(e.createdAt.year, e.createdAt.month));
+  }
+  final result = <MonthlyWinnerResult>[];
+  for (final month in months) {
+    final second = computeMonthlySecondPlace(entries, players, month);
+    if (second != null && second.isMonthOver && second.player.id == me.id) {
+      result.add(second);
+    }
+  }
+  result.sort((a, b) => b.month.compareTo(a.month));
+  return result;
+}
+
 void _showSetOverrideDialog(
   BuildContext context,
   MonthlyOverrideRepository overrides,
@@ -411,6 +435,9 @@ class _CertificadosTabState extends State<CertificadosTab> {
                             ..._buildMyCertificateHistory(
                               _myWonMonths(entries, players, me, allOverrides),
                             ),
+                            ..._buildMySecondPlaceHistory(
+                              _mySecondPlaceMonths(entries, players, me),
+                            ),
                           ],
                         ],
                       );
@@ -610,6 +637,82 @@ class _CertificadosTabState extends State<CertificadosTab> {
                         'es',
                       ).format(won[i].month),
                       totalScore: won[i].certificateScore,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Igual que [_buildMyCertificateHistory] pero para los meses en que
+  /// este jugador quedó de subcampeón.
+  List<Widget> _buildMySecondPlaceHistory(List<MonthlyWinnerResult> second) {
+    if (second.isEmpty) {
+      return [
+        const SizedBox(height: 28),
+        Text(
+          'Mis certificados de subcampeón',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Todavía no has quedado de segundo lugar. Cuando pase, va a '
+          'aparecer aquí.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ];
+    }
+
+    return [
+      const SizedBox(height: 28),
+      Text(
+        'Mis certificados de subcampeón',
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Todos los meses en que quedaste de segundo lugar.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      const SizedBox(height: 8),
+      Card(
+        child: Column(
+          children: [
+            for (var i = 0; i < second.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              ListTile(
+                leading: const Icon(
+                  Icons.military_tech_rounded,
+                  color: Colors.blueGrey,
+                ),
+                title: Text(
+                  'Fuiste el subcampeón de '
+                  '${DateFormat('MMMM yyyy', 'es').format(second[i].month)}',
+                ),
+                subtitle: Text(
+                  '${second[i].wins} ganadas · ${second[i].losses} perdidas · '
+                  '${second[i].winPercentage.toStringAsFixed(0)}%',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CertificateScreen(
+                      type: CertificateType.runnerUp,
+                      winnerName: second[i].player.fullName,
+                      monthLabel: DateFormat(
+                        'MMMM yyyy',
+                        'es',
+                      ).format(second[i].month),
+                      totalScore: second[i].certificateScore,
                     ),
                   ),
                 ),
