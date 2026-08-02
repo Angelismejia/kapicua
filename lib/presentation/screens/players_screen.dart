@@ -160,7 +160,7 @@ class PlayersScreen extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.restore),
                     tooltip: 'Reactivar',
-                    onPressed: () => players.reactivatePlayer(player.id),
+                    onPressed: () => _reactivate(context, players, player),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_forever_outlined),
@@ -278,15 +278,41 @@ class PlayersScreen extends StatelessWidget {
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: () {
-              players.removePlayer(player.id);
+            onPressed: () async {
               Navigator.pop(dialogContext);
+              try {
+                await players.removePlayer(player.id);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No se pudo marcar como inactivo: $e'),
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Marcar inactivo'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _reactivate(
+    BuildContext context,
+    PlayerRepository players,
+    Player player,
+  ) async {
+    try {
+      await players.reactivatePlayer(player.id);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No se pudo reactivar: $e')));
+      }
+    }
   }
 
   void _confirmPermanentDelete(BuildContext context, Player player) {
