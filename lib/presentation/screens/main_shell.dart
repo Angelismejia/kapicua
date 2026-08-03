@@ -125,7 +125,7 @@ class _MainShellState extends State<MainShell>
             // señalar) antes de arrancar el recorrido, si no, no
             // encuentra dónde apuntar y no aparece nada.
             var attempts = 0;
-            while (_tourNotifKey.currentContext == null && attempts < 50) {
+            while (_tourNotifKey.currentContext == null && attempts < 300) {
               await Future.delayed(const Duration(milliseconds: 100));
               attempts++;
               if (!mounted) return;
