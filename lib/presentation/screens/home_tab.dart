@@ -15,6 +15,7 @@ import '../../domain/repositories/stats_repository.dart';
 import '../../domain/usecases/monthly_winner.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/add_player_dialog.dart';
+import '../widgets/showcase_helper.dart';
 import 'active_game_screen.dart';
 import 'help_screen.dart';
 import 'history_screen.dart';
@@ -61,7 +62,26 @@ extension _HomeColors on BuildContext {
 class HomeTab extends StatefulWidget {
   final void Function(int index) onNavigateTab;
 
-  const HomeTab({super.key, required this.onNavigateTab});
+  // Llaves del tour de bienvenida (dueño: MainShell, que también señala
+  // la barra de navegación de abajo en el mismo recorrido). Nulas cuando
+  // no hay tour en curso.
+  final GlobalKey? tourNotifKey;
+  final GlobalKey? tourSettingsKey;
+  final GlobalKey? tourNewGameKey;
+  final GlobalKey? tourAddPlayerKey;
+  final GlobalKey? tourHistoryKey;
+  final GlobalKey? tourPlayersKey;
+
+  const HomeTab({
+    super.key,
+    required this.onNavigateTab,
+    this.tourNotifKey,
+    this.tourSettingsKey,
+    this.tourNewGameKey,
+    this.tourAddPlayerKey,
+    this.tourHistoryKey,
+    this.tourPlayersKey,
+  });
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -170,122 +190,149 @@ class _HomeTabState extends State<HomeTab> {
                   isGuest,
                 ).isNotEmpty;
 
-                return SafeArea(
-                  child: AnimatedOpacity(
-                    opacity: _opacity,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                      children: [
-                        _Header(
-                          greeting: _greetingPrefix,
-                          name: me?.displayName,
-                          photoBase64: me?.photoBase64,
-                          hasNotifications: hasNotifications,
-                          onNotificationsTap: () => _showNotifications(
-                            context,
-                            me,
-                            activePlayers,
-                            statEntries,
-                            auth,
-                            isGuest,
-                          ),
-                          onSettingsTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const HelpScreen(),
-                            ),
-                          ),
-                          onProfileTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProfileScreen(player: me),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const _KapicuaLogo(),
-                        const SizedBox(height: 28),
-                        _BannerCarousel(
-                          controller: _bannerController,
-                          currentPage: _bannerPage,
-                          onPageChanged: (i) => setState(() => _bannerPage = i),
-                          isGuest: isGuest,
-                          onCertificadosTap: isGuest
-                              ? null
-                              : () => widget.onNavigateTab(certificadosIndex),
-                        ),
-                        const SizedBox(height: 24),
-                        _PlayersCard(
-                          totalPlayers: activePlayers.length,
-                          onAddPlayer: () =>
-                              showAddPlayerDialog(context, players),
-                        ),
-                        if (!isGuest) ...[
-                          const SizedBox(height: 20),
-                          _ChampionCarousel(messages: championMessages),
-                        ],
-                        for (final game in activeGames) ...[
-                          const SizedBox(height: 20),
-                          _ActiveGameCard(
-                            targetScore: game.targetScore,
-                            teamAName: game.teamAPlayerIds.isEmpty
-                                ? (game.teamALabel ?? 'Casa')
-                                : game.teamAPlayerIds
-                                      .map((id) => playerNames[id] ?? '...')
-                                      .join(' y '),
-                            teamBName: game.teamBPlayerIds.isEmpty
-                                ? (game.teamBLabel ?? 'Visita')
-                                : game.teamBPlayerIds
-                                      .map((id) => playerNames[id] ?? '...')
-                                      .join(' y '),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ActiveGameScreen(gameId: game.id),
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 30),
-                        Text(
-                          'Acciones rápidas',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: context.homeTextColor,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _QuickActionsGrid(
-                          onAddPlayer: () =>
-                              showAddPlayerDialog(context, players),
-                          onNewGame: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const NewGameScreen(),
-                            ),
-                          ),
-                          onHistory: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const HistoryScreen(),
-                            ),
-                          ),
-                          onPlayers: () => widget.onNavigateTab(ligaIndex),
-                        ),
-                      ],
-                    ),
-                  ),
+                return _buildHomeBody(
+                  context,
+                  me,
+                  isGuest,
+                  hasNotifications,
+                  activePlayers,
+                  players,
+                  championMessages,
+                  activeGames,
+                  playerNames,
+                  certificadosIndex,
+                  ligaIndex,
+                  auth,
+                  statEntries,
                 );
               },
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildHomeBody(
+    BuildContext context,
+    Player? me,
+    bool isGuest,
+    bool hasNotifications,
+    List<Player> activePlayers,
+    PlayerRepository players,
+    List<String> championMessages,
+    List<Game> activeGames,
+    Map<String, String> playerNames,
+    int certificadosIndex,
+    int ligaIndex,
+    AuthController auth,
+    List<PlayerStatEntry> statEntries,
+  ) {
+    return SafeArea(
+      child: AnimatedOpacity(
+        opacity: _opacity,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+          children: [
+            _Header(
+              greeting: _greetingPrefix,
+              name: me?.displayName,
+              photoBase64: me?.photoBase64,
+              hasNotifications: hasNotifications,
+              notifKey: widget.tourNotifKey,
+              settingsKey: widget.tourSettingsKey,
+              onNotificationsTap: () => _showNotifications(
+                context,
+                me,
+                activePlayers,
+                statEntries,
+                auth,
+                isGuest,
+              ),
+              onSettingsTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HelpScreen()),
+              ),
+              onProfileTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ProfileScreen(player: me)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const _KapicuaLogo(),
+            const SizedBox(height: 28),
+            _BannerCarousel(
+              controller: _bannerController,
+              currentPage: _bannerPage,
+              onPageChanged: (i) => setState(() => _bannerPage = i),
+              isGuest: isGuest,
+              onCertificadosTap: isGuest
+                  ? null
+                  : () => widget.onNavigateTab(certificadosIndex),
+            ),
+            const SizedBox(height: 24),
+            _PlayersCard(
+              totalPlayers: activePlayers.length,
+              onAddPlayer: () => showAddPlayerDialog(context, players),
+            ),
+            if (!isGuest) ...[
+              const SizedBox(height: 20),
+              _ChampionCarousel(messages: championMessages),
+            ],
+            for (final game in activeGames) ...[
+              const SizedBox(height: 20),
+              _ActiveGameCard(
+                targetScore: game.targetScore,
+                teamAName: game.teamAPlayerIds.isEmpty
+                    ? (game.teamALabel ?? 'Casa')
+                    : game.teamAPlayerIds
+                          .map((id) => playerNames[id] ?? '...')
+                          .join(' y '),
+                teamBName: game.teamBPlayerIds.isEmpty
+                    ? (game.teamBLabel ?? 'Visita')
+                    : game.teamBPlayerIds
+                          .map((id) => playerNames[id] ?? '...')
+                          .join(' y '),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ActiveGameScreen(gameId: game.id),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 30),
+            Text(
+              'Acciones rápidas',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: context.homeTextColor,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _QuickActionsGrid(
+              onAddPlayer: () => showAddPlayerDialog(context, players),
+              onNewGame: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NewGameScreen()),
+              ),
+              onHistory: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              ),
+              onPlayers: () => widget.onNavigateTab(ligaIndex),
+              newGameKey: widget.tourNewGameKey,
+              addPlayerKey: widget.tourAddPlayerKey,
+              historyKey: widget.tourHistoryKey,
+              playersKey: widget.tourPlayersKey,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -665,8 +712,7 @@ class _HomeTabState extends State<HomeTab> {
     // al empezar un mes nuevo).
     final entriesThisMonth = entries
         .where(
-          (e) =>
-              e.createdAt.year == now.year && e.createdAt.month == now.month,
+          (e) => e.createdAt.year == now.year && e.createdAt.month == now.month,
         )
         .length;
     if (entriesThisMonth >= 10) {
@@ -708,6 +754,8 @@ class _Header extends StatelessWidget {
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onProfileTap;
+  final GlobalKey? notifKey;
+  final GlobalKey? settingsKey;
 
   const _Header({
     required this.greeting,
@@ -717,6 +765,8 @@ class _Header extends StatelessWidget {
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onProfileTap,
+    this.notifKey,
+    this.settingsKey,
   });
 
   @override
@@ -729,40 +779,57 @@ class _Header extends StatelessWidget {
         Row(
           children: [
             const Spacer(),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.notifications_none_rounded,
-                    color: context.homeTextColor,
+            maybeShowcase(
+              key: notifKey,
+              title: 'Notificaciones',
+              description:
+                  'Aquí ves tus rachas, aniversario de cuenta y avisos '
+                  'de la liga.',
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications_none_rounded,
+                      color: context.homeTextColor,
+                    ),
+                    tooltip: 'Notificaciones',
+                    onPressed: onNotificationsTap,
                   ),
-                  tooltip: 'Notificaciones',
-                  onPressed: onNotificationsTap,
-                ),
-                if (hasNotifications)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      width: 9,
-                      height: 9,
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: context.cardColor,
-                          width: 1.5,
+                  if (hasNotifications)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: context.cardColor,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-            IconButton(
-              icon: Icon(Icons.settings_outlined, color: context.homeTextColor),
-              tooltip: 'Configuración y ayuda',
-              onPressed: onSettingsTap,
+            maybeShowcase(
+              key: settingsKey,
+              title: 'Configuración',
+              description:
+                  'Aquí puedes cambiar tu contraseña y poner una foto de '
+                  'perfil.',
+              child: IconButton(
+                icon: Icon(
+                  Icons.settings_outlined,
+                  color: context.homeTextColor,
+                ),
+                tooltip: 'Configuración y ayuda',
+                onPressed: onSettingsTap,
+              ),
             ),
             const SizedBox(width: 4),
             InkWell(
@@ -1307,12 +1374,20 @@ class _QuickActionsGrid extends StatelessWidget {
   final VoidCallback onNewGame;
   final VoidCallback onHistory;
   final VoidCallback onPlayers;
+  final GlobalKey? newGameKey;
+  final GlobalKey? addPlayerKey;
+  final GlobalKey? historyKey;
+  final GlobalKey? playersKey;
 
   const _QuickActionsGrid({
     required this.onAddPlayer,
     required this.onNewGame,
     required this.onHistory,
     required this.onPlayers,
+    this.newGameKey,
+    this.addPlayerKey,
+    this.historyKey,
+    this.playersKey,
   });
 
   @override
@@ -1329,21 +1404,35 @@ class _QuickActionsGrid extends StatelessWidget {
           icon: Icons.add_circle_outline_rounded,
           label: 'Nueva partida',
           onTap: onNewGame,
+          showcaseKey: newGameKey,
+          showcaseDescription:
+              'Así se juega: elige Casa vs Visita (y quiénes juegan en cada '
+              'equipo), pon la meta de puntos, y después de cada ronda '
+              'anota cuánto sacó cada lado. Puedes editar o borrar una '
+              'ronda si te equivocas. Al llegar a la meta, la partida se '
+              'guarda sola en el historial y en las estadísticas de cada '
+              'jugador.',
         ),
         _QuickActionButton(
           icon: Icons.person_add_alt_1_rounded,
           label: 'Agregar jugador',
           onTap: onAddPlayer,
+          showcaseKey: addPlayerKey,
+          showcaseDescription: 'Suma jugadores nuevos a la liga.',
         ),
         _QuickActionButton(
           icon: Icons.history_rounded,
           label: 'Historial',
           onTap: onHistory,
+          showcaseKey: historyKey,
+          showcaseDescription: 'Revisa las partidas que ya se jugaron.',
         ),
         _QuickActionButton(
           icon: Icons.groups_2_rounded,
           label: 'Jugadores',
           onTap: onPlayers,
+          showcaseKey: playersKey,
+          showcaseDescription: 'Administra a todos los jugadores de la liga.',
         ),
       ],
     );
@@ -1354,50 +1443,59 @@ class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final GlobalKey? showcaseKey;
+  final String? showcaseDescription;
 
   const _QuickActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.showcaseKey,
+    this.showcaseDescription,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _ScaleOnTap(
-      onTap: onTap,
-      child: Material(
-        color: context.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
+    return maybeShowcase(
+      key: showcaseKey,
+      title: label,
+      description: showcaseDescription ?? '',
+      child: _ScaleOnTap(
+        onTap: onTap,
+        child: Material(
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 30, color: _kPrimaryGreen),
-                const SizedBox(height: 10),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: context.homeTextColor,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 30, color: _kPrimaryGreen),
+                  const SizedBox(height: 10),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: context.homeTextColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

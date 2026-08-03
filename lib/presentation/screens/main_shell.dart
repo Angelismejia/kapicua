@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// ShowCaseWidget/of/startShowCase están deprecados en showcaseview 5.x a
+// favor de ShowcaseView.register()/get() (se quitan recién en 6.0.0);
+// siguen funcionando igual mientras tanto, se ignora a propósito.
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../domain/entities/guest_session.dart';
+import '../services/onboarding_service.dart';
+import '../widgets/showcase_helper.dart';
 import 'certificados_tab.dart';
 import 'home_tab.dart';
 import 'players_screen.dart';
@@ -25,6 +32,22 @@ class _MainShellState extends State<MainShell>
   // seleccionado la última vez.
   int _statsVisitKey = 0;
   int _certificadosVisitKey = 0;
+
+  // Tour de bienvenida (solo la primera vez, por dispositivo): recorre
+  // Inicio y luego la barra de abajo, explicando qué es cada cosa —
+  // incluyendo cómo jugar una partida, que es lo más importante.
+  final _tourNotifKey = GlobalKey();
+  final _tourSettingsKey = GlobalKey();
+  final _tourNewGameKey = GlobalKey();
+  final _tourAddPlayerKey = GlobalKey();
+  final _tourHistoryKey = GlobalKey();
+  final _tourPlayersQuickActionKey = GlobalKey();
+  final _tourStatsTabKey = GlobalKey();
+  final _tourCertificadosTabKey = GlobalKey();
+  final _tourRulesTabKey = GlobalKey();
+  final _tourLigaTabKey = GlobalKey();
+  final _onboardingService = OnboardingService();
+  bool _tourTriggered = false;
 
   // Fundido suave al cambiar de pestaña: sin esto, IndexedStack cambia
   // de pantalla de golpe, sin ninguna transición, lo que se siente
@@ -72,7 +95,15 @@ class _MainShellState extends State<MainShell>
     );
 
     final tabs = [
-      HomeTab(onNavigateTab: selectTab),
+      HomeTab(
+        onNavigateTab: selectTab,
+        tourNotifKey: _tourNotifKey,
+        tourSettingsKey: _tourSettingsKey,
+        tourNewGameKey: _tourNewGameKey,
+        tourAddPlayerKey: _tourAddPlayerKey,
+        tourHistoryKey: _tourHistoryKey,
+        tourPlayersKey: _tourPlayersQuickActionKey,
+      ),
       StatsScreen(key: ValueKey('stats-$_statsVisitKey')),
       if (!isGuest)
         CertificadosTab(key: ValueKey('certificados-$_certificadosVisitKey')),
@@ -81,41 +112,92 @@ class _MainShellState extends State<MainShell>
     ];
     if (_index >= tabs.length) _index = tabs.length - 1;
 
-    return Scaffold(
-      body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: selectTab,
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_rounded),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Inicio',
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        if (!_tourTriggered) {
+          _tourTriggered = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            final seen = await _onboardingService.hasSeenHomeTour();
+            if (seen || !mounted) return;
+            ShowCaseWidget.of(showcaseContext).startShowCase([
+              _tourNotifKey,
+              _tourSettingsKey,
+              _tourNewGameKey,
+              _tourAddPlayerKey,
+              _tourHistoryKey,
+              _tourPlayersQuickActionKey,
+              _tourStatsTabKey,
+              if (!isGuest) _tourCertificadosTabKey,
+              if (!isGuest) _tourRulesTabKey,
+              _tourLigaTabKey,
+            ]);
+            await _onboardingService.markHomeTourSeen();
+          });
+        }
+        return Scaffold(
+          body: IndexedStack(index: _index, children: tabs),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: selectTab,
+            destinations: [
+              const NavigationDestination(
+                icon: Icon(Icons.home_rounded),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Inicio',
+              ),
+              NavigationDestination(
+                icon: maybeShowcase(
+                  key: _tourStatsTabKey,
+                  title: 'Estadísticas',
+                  description:
+                      'El ranking de la liga: quién va ganando este mes, '
+                      'porcentajes y récords de cada jugador.',
+                  child: const Icon(Icons.emoji_events_outlined),
+                ),
+                selectedIcon: const Icon(Icons.emoji_events_rounded),
+                label: 'Estadísticas',
+              ),
+              if (!isGuest)
+                NavigationDestination(
+                  icon: maybeShowcase(
+                    key: _tourCertificadosTabKey,
+                    title: 'Certificados',
+                    description:
+                        'El campeón (y el subcampeón) de cada mes, con su '
+                        'certificado listo para descargar, imprimir o '
+                        'compartir.',
+                    child: const Icon(Icons.workspace_premium_outlined),
+                  ),
+                  selectedIcon: const Icon(Icons.workspace_premium_rounded),
+                  label: 'Certificados',
+                ),
+              if (!isGuest)
+                NavigationDestination(
+                  icon: maybeShowcase(
+                    key: _tourRulesTabKey,
+                    title: 'Reglas',
+                    description: 'Las reglas de la liga, siempre a la mano.',
+                    child: const Icon(Icons.rule_outlined),
+                  ),
+                  selectedIcon: const Icon(Icons.rule),
+                  label: 'Reglas',
+                ),
+              NavigationDestination(
+                icon: maybeShowcase(
+                  key: _tourLigaTabKey,
+                  title: 'Liga',
+                  description:
+                      'Todos los jugadores de la liga — agrégalos, '
+                      'edítalos o márcalos inactivos desde aquí.',
+                  child: const Icon(Icons.groups_outlined),
+                ),
+                selectedIcon: const Icon(Icons.groups_rounded),
+                label: 'Liga',
+              ),
+            ],
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events_rounded),
-            label: 'Estadísticas',
-          ),
-          if (!isGuest)
-            const NavigationDestination(
-              icon: Icon(Icons.workspace_premium_outlined),
-              selectedIcon: Icon(Icons.workspace_premium_rounded),
-              label: 'Certificados',
-            ),
-          if (!isGuest)
-            const NavigationDestination(
-              icon: Icon(Icons.rule_outlined),
-              selectedIcon: Icon(Icons.rule),
-              label: 'Reglas',
-            ),
-          const NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: 'Liga',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
