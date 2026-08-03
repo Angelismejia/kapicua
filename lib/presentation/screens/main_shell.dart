@@ -8,7 +8,6 @@ import 'package:showcaseview/showcaseview.dart';
 
 import '../../domain/entities/guest_session.dart';
 import '../services/onboarding_service.dart';
-import '../widgets/showcase_helper.dart';
 import 'certificados_tab.dart';
 import 'home_tab.dart';
 import 'players_screen.dart';
@@ -34,18 +33,19 @@ class _MainShellState extends State<MainShell>
   int _certificadosVisitKey = 0;
 
   // Tour de bienvenida (solo la primera vez, por dispositivo): recorre
-  // Inicio y luego la barra de abajo, explicando qué es cada cosa —
-  // incluyendo cómo jugar una partida, que es lo más importante.
+  // Inicio explicando qué es cada cosa, incluyendo cómo jugar una
+  // partida, que es lo más importante. La barra de abajo (Estadísticas,
+  // Certificados, Reglas, Liga) NO se señala con Showcase a propósito:
+  // NavigationBar de Material 3 duplica internamente el widget del
+  // ícono para animar el indicador, y usar la misma GlobalKey en dos
+  // lugares a la vez rompe todo el recorrido en silencio. En su lugar,
+  // al terminar el recorrido de Inicio se muestra un resumen en texto.
   final _tourNotifKey = GlobalKey();
   final _tourSettingsKey = GlobalKey();
   final _tourNewGameKey = GlobalKey();
   final _tourAddPlayerKey = GlobalKey();
   final _tourHistoryKey = GlobalKey();
   final _tourPlayersQuickActionKey = GlobalKey();
-  final _tourStatsTabKey = GlobalKey();
-  final _tourCertificadosTabKey = GlobalKey();
-  final _tourRulesTabKey = GlobalKey();
-  final _tourLigaTabKey = GlobalKey();
   final _onboardingService = OnboardingService();
   bool _tourTriggered = false;
 
@@ -138,10 +138,6 @@ class _MainShellState extends State<MainShell>
               _tourAddPlayerKey,
               _tourHistoryKey,
               _tourPlayersQuickActionKey,
-              _tourStatsTabKey,
-              if (!isGuest) _tourCertificadosTabKey,
-              if (!isGuest) _tourRulesTabKey,
-              _tourLigaTabKey,
             ]);
             await _onboardingService.markHomeTourSeen();
           });
@@ -157,59 +153,108 @@ class _MainShellState extends State<MainShell>
                 selectedIcon: Icon(Icons.home_rounded),
                 label: 'Inicio',
               ),
-              NavigationDestination(
-                icon: maybeShowcase(
-                  key: _tourStatsTabKey,
-                  title: 'Estadísticas',
-                  description:
-                      'El ranking de la liga: quién va ganando este mes, '
-                      'porcentajes y récords de cada jugador.',
-                  child: const Icon(Icons.emoji_events_outlined),
-                ),
-                selectedIcon: const Icon(Icons.emoji_events_rounded),
+              const NavigationDestination(
+                icon: Icon(Icons.emoji_events_outlined),
+                selectedIcon: Icon(Icons.emoji_events_rounded),
                 label: 'Estadísticas',
               ),
               if (!isGuest)
-                NavigationDestination(
-                  icon: maybeShowcase(
-                    key: _tourCertificadosTabKey,
-                    title: 'Certificados',
-                    description:
-                        'El campeón (y el subcampeón) de cada mes, con su '
-                        'certificado listo para descargar, imprimir o '
-                        'compartir.',
-                    child: const Icon(Icons.workspace_premium_outlined),
-                  ),
-                  selectedIcon: const Icon(Icons.workspace_premium_rounded),
+                const NavigationDestination(
+                  icon: Icon(Icons.workspace_premium_outlined),
+                  selectedIcon: Icon(Icons.workspace_premium_rounded),
                   label: 'Certificados',
                 ),
               if (!isGuest)
-                NavigationDestination(
-                  icon: maybeShowcase(
-                    key: _tourRulesTabKey,
-                    title: 'Reglas',
-                    description: 'Las reglas de la liga, siempre a la mano.',
-                    child: const Icon(Icons.rule_outlined),
-                  ),
-                  selectedIcon: const Icon(Icons.rule),
+                const NavigationDestination(
+                  icon: Icon(Icons.rule_outlined),
+                  selectedIcon: Icon(Icons.rule),
                   label: 'Reglas',
                 ),
-              NavigationDestination(
-                icon: maybeShowcase(
-                  key: _tourLigaTabKey,
-                  title: 'Liga',
-                  description:
-                      'Todos los jugadores de la liga — agrégalos, '
-                      'edítalos o márcalos inactivos desde aquí.',
-                  child: const Icon(Icons.groups_outlined),
-                ),
-                selectedIcon: const Icon(Icons.groups_rounded),
+              const NavigationDestination(
+                icon: Icon(Icons.groups_outlined),
+                selectedIcon: Icon(Icons.groups_rounded),
                 label: 'Liga',
               ),
             ],
           ),
         );
       },
+      onFinish: () => _showBottomTabsSummary(isGuest),
+    );
+  }
+
+  /// Resumen en texto de la barra de abajo, mostrado al terminar el
+  /// recorrido de Inicio (ver comentario arriba de por qué no se señala
+  /// con Showcase directamente).
+  void _showBottomTabsSummary(bool isGuest) {
+    final context = this.context;
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Un vistazo rápido más'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Abajo en la barra tienes:'),
+            const SizedBox(height: 12),
+            _tabSummaryRow(
+              Icons.emoji_events_outlined,
+              'Estadísticas',
+              'El ranking de la liga: quién va ganando este mes, '
+                  'porcentajes y récords.',
+            ),
+            if (!isGuest) ...[
+              const SizedBox(height: 10),
+              _tabSummaryRow(
+                Icons.workspace_premium_outlined,
+                'Certificados',
+                'El campeón (y el subcampeón) de cada mes, con su '
+                    'certificado para descargar, imprimir o compartir.',
+              ),
+              const SizedBox(height: 10),
+              _tabSummaryRow(
+                Icons.rule_outlined,
+                'Reglas',
+                'Las reglas de la liga, siempre a la mano.',
+              ),
+            ],
+            const SizedBox(height: 10),
+            _tabSummaryRow(
+              Icons.groups_outlined,
+              'Liga',
+              'Todos los jugadores — agrégalos, edítalos o márcalos '
+                  'inactivos desde aquí.',
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Listo'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabSummaryRow(IconData icon, String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(description, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
