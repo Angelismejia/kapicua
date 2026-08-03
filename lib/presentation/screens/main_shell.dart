@@ -119,6 +119,18 @@ class _MainShellState extends State<MainShell>
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             final seen = await _onboardingService.hasSeenHomeTour();
             if (seen || !mounted) return;
+            // Inicio empieza mostrando su propio círculo de carga
+            // mientras llegan los datos de Firestore — hay que esperar a
+            // que ya esté el contenido real (los botones que se van a
+            // señalar) antes de arrancar el recorrido, si no, no
+            // encuentra dónde apuntar y no aparece nada.
+            var attempts = 0;
+            while (_tourNotifKey.currentContext == null && attempts < 50) {
+              await Future.delayed(const Duration(milliseconds: 100));
+              attempts++;
+              if (!mounted) return;
+            }
+            if (_tourNotifKey.currentContext == null) return;
             ShowCaseWidget.of(showcaseContext).startShowCase([
               _tourNotifKey,
               _tourSettingsKey,
