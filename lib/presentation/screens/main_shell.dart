@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// ShowCaseWidget/of/startShowCase están deprecados en showcaseview 5.x a
-// favor de ShowcaseView.register()/get() (se quitan recién en 6.0.0);
-// siguen funcionando igual mientras tanto, se ignora a propósito.
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../domain/entities/guest_session.dart';
@@ -47,7 +43,6 @@ class _MainShellState extends State<MainShell>
   final _tourHistoryKey = GlobalKey();
   final _tourPlayersQuickActionKey = GlobalKey();
   final _onboardingService = OnboardingService();
-  bool _tourTriggered = false;
 
   // Fundido suave al cambiar de pestaña: sin esto, IndexedStack cambia
   // de pantalla de golpe, sin ninguna transición, lo que se siente
@@ -59,8 +54,35 @@ class _MainShellState extends State<MainShell>
   );
 
   @override
+  void initState() {
+    super.initState();
+    final isGuest = context.read<GuestSession>().isGuest;
+    // API vigente de showcaseview 5.x: a diferencia de versiones
+    // anteriores, ya no hace falta envolver el árbol en ShowCaseWidget —
+    // ShowcaseView.register() es un registro global, y las GlobalKey que
+    // se le pasan a Showcase() ya no se pegan al widget real (por eso
+    // key.currentContext no sirve para saber si ya está montado). El
+    // paquete se encarga de esperar solo.
+    ShowcaseView.register(onFinish: () => _showBottomTabsSummary(isGuest));
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final seen = await _onboardingService.hasSeenHomeTour();
+      if (seen || !mounted) return;
+      ShowcaseView.get().startShowCase([
+        _tourNotifKey,
+        _tourSettingsKey,
+        _tourNewGameKey,
+        _tourAddPlayerKey,
+        _tourHistoryKey,
+        _tourPlayersQuickActionKey,
+      ]);
+      await _onboardingService.markHomeTourSeen();
+    });
+  }
+
+  @override
   void dispose() {
     _fadeController.dispose();
+    ShowcaseView.get().unregister();
     super.dispose();
   }
 
@@ -112,74 +134,41 @@ class _MainShellState extends State<MainShell>
     ];
     if (_index >= tabs.length) _index = tabs.length - 1;
 
-    return ShowCaseWidget(
-      builder: (showcaseContext) {
-        if (!_tourTriggered) {
-          _tourTriggered = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            final seen = await _onboardingService.hasSeenHomeTour();
-            if (seen || !mounted) return;
-            // Inicio empieza mostrando su propio círculo de carga
-            // mientras llegan los datos de Firestore — hay que esperar a
-            // que ya esté el contenido real (los botones que se van a
-            // señalar) antes de arrancar el recorrido, si no, no
-            // encuentra dónde apuntar y no aparece nada.
-            var attempts = 0;
-            while (_tourNotifKey.currentContext == null && attempts < 1200) {
-              await Future.delayed(const Duration(milliseconds: 100));
-              attempts++;
-              if (!mounted) return;
-            }
-            if (_tourNotifKey.currentContext == null) return;
-            ShowCaseWidget.of(showcaseContext).startShowCase([
-              _tourNotifKey,
-              _tourSettingsKey,
-              _tourNewGameKey,
-              _tourAddPlayerKey,
-              _tourHistoryKey,
-              _tourPlayersQuickActionKey,
-            ]);
-            await _onboardingService.markHomeTourSeen();
-          });
-        }
-        return Scaffold(
-          body: IndexedStack(index: _index, children: tabs),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: selectTab,
-            destinations: [
-              const NavigationDestination(
-                icon: Icon(Icons.home_rounded),
-                selectedIcon: Icon(Icons.home_rounded),
-                label: 'Inicio',
-              ),
-              const NavigationDestination(
-                icon: Icon(Icons.emoji_events_outlined),
-                selectedIcon: Icon(Icons.emoji_events_rounded),
-                label: 'Estadísticas',
-              ),
-              if (!isGuest)
-                const NavigationDestination(
-                  icon: Icon(Icons.workspace_premium_outlined),
-                  selectedIcon: Icon(Icons.workspace_premium_rounded),
-                  label: 'Certificados',
-                ),
-              if (!isGuest)
-                const NavigationDestination(
-                  icon: Icon(Icons.rule_outlined),
-                  selectedIcon: Icon(Icons.rule),
-                  label: 'Reglas',
-                ),
-              const NavigationDestination(
-                icon: Icon(Icons.groups_outlined),
-                selectedIcon: Icon(Icons.groups_rounded),
-                label: 'Liga',
-              ),
-            ],
+    return Scaffold(
+      body: IndexedStack(index: _index, children: tabs),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: selectTab,
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.home_rounded),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Inicio',
           ),
-        );
-      },
-      onFinish: () => _showBottomTabsSummary(isGuest),
+          const NavigationDestination(
+            icon: Icon(Icons.emoji_events_outlined),
+            selectedIcon: Icon(Icons.emoji_events_rounded),
+            label: 'Estadísticas',
+          ),
+          if (!isGuest)
+            const NavigationDestination(
+              icon: Icon(Icons.workspace_premium_outlined),
+              selectedIcon: Icon(Icons.workspace_premium_rounded),
+              label: 'Certificados',
+            ),
+          if (!isGuest)
+            const NavigationDestination(
+              icon: Icon(Icons.rule_outlined),
+              selectedIcon: Icon(Icons.rule),
+              label: 'Reglas',
+            ),
+          const NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups_rounded),
+            label: 'Liga',
+          ),
+        ],
+      ),
     );
   }
 
@@ -187,7 +176,6 @@ class _MainShellState extends State<MainShell>
   /// recorrido de Inicio (ver comentario arriba de por qué no se señala
   /// con Showcase directamente).
   void _showBottomTabsSummary(bool isGuest) {
-    final context = this.context;
     if (!mounted) return;
     showDialog(
       context: context,
