@@ -35,10 +35,20 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter build web --release
+      # El PIN familiar se saca de un secret (nunca del código, para que
+      # no quede escrito en este repo público) — ver kFamilyPin en
+      # family_gate_screen.dart. Omitir este flag no da error: cae
+      # calladito al valor por defecto '0000' y rompe el ingreso
+      # familiar sin ningún aviso.
+      - run: flutter build web --release --dart-define=FAMILY_PIN=${{ secrets.FAMILY_PIN }}
 
       - run: npm install -g firebase-tools
 
-      - run: firebase deploy --only hosting --project kapicua-domino --token "$FIREBASE_TOKEN"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      # Firebase descontinuó "firebase login:ci" / "--token" como forma
+      # de autenticar el deploy desde CI; el reemplazo oficial es
+      # autenticar con una cuenta de servicio de Google Cloud.
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - run: firebase deploy --only hosting --project kapicua-domino --non-interactive
