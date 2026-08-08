@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
@@ -43,6 +45,7 @@ class _MainShellState extends State<MainShell>
   final _tourHistoryKey = GlobalKey();
   final _tourPlayersQuickActionKey = GlobalKey();
   final _onboardingService = OnboardingService();
+  Timer? _tourWaitTimer;
 
   // Fundido suave al cambiar de pestaña: sin esto, IndexedStack cambia
   // de pantalla de golpe, sin ninguna transición, lo que se siente
@@ -61,26 +64,59 @@ class _MainShellState extends State<MainShell>
     // anteriores, ya no hace falta envolver el árbol en ShowCaseWidget —
     // ShowcaseView.register() es un registro global, y las GlobalKey que
     // se le pasan a Showcase() ya no se pegan al widget real (por eso
-    // key.currentContext no sirve para saber si ya está montado). El
-    // paquete se encarga de esperar solo.
+    // key.currentContext no sirve para saber si ya está montado).
     ShowcaseView.register(onFinish: () => _showBottomTabsSummary(isGuest));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final seen = await _onboardingService.hasSeenHomeTour();
       if (seen || !mounted) return;
-      ShowcaseView.get().startShowCase([
-        _tourNotifKey,
-        _tourSettingsKey,
-        _tourNewGameKey,
-        _tourAddPlayerKey,
-        _tourHistoryKey,
-        _tourPlayersQuickActionKey,
-      ]);
-      await _onboardingService.markHomeTourSeen();
+      _waitForHomeTabAndStartTour();
+    });
+  }
+
+  /// El paquete NO espera solo a que el objetivo esté montado (eso era
+  /// un error de la vez pasada): `startShowCase` con delay cero arranca
+  /// de inmediato, y en Inicio los widgets señalados (notificaciones,
+  /// "Nueva partida", etc.) ni existen todavía mientras los 3 streams de
+  /// Firestore (jugadores, partidas activas, estadísticas) no hayan
+  /// entregado su primer dato — hasta entonces Inicio solo muestra un
+  /// loader. Por eso el tour nunca aparecía (o aparecía roto) al entrar
+  /// recién, que es justo cuando más tarda Firestore en responder.
+  //
+  // Se resuelve con isTargetRendered (la forma vigente del paquete para
+  // esto, documentada junto a startShowCase): se revisa cada 200ms si
+  // ya existe el primer objetivo del tour, y solo entonces se arranca.
+  // Si Inicio nunca termina de cargar (sin conexión, por ejemplo), se
+  // desiste a los 30s en vez de seguir revisando para siempre.
+  void _waitForHomeTabAndStartTour() {
+    const checkInterval = Duration(milliseconds: 200);
+    const maxWait = Duration(seconds: 30);
+    var waited = Duration.zero;
+    _tourWaitTimer = Timer.periodic(checkInterval, (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (ShowcaseView.get().isTargetRendered(_tourNotifKey)) {
+        timer.cancel();
+        ShowcaseView.get().startShowCase([
+          _tourNotifKey,
+          _tourSettingsKey,
+          _tourNewGameKey,
+          _tourAddPlayerKey,
+          _tourHistoryKey,
+          _tourPlayersQuickActionKey,
+        ]);
+        _onboardingService.markHomeTourSeen();
+        return;
+      }
+      waited += checkInterval;
+      if (waited >= maxWait) timer.cancel();
     });
   }
 
   @override
   void dispose() {
+    _tourWaitTimer?.cancel();
     _fadeController.dispose();
     ShowcaseView.get().unregister();
     super.dispose();
