@@ -40,7 +40,7 @@ class RunnerUpCertificateWidget extends StatelessWidget {
             left: RunnerUpCertificatePositions.nameBoxLeft,
             width: RunnerUpCertificatePositions.nameBoxWidth,
             height: RunnerUpCertificatePositions.nameBoxHeight,
-            child: Container(color: Colors.white),
+            child: Container(color: RunnerUpCertificatePositions.coverColor),
           ),
           // Tapa el párrafo de ejemplo del diseño original
           Positioned(
@@ -48,7 +48,7 @@ class RunnerUpCertificateWidget extends StatelessWidget {
             left: RunnerUpCertificatePositions.paragraphBoxLeft,
             width: RunnerUpCertificatePositions.paragraphBoxWidth,
             height: RunnerUpCertificatePositions.paragraphBoxHeight,
-            child: Container(color: Colors.white),
+            child: Container(color: RunnerUpCertificatePositions.coverColor),
           ),
           Positioned(
             top: RunnerUpCertificatePositions.nameBoxTop,

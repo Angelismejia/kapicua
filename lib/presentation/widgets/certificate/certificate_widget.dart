@@ -42,7 +42,7 @@ class CertificateWidget extends StatelessWidget {
             left: CertificatePositions.nameBoxLeft,
             width: CertificatePositions.nameBoxWidth,
             height: CertificatePositions.nameBoxHeight,
-            child: Container(color: const Color(0xFFFDFCF8)),
+            child: Container(color: CertificatePositions.coverColor),
           ),
           // Tapa el párrafo de ejemplo del diseño original
           Positioned(
@@ -50,7 +50,7 @@ class CertificateWidget extends StatelessWidget {
             left: CertificatePositions.paragraphBoxLeft,
             width: CertificatePositions.paragraphBoxWidth,
             height: CertificatePositions.paragraphBoxHeight,
-            child: Container(color: const Color(0xFFFDFCF8)),
+            child: Container(color: CertificatePositions.coverColor),
           ),
           Positioned(
             top: CertificatePositions.nameBoxTop,
@@ -89,23 +89,30 @@ class CertificateWidget extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: CertificatePositions.paragraphFontFamily,
                       fontSize: CertificatePositions.paragraphFontSize,
+                      height: CertificatePositions.paragraphLineHeight,
                       color: CertificatePositions.bodyTextColor,
                     ),
                     children: [
                       const TextSpan(
                         text:
-                            'Por su sobresaliente desempeño el Torneo de Dominó de ',
+                            'Por su sobresaliente desempeño en el Torneo de Dominó de ',
                       ),
                       TextSpan(
                         text: monthLabel,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: CertificatePositions.accentColor,
+                        ),
                       ),
                       const TextSpan(
                         text: ', logrando un impresionante puntaje de ',
                       ),
                       TextSpan(
                         text: '$totalScore puntos',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: CertificatePositions.accentColor,
+                        ),
                       ),
                       const TextSpan(
                         text:
@@ -117,7 +124,7 @@ class CertificateWidget extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 const Text(
                   '¡Felicidades, campeón!',
                   textAlign: TextAlign.center,

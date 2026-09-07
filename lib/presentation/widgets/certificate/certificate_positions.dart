@@ -13,6 +13,10 @@ class CertificatePositions {
   static const Color accentColor = Color(0xFF16302A);
   static const Color bodyTextColor = Color(0xFF1A1A22);
 
+  /// Tono exacto del fondo de la plantilla, para que los recuadros que tapan
+  /// el texto de ejemplo no se noten.
+  static const Color coverColor = Color(0xFFFDFCF8);
+
   static const double nameBoxTop = 388;
   static const double nameBoxLeft = 260;
   static const double nameBoxWidth = 970;
@@ -38,7 +42,10 @@ class CertificatePositions {
   static const double paragraphBoxWidth = 970;
   static const double paragraphBoxHeight = 228;
   static const String paragraphFontFamily = 'AlegreyaSans';
-  static const double paragraphFontSize = 20;
+  // 20 quedaba mucho más chico que el párrafo impreso en la plantilla; 24 con
+  // este interlineado deja las mismas 4 líneas aireadas del diseño original.
+  static const double paragraphFontSize = 24;
+  static const double paragraphLineHeight = 1.45;
 }
 
 /// Medidas de assets/subcampeon.png (1536x1024), tomadas a mano sobre la
@@ -51,6 +58,11 @@ class RunnerUpCertificatePositions {
 
   static const Color accentColor = Color(0xFF0A285C);
   static const Color bodyTextColor = Color(0xFF161814);
+
+  /// El fondo de subcampeon.png es un gris casi blanco, no blanco puro: con
+  /// Colors.white los recuadros que tapan el texto de ejemplo se veían como
+  /// parches más claros.
+  static const Color coverColor = Color(0xFFFCFCFC);
 
   static const double nameBoxTop = 380;
   static const double nameBoxLeft = 300;
