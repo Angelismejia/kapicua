@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../domain/entities/guest_session.dart';
@@ -29,12 +31,72 @@ class FirestoreStatsRepository implements StatsRepository {
 
   @override
   Stream<List<PlayerStatEntry>> watchAllStatEntries() {
+    if (_collections.session.isGuest) return _watchGuestStatEntries();
     return _db.collectionGroup('statEntries').snapshots().map((snap) {
-      return snap.docs.map((d) {
-        final playerId = d.reference.parent.parent!.id;
-        return PlayerStatEntryDto.fromMap(d.id, playerId, d.data());
-      }).toList();
+      return snap.docs
+          // La consulta "collection group" busca en TODA la base, así
+          // que también trae lo de los espacios de invitados — eso no
+          // es parte de la liga de la familia.
+          .where((d) => !d.reference.path.startsWith('guestSpaces/'))
+          .map((d) {
+            final playerId = d.reference.parent.parent!.id;
+            return PlayerStatEntryDto.fromMap(d.id, playerId, d.data());
+          })
+          .toList();
     });
+  }
+
+  /// Un invitado no puede usar la consulta "collection group" (esa trae
+  /// las ganadas/perdidas de toda la familia y de todos los demás
+  /// invitados: lento, y además son datos que no le tocan ver). En su
+  /// lugar escucha la subcolección de cada uno de sus propios jugadores
+  /// y las junta en una sola lista. Siempre entrega algo (aunque sea una
+  /// lista vacía) apenas carga, para que Inicio no se quede esperando
+  /// cuando el invitado todavía no tiene jugadores.
+  Stream<List<PlayerStatEntry>> _watchGuestStatEntries() {
+    final entriesByPlayer = <String, List<PlayerStatEntry>>{};
+    final entrySubs = <String, StreamSubscription<List<PlayerStatEntry>>>{};
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? playersSub;
+    late final StreamController<List<PlayerStatEntry>> controller;
+
+    void emit() {
+      // Solo cuando ya respondieron todos los jugadores, para no mostrar
+      // por un instante estadísticas a medias.
+      if (entriesByPlayer.length != entrySubs.length) return;
+      controller.add([for (final list in entriesByPlayer.values) ...list]);
+    }
+
+    controller = StreamController<List<PlayerStatEntry>>(
+      onListen: () {
+        playersSub = _collections.players.snapshots().listen((snap) {
+          final ids = snap.docs.map((d) => d.id).toSet();
+          for (final id in entrySubs.keys.toList()) {
+            if (ids.contains(id)) continue;
+            entrySubs.remove(id)!.cancel();
+            entriesByPlayer.remove(id);
+          }
+          for (final id in ids) {
+            entrySubs.putIfAbsent(
+              id,
+              () => watchPlayerStatEntries(id).listen((entries) {
+                entriesByPlayer[id] = entries;
+                emit();
+              }, onError: controller.addError),
+            );
+          }
+          emit();
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await playersSub?.cancel();
+        for (final sub in entrySubs.values) {
+          await sub.cancel();
+        }
+        entrySubs.clear();
+        entriesByPlayer.clear();
+      },
+    );
+    return controller.stream;
   }
 
   @override
