@@ -109,7 +109,10 @@ class _MainShellState extends State<MainShell>
         timer.cancel();
         return;
       }
-      if (ShowcaseView.get().isTargetRendered(_tourNotifKey)) {
+      // Solo si sigue parado en Inicio: si mientras cargaba ya se fue a
+      // otra pestaña, el recorrido saldría encima de esa otra pantalla
+      // señalando cosas que no se ven. Se sigue esperando a que vuelva.
+      if (_index == 0 && ShowcaseView.get().isTargetRendered(_tourNotifKey)) {
         timer.cancel();
         ShowcaseView.get().startShowCase([
           _tourNotifKey,
