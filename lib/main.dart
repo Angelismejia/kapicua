@@ -48,6 +48,16 @@ Future<void> main() async {
   // widgets, para que sea explícito qué implementación concreta usa
   // cada interfaz — este es el único archivo que conoce Firebase.
   final db = FirebaseFirestore.instance;
+  // En Android Firestore guarda una copia local de los datos por
+  // defecto, pero en web no: sin esto, cada vez que se abre la app se
+  // vuelven a descargar desde cero todos los jugadores, partidas y cada
+  // ganada/perdida de la historia de la liga antes de poder mostrar
+  // Inicio (cada vez más lento a medida que crece la liga). Con la
+  // copia local, Inicio aparece de una vez con lo último guardado y
+  // Firestore solo baja lo que cambió desde la última visita.
+  if (kIsWeb) {
+    db.settings = const Settings(persistenceEnabled: true);
+  }
   final guestSession = GuestSession();
   final authRepository = FirebaseAuthRepository();
   final playerRepository = FirestorePlayerRepository(db, guestSession);
