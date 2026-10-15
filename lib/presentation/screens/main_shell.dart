@@ -23,6 +23,18 @@ class _MainShellState extends State<MainShell>
     with SingleTickerProviderStateMixin {
   int _index = 0;
 
+  // ShowcaseView.register() es un registro global (uno solo para toda
+  // la app), y justo al entrar puede haber DOS MainShell vivos a la vez
+  // por un instante: el que abre la pantalla de login con
+  // pushReplacement y el que arma el StreamBuilder de main.dart cuando
+  // authStateChanges() avisa. Si el primero en cerrarse llamaba
+  // unregister(), le borraba el registro al que se quedaba, y todos los
+  // Showcase de Inicio fallaban al dibujarse ("No ShowcaseView is
+  // registered") — en la versión publicada eso se veía como la pantalla
+  // en blanco (sobre todo al entrar como invitado). Por eso solo se
+  // quita el registro cuando ya no queda ningún MainShell vivo.
+  static int _aliveShells = 0;
+
   // Cada vez que se sale y se vuelve a entrar a Estadísticas o
   // Certificados, se les da una llave nueva para que empiecen de cero
   // (mes actual) en vez de quedarse pegadas en el mes que se dejó
@@ -59,6 +71,7 @@ class _MainShellState extends State<MainShell>
   @override
   void initState() {
     super.initState();
+    _aliveShells++;
     final isGuest = context.read<GuestSession>().isGuest;
     // API vigente de showcaseview 5.x: a diferencia de versiones
     // anteriores, ya no hace falta envolver el árbol en ShowCaseWidget —
@@ -118,7 +131,8 @@ class _MainShellState extends State<MainShell>
   void dispose() {
     _tourWaitTimer?.cancel();
     _fadeController.dispose();
-    ShowcaseView.get().unregister();
+    _aliveShells--;
+    if (_aliveShells == 0) ShowcaseView.get().unregister();
     super.dispose();
   }
 
