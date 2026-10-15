@@ -81,9 +81,13 @@ service cloud.firestore {
 
     // Regla aparte (con comodin) para las consultas "collection group" de
     // statEntries (buscan en todas las subcolecciones a la vez): la regla
-    // anidada de arriba no alcanza a cubrir ese tipo de consulta.
+    // anidada de arriba no alcanza a cubrir ese tipo de consulta. Solo
+    // para la familia: esta consulta trae las estadisticas de TODOS (la
+    // familia y cada invitado), y un invitado anonimo no tiene por que
+    // verlas — el invitado lee las suyas directo de su propio espacio
+    // (cubierto por la regla de guestSpaces).
     match /{path=**}/statEntries/{entryId} {
-      allow read: if request.auth != null;
+      allow read: if isFamilyMember();
       allow write: if isAdmin();
     }
 
